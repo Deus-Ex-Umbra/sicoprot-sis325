@@ -1,12 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne } from 'typeorm';
 import { Rol } from '../enums/rol.enum';
-import { Proyecto } from '../../proyectos/entidades/proyecto.endidad';
-import { Observacion } from '../../observaciones/entidades/observacion.entidad';
+import { Estudiante } from '../../estudiantes/entidades/estudiante.entidad';
+import { Asesor } from '../../asesores/entidades/asesor.entidad';
 
 @Entity('usuarios')
 export class Usuario {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({ type: 'varchar', length: 255, unique: true })
   correo: string;
@@ -17,24 +17,15 @@ export class Usuario {
   @Column({ type: 'enum', enum: Rol, default: Rol.Estudiante })
   rol: Rol;
 
-  @Column({ type: 'varchar', length: 100 })
-  nombre: string;
-
-  @Column({ type: 'varchar', length: 100 })
-  apellido: string;
-
   @CreateDateColumn({ name: 'creado_en', type: 'timestamp' })
-  creadoEn: Date;
+  creado_en: Date;
 
   @UpdateDateColumn({ name: 'actualizado_en', type: 'timestamp' })
-  actualizadoEn: Date;
+  actualizado_en: Date;
 
-  @OneToMany(() => Proyecto, (proyecto) => proyecto.estudiante)
-  proyectos: Proyecto[];
+  @OneToOne(() => Estudiante, (estudiante) => estudiante.usuario)
+  estudiante: Estudiante;
 
-  @OneToMany(() => Proyecto, (proyecto) => proyecto.asesor)
-  proyectosAsesorados: Proyecto[];
-
-  @OneToMany(() => Observacion, (observacion) => observacion.autor)
-  observacionesRealizadas: Observacion[];
+  @OneToOne(() => Asesor, (asesor) => asesor.usuario)
+  asesor: Asesor;
 }

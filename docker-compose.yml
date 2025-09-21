@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: sicoprot_postgres_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: sigeprot_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dbs_network
+
+volumes:
+  postgres_data:
+
+networks:
+  dbs_network:
+    name: dbs_network
+    external: true

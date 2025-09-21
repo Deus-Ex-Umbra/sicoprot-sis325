@@ -6,6 +6,9 @@ import { UsuariosModule } from './modulos/usuarios/usuarios.modulo';
 import { ProyectosModule } from './modulos/proyectos/proyectos.modulo';
 import { DocumentosModule } from './modulos/documentos/documentos.modulo';
 import { ObservacionesModule } from './modulos/observaciones/observaciones.modulo';
+import { CorreccionesModule } from './modulos/correcciones/correcciones.modulo';
+import { EstudiantesModule } from './modulos/estudiantes/estudiantes.modulo';
+import { AsesoresModule } from './modulos/asesores/asesores.modulo';
 
 @Module({
   imports: [
@@ -27,6 +30,9 @@ import { ObservacionesModule } from './modulos/observaciones/observaciones.modul
     ProyectosModule,
     DocumentosModule,
     ObservacionesModule,
+    CorreccionesModule,
+    EstudiantesModule,
+    AsesoresModule,
   ],
   controllers: [],
   providers: [],

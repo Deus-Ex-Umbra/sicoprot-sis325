@@ -1,21 +1,53 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Documento } from '../../documentos/entidades/documento.entidad';
-import { Usuario } from '../../usuarios/entidades/usuario.entidad';
+import { Asesor } from '../../asesores/entidades/asesor.entidad';
+import { EstadoObservacion } from '../enums/estado-observacion.enum';
+import { Correccion } from '../../correcciones/entidades/correccion.entidad';
 
 @Entity('observaciones')
 export class Observacion {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column('text')
   contenido: string;
+  
+  @Column({ type: 'enum', enum: EstadoObservacion, default: EstadoObservacion.Pendiente })
+  estado: EstadoObservacion;
+  
+  @Column({ type: 'float' })
+  x_inicio: number;
+
+  @Column({ type: 'float' })
+  y_inicio: number;
+
+  @Column({ type: 'float' })
+  x_fin: number;
+
+  @Column({ type: 'float' })
+  y_fin: number;
+
+  @Column({ type: 'int' })
+  pagina_inicio: number;
+
+  @Column({ type: 'int' })
+  pagina_fin: number;
+
+  @Column({ type: 'boolean', default: false })
+  archivada: boolean;
 
   @CreateDateColumn({ name: 'fecha_creacion' })
-  fechaCreacion: Date;
+  fecha_creacion: Date;
+
+  @UpdateDateColumn({ name: 'fecha_actualizacion' })
+  fecha_actualizacion: Date;
 
   @ManyToOne(() => Documento, (documento) => documento.observaciones)
   documento: Documento;
 
-  @ManyToOne(() => Usuario, (usuario) => usuario.observacionesRealizadas, { eager: true })
-  autor: Usuario;
+  @ManyToOne(() => Asesor, (asesor) => asesor.observaciones_realizadas, { eager: true })
+  autor: Asesor;
+
+  @OneToOne(() => Correccion, (correccion) => correccion.observacion, { nullable: true })
+  correccion: Correccion;
 }

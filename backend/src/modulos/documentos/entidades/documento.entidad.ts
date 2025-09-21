@@ -4,8 +4,8 @@ import { Observacion } from '../../observaciones/entidades/observacion.entidad';
 
 @Entity('documentos')
 export class Documento {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column()
   nombre_archivo: string;
@@ -17,7 +17,7 @@ export class Documento {
   version: number;
 
   @CreateDateColumn({ name: 'fecha_subida' })
-  fechaSubida: Date;
+  fecha_subida: Date;
 
   @ManyToOne(() => Proyecto, (proyecto) => proyecto.documentos)
   proyecto: Proyecto;

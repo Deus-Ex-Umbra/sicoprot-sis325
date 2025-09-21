@@ -1,68 +1,309 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --color-fondo-principal: #1a1a1a;
+  --color-fondo-secundario: #2d2d2d;
+  --color-fondo-tarjeta: #242424;
+  --color-texto-principal: #e0e0e0;
+  --color-texto-secundario: #b0b0b0;
+  --color-acento: #4a90e2;
+  --color-acento-hover: #357abd;
+  --color-exito: #4caf50;
+  --color-error: #f44336;
+  --color-advertencia: #ff9800;
+  --color-borde: #404040;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--color-fondo-principal);
+  color: var(--color-texto-principal);
+  line-height: 1.6;
+}
+
+.login-page {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
   display: flex;
-  place-items: center;
-  min-width: 320px;
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.login-box {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
 }
 
-button {
+.login-logo {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.login-logo a {
+  color: var(--color-acento);
+  font-size: 2rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.card {
+  background-color: var(--color-fondo-tarjeta);
+  border: 1px solid var(--color-borde);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.card-body {
+  padding: 2rem;
+}
+
+.login-box-msg {
+  text-align: center;
+  color: var(--color-texto-secundario);
+  margin-bottom: 1.5rem;
+}
+
+.form-control {
+  background-color: var(--color-fondo-secundario);
+  border: 1px solid var(--color-borde);
+  color: var(--color-texto-principal);
+  padding: 12px;
   border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: all 0.3s ease;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.form-control:focus {
+  background-color: var(--color-fondo-secundario);
+  border-color: var(--color-acento);
+  color: var(--color-texto-principal);
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.form-control::placeholder {
+  color: var(--color-texto-secundario);
+  opacity: 0.7;
+}
+
+.btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-primary {
+  background-color: var(--color-acento);
+  border-color: var(--color-acento);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-acento-hover);
+  border-color: var(--color-acento-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(74, 144, 226, 0.3);
+}
+
+.btn-secondary {
+  background-color: var(--color-fondo-secundario);
+  border: 1px solid var(--color-borde);
+  color: var(--color-texto-principal);
+}
+
+.btn-secondary:hover {
+  background-color: #3a3a3a;
+  border-color: var(--color-acento);
+  color: var(--color-acento);
+}
+
+.btn-danger {
+  background-color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.btn-success {
+  background-color: var(--color-exito);
+  border-color: var(--color-exito);
+}
+
+.alert {
+  border-radius: 8px;
+  padding: 12px 16px;
+  border: none;
+}
+
+.alert-danger {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: var(--color-error);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.alert-success {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--color-exito);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+a {
+  color: var(--color-acento);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--color-acento-hover);
+  text-decoration: underline;
+}
+
+.wrapper {
+  min-height: 100vh;
+  background-color: var(--color-fondo-principal);
+}
+
+.content-wrapper {
+  background-color: var(--color-fondo-principal);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.navbar {
+  background-color: var(--color-fondo-tarjeta) !important;
+  border-bottom: 1px solid var(--color-borde);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar {
+  background-color: var(--color-fondo-secundario);
+  border-right: 1px solid var(--color-borde);
+}
+
+.documento-viewer {
+  background-color: var(--color-fondo-tarjeta);
+  border: 1px solid var(--color-borde);
+  border-radius: 12px;
+  padding: 20px;
+  height: 100%;
+}
+
+.observacion-card {
+  background-color: var(--color-fondo-secundario);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.observacion-card:hover {
+  border-color: var(--color-acento);
+  box-shadow: 0 3px 10px rgba(74, 144, 226, 0.2);
+}
+
+.observacion-pendiente {
+  border-left: 4px solid var(--color-advertencia);
+}
+
+.observacion-corregida {
+  border-left: 4px solid var(--color-exito);
+}
+
+.observacion-aprobada {
+  border-left: 4px solid var(--color-acento);
+}
+
+.pdf-page {
+  background-color: white;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.pdf-controls {
+  background-color: var(--color-fondo-secundario);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.annotation-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.annotation-marker {
+  position: absolute;
+  background-color: rgba(255, 235, 59, 0.3);
+  border: 2px solid #ffc107;
+  cursor: pointer;
+  pointer-events: all;
+  transition: all 0.3s ease;
+}
+
+.annotation-marker:hover {
+  background-color: rgba(255, 235, 59, 0.5);
+}
+
+.annotation-marker.correccion {
+  background-color: rgba(76, 175, 80, 0.3);
+  border-color: var(--color-exito);
+}
+
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+  border-width: 0.3rem;
+}
+
+.modal-content {
+  background-color: var(--color-fondo-tarjeta);
+  color: var(--color-texto-principal);
+  border: 1px solid var(--color-borde);
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--color-borde);
+}
+
+.toast {
+  background-color: var(--color-fondo-tarjeta);
+  color: var(--color-texto-principal);
+  border: 1px solid var(--color-borde);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-fondo-secundario);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-borde);
+  border-radius: 6px;
+  border: 3px solid var(--color-fondo-secundario);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-acento);
 }

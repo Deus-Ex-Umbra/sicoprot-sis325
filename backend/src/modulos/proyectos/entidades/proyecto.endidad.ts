@@ -1,23 +1,24 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn } from 'typeorm';
-import { Usuario } from '../../usuarios/entidades/usuario.entidad';
 import { Documento } from '../../documentos/entidades/documento.entidad';
+import { Estudiante } from '../../estudiantes/entidades/estudiante.entidad';
+import { Asesor } from '../../asesores/entidades/asesor.entidad';
 
 @Entity('proyectos')
 export class Proyecto {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({ type: 'varchar', length: 300 })
   titulo: string;
 
   @CreateDateColumn({ name: 'fecha_creacion' })
-  fechaCreacion: Date;
+  fecha_creacion: Date;
 
-  @ManyToOne(() => Usuario, (usuario) => usuario.proyectos, { eager: true })
-  estudiante: Usuario;
+  @ManyToOne(() => Estudiante, (estudiante) => estudiante.proyectos, { eager: true })
+  estudiante: Estudiante;
 
-  @ManyToOne(() => Usuario, (usuario) => usuario.proyectosAsesorados, { eager: true })
-  asesor: Usuario;
+  @ManyToOne(() => Asesor, (asesor) => asesor.proyectos_asesorados, { eager: true })
+  asesor: Asesor;
 
   @OneToMany(() => Documento, (documento) => documento.proyecto)
   documentos: Documento[];

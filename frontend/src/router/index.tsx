@@ -1,35 +1,99 @@
-import { createBrowserRouter } from 'react-router-dom';
-import AuthLayout from '../layouts/AuthLayout';
-import DashboardLayout from '../layouts/DashboardLayout';
-import IniciarSesion from '../pages/IniciarSesion';
-import Registro from '../pages/Registro';
-import Dashboard from '../pages/Dashboard';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import LayoutAutenticacion from '../layouts/LayoutAutenticacion';
+import LayoutPanel from '../layouts/LayoutPanel';
+import IniciarSesion from '../paginas/IniciarSesion';
+import Registro from '../paginas/Registro';
+import Panel from '../paginas/Panel';
+import Proyectos from '../paginas/Proyectos';
+import DetalleProyecto from '../paginas/DetalleProyecto';
+import MisDocumentos from '../paginas/MisDocumentos';
+import Observaciones from '../paginas/Observaciones';
+import MisEstudiantes from '../paginas/MisEstudiantes';
+import RevisarDocumentos from '../paginas/RevisarDocumentos';
+import RutaProtegida from '../componentes/RutaProtegida';
+import { Rol } from '../tipos/usuario';
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <AuthLayout />,
+    element: <Navigate to="/panel" replace />,
+  },
+  {
+    path: '/',
+    element: <LayoutAutenticacion />,
     children: [
       {
-        path: '/iniciar-sesion',
+        path: 'iniciar-sesion',
         element: <IniciarSesion />,
       },
       {
-        path: '/registrarse',
+        path: 'registrarse',
         element: <Registro />,
       },
     ],
   },
   {
     path: '/panel',
-    element: <DashboardLayout />,
+    element: (
+      <RutaProtegida>
+        <LayoutPanel />
+      </RutaProtegida>
+    ),
     children: [
       {
         index: true,
-        element: <Dashboard />,
-      }
-    ]
-  }
+        element: <Panel />,
+      },
+      {
+        path: 'proyectos',
+        element: <Proyectos />,
+      },
+      {
+        path: 'proyecto/:id',
+        element: <DetalleProyecto />,
+      },
+      {
+        path: 'mis-documentos',
+        element: (
+          <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
+            <MisDocumentos />
+          </RutaProtegida>
+        ),
+      },
+      {
+        path: 'observaciones',
+        element: (
+          <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
+            <Observaciones />
+          </RutaProtegida>
+        ),
+      },
+      {
+        path: 'estudiantes',
+        element: (
+          <RutaProtegida roles_permitidos={[Rol.Asesor]}>
+            <MisEstudiantes />
+          </RutaProtegida>
+        ),
+      },
+      {
+        path: 'revisar',
+        element: (
+          <RutaProtegida roles_permitidos={[Rol.Asesor]}>
+            <RevisarDocumentos />
+          </RutaProtegida>
+        ),
+      },
+      {
+        path: 'administracion',
+        element: (
+          <RutaProtegida roles_permitidos={[Rol.Administrador]}>
+            <Panel />
+          </RutaProtegida>
+        ),
+      },
+    ],
+  },
 ]);
 
 export default router;
