@@ -9,6 +9,9 @@ export class Observacion {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  titulo: string;
+
   @Column('text')
   contenido: string;
   

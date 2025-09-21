@@ -7,6 +7,9 @@ import { Documento } from '../../documentos/entidades/documento.entidad';
 export class Correccion {
   @PrimaryGeneratedColumn()
   id: number;
+  
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  titulo: string;
 
   @Column('text')
   descripcion: string;

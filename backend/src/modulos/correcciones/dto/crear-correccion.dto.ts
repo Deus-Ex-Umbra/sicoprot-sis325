@@ -2,6 +2,11 @@ import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CrearCorreccionDto {
+  @ApiProperty({ example: 'Tipeo corregido' })
+  @IsString()
+  @IsNotEmpty()
+  titulo: string;
+
   @ApiProperty({ example: 'He corregido la ortografía y mejorado la redacción del párrafo.' })
   @IsString()
   @IsNotEmpty()

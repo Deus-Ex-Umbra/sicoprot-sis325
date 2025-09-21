@@ -40,6 +40,7 @@ export interface Documento {
 
 export interface Observacion {
   id: number;
+  titulo: string;
   contenido: string;
   estado: 'pendiente' | 'corregida' | 'aprobada';
   x_inicio: number;
@@ -57,6 +58,7 @@ export interface Observacion {
 
 export interface Correccion {
   id: number;
+  titulo: string;
   descripcion: string;
   x_inicio: number;
   y_inicio: number;

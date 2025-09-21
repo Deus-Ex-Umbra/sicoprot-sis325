@@ -248,14 +248,16 @@ const DetalleProyecto = () => {
                     >
                       {obs.estado}
                     </Badge>
-                    <p className="mb-1">{obs.contenido}</p>
+                    <p className="observacion-card-title mb-1">{obs.titulo}</p>
+                    <p className="observacion-card-content small">{obs.contenido}</p>
                     <small className="text-muted">
-                      Página {obs.pagina_inicio} - {obs.autor.nombre} {obs.autor.apellido}
+                      Páginas {obs.pagina_inicio} - {obs.pagina_fin}
                     </small>
                     {obs.correccion && (
                       <div className="mt-2 p-2" style={{ backgroundColor: 'var(--color-fondo-principal)', borderRadius: '4px' }}>
                         <Badge bg="success" className="mb-1">Corrección</Badge>
-                        <p className="mb-0 small">{obs.correccion.descripcion}</p>
+                        <p className="observacion-card-title mb-0 small">{obs.correccion.titulo}</p>
+                        <p className="observacion-card-content mb-0 small">{obs.correccion.descripcion}</p>
                       </div>
                     )}
                   </div>

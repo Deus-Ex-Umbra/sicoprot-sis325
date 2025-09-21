@@ -10,7 +10,16 @@ export class AsesoresService {
     private readonly asesoresRepository: Repository<Asesor>,
   ) {}
 
-  findAll() {
-    return this.asesoresRepository.find({ relations: ['usuario'] });
+  async findAll() {
+    const asesores = await this.asesoresRepository.find({ relations: ['usuario'] });
+    
+    return asesores.map(asesor => ({
+      ...asesor.usuario,
+      perfil: {
+        id_asesor: asesor.id,
+        nombre: asesor.nombre,
+        apellido: asesor.apellido,
+      }
+    }));
   }
 }

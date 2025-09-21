@@ -202,6 +202,15 @@ a:hover {
   transition: all 0.3s ease;
 }
 
+.observacion-card-title {
+  font-weight: bold;
+  color: var(--color-texto-principal);
+}
+
+.observacion-card-content {
+  color: var(--color-texto-secundario);
+}
+
 .observacion-card:hover {
   border-color: var(--color-acento);
   box-shadow: 0 3px 10px rgba(74, 144, 226, 0.2);
@@ -247,20 +256,22 @@ a:hover {
 
 .annotation-marker {
   position: absolute;
-  background-color: rgba(255, 235, 59, 0.3);
-  border: 2px solid #ffc107;
-  cursor: pointer;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
   pointer-events: all;
-  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.annotation-marker:hover {
-  background-color: rgba(255, 235, 59, 0.5);
+.annotation-marker.start-point {
+  background-color: #4caf50;
+  border: 2px solid white;
 }
 
-.annotation-marker.correccion {
-  background-color: rgba(76, 175, 80, 0.3);
-  border-color: var(--color-exito);
+.annotation-marker.end-point {
+  background-color: #f44336;
+  border: 2px solid white;
 }
 
 .spinner-border {

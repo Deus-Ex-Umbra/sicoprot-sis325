@@ -72,9 +72,9 @@ const Proyectos = () => {
       const select = new TomSelect('#select-asesor', {
         create: false,
         sortField: {
-          field: "text",
-          direction: "asc"
-        } as any,
+            field: 'text',
+            direction: 'asc'
+        },
       });
       return () => {
         select.destroy();
@@ -200,10 +200,10 @@ const Proyectos = () => {
                 id="select-asesor"
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => setNuevoProyecto({ ...nuevoProyecto, id_asesor: parseInt(e.target.value)})}
               >
-                <option value="">Selecciona un asesor</option>
+                <option value="">Selecciona un asesor...</option>
                 {asesores.map(asesor => (
-                  <option key={asesor.id} value={asesor.id}>
-                    {(asesor as any).nombre} {(asesor as any).apellido}
+                  <option key={asesor.id} value={asesor.perfil?.id_asesor}>
+                    {asesor.perfil?.nombre} {asesor.perfil?.apellido}
                   </option>
                 ))}
               </select>
