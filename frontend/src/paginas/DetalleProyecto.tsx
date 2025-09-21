@@ -44,6 +44,9 @@ const DetalleProyecto = () => {
   useEffect(() => {
     if (documentoSeleccionado) {
       cargarObservacionesYCorrecciones(documentoSeleccionado.id);
+    } else {
+      setObservaciones([]);
+      setCorrecciones([]);
     }
   }, [documentoSeleccionado]);
 
@@ -53,7 +56,7 @@ const DetalleProyecto = () => {
       const proyectoData = await obtenerProyectoPorId(parseInt(id!));
       setProyecto(proyectoData);
       
-      const documentosData = proyectoData.documentos || [];
+      const documentosData = proyectoData.documentos?.sort((a, b) => a.version - b.version) || [];
       setDocumentos(documentosData);
       
       if (documentosData.length > 0) {
@@ -76,7 +79,8 @@ const DetalleProyecto = () => {
       setObservaciones(obsData);
       setCorrecciones(corrData);
     } catch (err) {
-      console.error('Error al cargar observaciones:', err);
+      console.error('Error al cargar observaciones y correcciones:', err);
+      setError('Error al cargar las anotaciones del documento.');
     }
   };
 
@@ -141,6 +145,8 @@ const DetalleProyecto = () => {
       </Alert>
     );
   }
+  
+  const observacionesPendientes = observaciones.filter(obs => obs.estado === 'pendiente');
 
   return (
     <div>
@@ -170,7 +176,7 @@ const DetalleProyecto = () => {
               {esEstudiante && (
                 <div className="mb-3">
                   <Form.Group className="mb-2">
-                    <Form.Label htmlFor="file-upload" className="btn btn-outline-primary w-100">
+                     <Form.Label htmlFor="file-upload" className="btn btn-outline-primary w-100">
                       Seleccionar Archivo
                     </Form.Label>
                     <Form.Control
@@ -181,7 +187,7 @@ const DetalleProyecto = () => {
                       disabled={subiendoArchivo}
                       style={{ display: 'none' }}
                     />
-                    {archivo && <p className="text-light mt-2">{archivo.name}</p>}
+                     {archivo && <p className="text-light mt-2 small">{archivo.name}</p>}
                   </Form.Group>
                   <Button 
                     variant="success" 
@@ -215,7 +221,6 @@ const DetalleProyecto = () => {
                         <br />
                         <small>{new Date(doc.fecha_subida).toLocaleDateString()}</small>
                       </div>
-                      <Badge bg="secondary">{doc.nombre_archivo}</Badge>
                     </div>
                   </ListGroup.Item>
                 ))}
@@ -228,62 +233,27 @@ const DetalleProyecto = () => {
               )}
             </Card.Body>
           </Card>
-
-          <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-            <Card.Header>
-              <h5 className="mb-0">Observaciones</h5>
-            </Card.Header>
-            <Card.Body style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {observaciones.length === 0 ? (
-                <p className="text-muted text-center">No hay observaciones</p>
-              ) : (
-                observaciones.map((obs) => (
-                  <div 
-                    key={obs.id} 
-                    className={`observacion-card observacion-${obs.estado}`}
-                  >
-                    <Badge 
-                      bg={obs.estado === 'corregida' ? 'success' : obs.estado === 'aprobada' ? 'primary' : 'warning'}
-                      className="mb-2"
-                    >
-                      {obs.estado}
-                    </Badge>
-                    <p className="observacion-card-title mb-1">{obs.titulo}</p>
-                    <p className="observacion-card-content small">{obs.contenido}</p>
-                    <small className="text-muted">
-                      Páginas {obs.pagina_inicio} - {obs.pagina_fin}
-                    </small>
-                    {obs.correccion && (
-                      <div className="mt-2 p-2" style={{ backgroundColor: 'var(--color-fondo-principal)', borderRadius: '4px' }}>
-                        <Badge bg="success" className="mb-1">Corrección</Badge>
-                        <p className="observacion-card-title mb-0 small">{obs.correccion.titulo}</p>
-                        <p className="observacion-card-content mb-0 small">{obs.correccion.descripcion}</p>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </Card.Body>
-          </Card>
         </Col>
 
         <Col md={9}>
           {documentoSeleccionado ? (
             <VisualizadorDocumento
+              key={documentoSeleccionado.id}
               urlDocumento={`${api.defaults.baseURL}/documentos/${documentoSeleccionado.id}/archivo`}
               documentoId={documentoSeleccionado.id}
               observaciones={observaciones}
+              observacionesPendientes={observacionesPendientes}
               correcciones={correcciones}
               onCrearObservacion={esAsesor ? manejarCrearObservacion : undefined}
               onCrearCorreccion={esEstudiante ? manejarCrearCorreccion : undefined}
             />
           ) : (
-            <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-              <Card.Body className="text-center py-5">
+            <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)', height: '80vh' }}>
+              <Card.Body className="d-flex justify-content-center align-items-center">
                 <p className="text-muted">
                   {documentos.length === 0 
-                    ? 'No hay documentos cargados en este proyecto'
-                    : 'Seleccione un documento para visualizar'}
+                    ? 'No hay documentos cargados en este proyecto.'
+                    : 'Seleccione un documento para visualizar.'}
                 </p>
               </Card.Body>
             </Card>

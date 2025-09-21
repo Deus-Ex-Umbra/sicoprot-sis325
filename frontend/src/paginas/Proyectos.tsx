@@ -71,10 +71,12 @@ const Proyectos = () => {
     if (mostrarModal && asesores.length > 0) {
       const select = new TomSelect('#select-asesor', {
         create: false,
-        sortField: {
+        sortField: [
+          {
             field: 'text',
-            direction: 'asc'
-        },
+            direction: 'asc',
+          },
+        ],
       });
       return () => {
         select.destroy();
