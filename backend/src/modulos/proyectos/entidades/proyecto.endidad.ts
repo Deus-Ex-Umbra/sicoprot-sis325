@@ -20,6 +20,13 @@ export class Proyecto {
   @ManyToOne(() => Asesor, (asesor) => asesor.proyectos_asesorados, { eager: true })
   asesor: Asesor;
 
+  // @OneToMany(() => Documento, (documento) => documento.proyecto)
+  // documentos: Documento[];
+  
   @OneToMany(() => Documento, (documento) => documento.proyecto)
-  documentos: Documento[];
+  documentos: Documento[]; // Inversa
+
+  @OneToMany(() => Estudiante, (estudiante) => estudiante.proyectos) // O @ManyToMany si un estudiante puede tener múltiples proyectos
+  estudiantes: Estudiante[]; // Aquí está 'estudiantes' como array
+  
 }

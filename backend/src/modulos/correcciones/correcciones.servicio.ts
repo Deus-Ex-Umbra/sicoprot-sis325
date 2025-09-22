@@ -8,6 +8,7 @@ import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { Documento } from '../documentos/entidades/documento.entidad';
 import { EstadoObservacion } from '../observaciones/enums/estado-observacion.enum';
 
+
 @Injectable()
 export class CorreccionesService {
   constructor(
@@ -59,7 +60,7 @@ export class CorreccionesService {
 
     const correccion_guardada = await this.repositorio_correccion.save(nueva_correccion);
 
-    observacion.estado = EstadoObservacion.Corregida;
+    observacion.estado = EstadoObservacion.CORREGIDO;
     await this.repositorio_observacion.save(observacion);
 
     return correccion_guardada;
@@ -99,7 +100,7 @@ export class CorreccionesService {
     }
 
     if (correccion.observacion) {
-      correccion.observacion.estado = EstadoObservacion.Pendiente;
+      correccion.observacion.estado = EstadoObservacion.PENDIENTE;
       await this.repositorio_observacion.save(correccion.observacion);
     }
 

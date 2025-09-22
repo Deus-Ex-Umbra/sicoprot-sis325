@@ -42,7 +42,9 @@ export interface Observacion {
   id: number;
   titulo: string;
   contenido: string;
-  estado: 'pendiente' | 'corregida' | 'aprobada';
+  // estado: 'pendiente' | 'corregida' | 'aprobada';
+  estado: string;
+  comentario_asesor:string;
   x_inicio: number;
   y_inicio: number;
   x_fin: number;

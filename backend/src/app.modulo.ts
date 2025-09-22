@@ -10,6 +10,13 @@ import { CorreccionesModule } from './modulos/correcciones/correcciones.modulo';
 import { EstudiantesModule } from './modulos/estudiantes/estudiantes.modulo';
 import { AsesoresModule } from './modulos/asesores/asesores.modulo';
 
+console.log({
+  user: process.env.DB_USER,
+  pass: process.env.DB_PASSWORD,
+  db: process.env.DB_NAME,
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+});
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -37,4 +44,7 @@ import { AsesoresModule } from './modulos/asesores/asesores.modulo';
   controllers: [],
   providers: [],
 })
+
 export class AppModule {}
+
+

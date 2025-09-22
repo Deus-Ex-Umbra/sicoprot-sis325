@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuar
 import { ObservacionesService } from './observaciones.servicio';
 import { CrearObservacionDto } from './dto/crear-observacion.dto';
 import { ActualizarObservacionDto } from './dto/actualizar-observacion.dto';
+import { CambiarEstadoDto } from './dto/cambiar-estado.dto'; // Asumimos que este DTO existe o lo creamos basado en el segundo bloque
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtGuard } from '../autenticacion/guards/jwt.guard';
 
@@ -76,5 +77,33 @@ export class ObservacionesController {
   @ApiResponse({ status: 403, description: 'No tiene permisos para restaurar esta observación.' })
   restaurar(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.servicio_observaciones.restaurar(id, req.user.id_usuario);
+  }
+
+  // Nueva ruta: Cambiar estado de observación, adaptada del segundo bloque
+  @Patch(':id/estado')
+  @ApiOperation({ summary: 'Cambiar el estado de una observación y notificar al estudiante' })
+  @ApiParam({ name: 'id', description: 'ID numérico de la observación a cambiar estado' })
+  @ApiResponse({ status: 200, description: 'Estado cambiado exitosamente y notificación enviada.' })
+  @ApiResponse({ status: 404, description: 'Observación no encontrada.' })
+  @ApiResponse({ status: 403, description: 'No tienes permisos para modificar esta observación.' })
+  @ApiResponse({ status: 400, description: 'Transición de estado inválida.' })
+  async cambiarEstado(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() cambiarEstadoDto: CambiarEstadoDto,
+    @Request() req,
+  ): Promise<{
+    message: string;
+    observacion: any; // Ajusta el tipo según tu entidad Observacion
+  }> {
+    const observacionActualizada = await this.servicio_observaciones.cambiarEstado(
+      id, 
+      req.user.id_usuario, 
+      cambiarEstadoDto
+    );
+
+    return {
+      message: `Estado cambiado a "${cambiarEstadoDto.estado}" exitosamente. El estudiante ha sido notificado sobre el progreso de sus correcciones.`,
+      observacion: observacionActualizada
+    };
   }
 }

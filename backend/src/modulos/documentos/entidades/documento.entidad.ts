@@ -19,7 +19,10 @@ export class Documento {
   @CreateDateColumn({ name: 'fecha_subida' })
   fecha_subida: Date;
 
-  @ManyToOne(() => Proyecto, (proyecto) => proyecto.documentos)
+  // @ManyToOne(() => Proyecto, (proyecto) => proyecto.documentos)
+  // proyecto: Proyecto;
+  
+  @ManyToOne(() => Proyecto, (proyecto) => proyecto.documentos, { eager: true })
   proyecto: Proyecto;
 
   @OneToMany(() => Observacion, (observacion) => observacion.documento)
