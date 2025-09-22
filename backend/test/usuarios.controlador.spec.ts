@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UsuariosController } from './usuarios.controlador';
-import { UsuariosService } from './usuarios.servicio';
-import { CrearUsuarioDto } from './dto/crear-usuario.dto';
-import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
-import { Rol } from './enums/rol.enum';
+import { UsuariosController } from '../src/modulos/usuarios/usuarios.controlador';
+import { UsuariosService } from '../src/modulos/usuarios/usuarios.servicio';
+import { CrearUsuarioDto } from '../src/modulos/usuarios/dto/crear-usuario.dto';
+import { ActualizarUsuarioDto } from '../src/modulos/usuarios/dto/actualizar-usuario.dto';
+import { Rol } from '../src/modulos/usuarios/enums/rol.enum';
 
 describe('UsuariosControlador', () => {
   let controller: UsuariosController;

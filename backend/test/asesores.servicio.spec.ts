@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AsesoresService } from './asesores.servicio';
-import { Asesor } from './entidades/asesor.entidad';
-import { Usuario } from '../usuarios/entidades/usuario.entidad';
-import { Rol } from '../usuarios/enums/rol.enum';
+import { AsesoresService } from '../src/modulos/asesores/asesores.servicio';
+import { Asesor } from '../src/modulos/asesores/entidades/asesor.entidad';
+import { Usuario } from '../src/modulos/usuarios/entidades/usuario.entidad';
+import { Rol } from '../src/modulos/usuarios/enums/rol.enum';
 
 describe('AsesoresServicio', () => {
   let service: AsesoresService;

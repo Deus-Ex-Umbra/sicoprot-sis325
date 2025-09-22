@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AutenticacionService } from './autenticacion.servicio';
-import { UsuariosService } from '../usuarios/usuarios.servicio';
+import { AutenticacionService } from '../src/modulos/autenticacion/autenticacion.servicio';
+import { UsuariosService } from '../src/modulos/usuarios/usuarios.servicio';
 import { JwtService } from '@nestjs/jwt';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Usuario } from '../usuarios/entidades/usuario.entidad';
-import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
-import { Asesor } from '../asesores/entidades/asesor.entidad';
+import { Usuario } from '../src/modulos/usuarios/entidades/usuario.entidad';
+import { Estudiante } from '../src/modulos/estudiantes/entidades/estudiante.entidad';
+import { Asesor } from '../src/modulos/asesores/entidades/asesor.entidad';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { Rol } from '../usuarios/enums/rol.enum';
-import { IniciarSesionDto } from './dto/iniciar-sesion.dto';
-import { RegistroDto } from './dto/registro.dto';
+import { Rol } from '../src/modulos/usuarios/enums/rol.enum';
+import { IniciarSesionDto } from '../src/modulos/autenticacion/dto/iniciar-sesion.dto';
+import { RegistroDto } from '../src/modulos/autenticacion/dto/registro.dto';
 
 jest.mock('bcrypt');
 

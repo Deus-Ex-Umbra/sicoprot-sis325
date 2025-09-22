@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AutenticacionController } from './autenticacion.controlador';
-import { AutenticacionService } from './autenticacion.servicio';
-import { IniciarSesionDto } from './dto/iniciar-sesion.dto';
-import { RegistroDto } from './dto/registro.dto';
-import { Rol } from '../usuarios/enums/rol.enum';
+import { AutenticacionController } from '../src/modulos/autenticacion/autenticacion.controlador';
+import { AutenticacionService } from '../src/modulos/autenticacion/autenticacion.servicio';
+import { IniciarSesionDto } from '../src/modulos/autenticacion/dto/iniciar-sesion.dto';
+import { RegistroDto } from '../src/modulos/autenticacion/dto/registro.dto';
+import { Rol } from '../src/modulos/usuarios/enums/rol.enum';
 
 describe('AutenticacionController', () => {
   let controller: AutenticacionController;

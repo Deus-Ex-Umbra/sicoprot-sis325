@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ObservacionesController } from './observaciones.controlador';
-import { ObservacionesService } from './observaciones.servicio';
-import { CrearObservacionDto } from './dto/crear-observacion.dto';
-import { ActualizarObservacionDto } from './dto/actualizar-observacion.dto';
-import { JwtGuard } from '../autenticacion/guards/jwt.guard';
-import { EstadoObservacion } from './enums/estado-observacion.enum';
+import { ObservacionesController } from '../src/modulos/observaciones/observaciones.controlador';
+import { ObservacionesService } from '../src/modulos/observaciones/observaciones.servicio';
+import { CrearObservacionDto } from '../src/modulos/observaciones/dto/crear-observacion.dto';
+import { ActualizarObservacionDto } from '../src/modulos/observaciones/dto/actualizar-observacion.dto';
+import { JwtGuard } from '../src/modulos/autenticacion/guards/jwt.guard';
+import { EstadoObservacion } from '../src/modulos/observaciones/enums/estado-observacion.enum';
 
 describe('ObservacionesControlador', () => {
   let controller: ObservacionesController;

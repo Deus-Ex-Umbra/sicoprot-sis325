@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CorreccionesController } from './correcciones.controlador';
-import { CorreccionesService } from './correcciones.servicio';
-import { CrearCorreccionDto } from './dto/crear-correccion.dto';
-import { JwtGuard } from '../autenticacion/guards/jwt.guard';
+import { CorreccionesController } from '../src/modulos/correcciones/correcciones.controlador';
+import { CorreccionesService } from '../src/modulos/correcciones/correcciones.servicio';
+import { CrearCorreccionDto } from '../src/modulos/correcciones/dto/crear-correccion.dto';
+import { JwtGuard } from '../src/modulos/autenticacion/guards/jwt.guard';
 
 describe('CorreccionesControlador', () => {
   let controller: CorreccionesController;

@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ProyectosService } from './proyectos.servicio';
-import { Proyecto } from './entidades/proyecto.endidad';
-import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
-import { Asesor } from '../asesores/entidades/asesor.entidad';
+import { ProyectosService } from '../src/modulos/proyectos/proyectos.servicio';
+import { Proyecto } from '../src/modulos/proyectos/entidades/proyecto.endidad';
+import { Estudiante } from '../src/modulos/estudiantes/entidades/estudiante.entidad';
+import { Asesor } from '../src/modulos/asesores/entidades/asesor.entidad';
 import { NotFoundException } from '@nestjs/common';
 
 describe('ProyectosServicio', () => {

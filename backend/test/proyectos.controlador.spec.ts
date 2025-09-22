@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProyectosController } from './proyectos.controlador';
-import { ProyectosService } from './proyectos.servicio';
-import { CrearProyectoDto } from './dto/crear-proyecto.dto';
-import { JwtGuard } from '../autenticacion/guards/jwt.guard';
+import { ProyectosController } from '../src/modulos/proyectos/proyectos.controlador';
+import { ProyectosService } from '../src/modulos/proyectos/proyectos.servicio';
+import { CrearProyectoDto } from '../src/modulos/proyectos/dto/crear-proyecto.dto';
+import { JwtGuard } from '../src/modulos/autenticacion/guards/jwt.guard';
 
 describe('ProyectosControlador', () => {
   let controller: ProyectosController;

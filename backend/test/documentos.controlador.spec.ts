@@ -1,15 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DocumentosController } from './documentos.controlador';
-import { DocumentosService } from './documentos.servicio';
+import { DocumentosController } from '../src/modulos/documentos/documentos.controlador';
+import { DocumentosService } from '../src/modulos/documentos/documentos.servicio';
 import { Response } from 'express';
-import { createReadStream, ReadStream } from 'fs';
+import * as fs from 'fs';
 import { join } from 'path';
-
-jest.mock('fs', () => ({
-  createReadStream: jest.fn().mockReturnValue({
-    pipe: jest.fn(),
-  }),
-}));
 
 describe('DocumentosControlador', () => {
   let controller: DocumentosController;
@@ -58,26 +52,26 @@ describe('DocumentosControlador', () => {
       const docId = 1;
       const doc = { id: 1, ruta_archivo: 'uploads/test.pdf' };
       const res = { setHeader: jest.fn(), pipe: jest.fn() } as unknown as Response;
-      const stream = { pipe: jest.fn() } as unknown as ReadStream;
+      const stream = { pipe: jest.fn() };
 
       mockDocumentosService.obtenerUno.mockResolvedValue(doc);
-      (createReadStream as jest.Mock).mockReturnValue(stream);
+      
+      const createReadStreamSpy = jest.spyOn(fs, 'createReadStream').mockReturnValue(stream as any);
       
       await controller.obtenerArchivo(docId, res);
 
       expect(service.obtenerUno).toHaveBeenCalledWith(docId);
-      expect(createReadStream).toHaveBeenCalledWith(join(process.cwd(), doc.ruta_archivo));
+      expect(createReadStreamSpy).toHaveBeenCalledWith(join(process.cwd(), doc.ruta_archivo));
       expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'application/pdf');
       expect(stream.pipe).toHaveBeenCalledWith(res);
     });
 
-     it('debería manejar los errores del servicio correctamente', async () => {
-        const docId = 99;
-        const res = {} as Response;
-        mockDocumentosService.obtenerUno.mockRejectedValue(new Error('No encontrado'));
-        
-        await expect(controller.obtenerArchivo(docId, res)).rejects.toThrow('No encontrado');
+    it('debería manejar los errores del servicio correctamente', async () => {
+      const docId = 99;
+      const res = {} as Response;
+      mockDocumentosService.obtenerUno.mockRejectedValue(new Error('No encontrado'));
+      
+      await expect(controller.obtenerArchivo(docId, res)).rejects.toThrow('No encontrado');
     });
   });
 });
-

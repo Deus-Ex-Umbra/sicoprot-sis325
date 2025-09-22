@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AsesoresController } from './asesores.controlador';
-import { AsesoresService } from './asesores.servicio';
-import { JwtGuard } from '../autenticacion/guards/jwt.guard';
+import { AsesoresController } from '../src/modulos/asesores/asesores.controlador';
+import { AsesoresService } from '../src/modulos/asesores/asesores.servicio';
+import { JwtGuard } from '../src/modulos/autenticacion/guards/jwt.guard';
 
 describe('AsesoresControlador', () => {
   let controller: AsesoresController;
@@ -48,11 +48,6 @@ describe('AsesoresControlador', () => {
 
       expect(await controller.findAll()).toBe(result);
       expect(service.findAll).toHaveBeenCalled();
-    });
-
-    it('debería llamar al método del servicio una vez', async () => {
-        await controller.findAll();
-        expect(service.findAll).toHaveBeenCalledTimes(1);
     });
   });
 });

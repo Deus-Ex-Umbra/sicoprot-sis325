@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UsuariosService } from './usuarios.servicio';
-import { Usuario } from './entidades/usuario.entidad';
+import { UsuariosService } from '../src/modulos/usuarios/usuarios.servicio';
+import { Usuario } from '../src/modulos/usuarios/entidades/usuario.entidad';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
-import { CrearUsuarioDto } from './dto/crear-usuario.dto';
-import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
+import { CrearUsuarioDto } from '../src/modulos/usuarios/dto/crear-usuario.dto';
+import { ActualizarUsuarioDto } from '../src/modulos/usuarios/dto/actualizar-usuario.dto';
 import * as bcrypt from 'bcrypt';
-import { Rol } from './enums/rol.enum';
+import { Rol } from '../src/modulos/usuarios/enums/rol.enum';
 
 jest.mock('bcrypt');
 

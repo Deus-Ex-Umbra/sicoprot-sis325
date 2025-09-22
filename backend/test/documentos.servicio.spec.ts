@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { DocumentosService } from './documentos.servicio';
-import { Documento } from './entidades/documento.entidad';
-import { Proyecto } from '../proyectos/entidades/proyecto.endidad';
+import { DocumentosService } from '../src/modulos/documentos/documentos.servicio';
+import { Documento } from '../src/modulos/documentos/entidades/documento.entidad';
+import { Proyecto } from '../src/modulos/proyectos/entidades/proyecto.endidad';
 import { NotFoundException } from '@nestjs/common';
 
 describe('DocumentosServicio', () => {
