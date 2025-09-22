@@ -15,9 +15,12 @@ export class Observacion {
   @Column('text')
   contenido: string;
   
-  @Column({ type: 'enum', enum: EstadoObservacion, default: EstadoObservacion.Pendiente })
+  @Column({ type: 'enum', enum: EstadoObservacion, default: EstadoObservacion.PENDIENTE })
   estado: EstadoObservacion;
   
+  @Column({ nullable: true, type: 'text' }) // 'text' para comentarios largos, o 'varchar' si prefieres
+  comentarios_asesor?: string;
+
   @Column({ type: 'float' })
   x_inicio: number;
 
@@ -45,11 +48,11 @@ export class Observacion {
   @UpdateDateColumn({ name: 'fecha_actualizacion' })
   fecha_actualizacion: Date;
 
-  @ManyToOne(() => Documento, (documento) => documento.observaciones)
-  documento: Documento;
-
   @ManyToOne(() => Asesor, (asesor) => asesor.observaciones_realizadas, { eager: true })
   autor: Asesor;
+  
+  @ManyToOne(() => Documento, (documento) => documento.observaciones, { eager: true }) // eager: true para cargar automáticamente
+  documento: Documento;
 
   @OneToOne(() => Correccion, (correccion) => correccion.observacion, { nullable: true })
   correccion: Correccion;

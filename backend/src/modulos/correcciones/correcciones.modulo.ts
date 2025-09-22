@@ -7,6 +7,7 @@ import { ObservacionesModule } from '../observaciones/observaciones.modulo';
 import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
 import { DocumentosModule } from '../documentos/documentos.modulo';
 
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([Correccion]),
