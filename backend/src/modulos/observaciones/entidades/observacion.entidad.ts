@@ -18,7 +18,7 @@ export class Observacion {
   @Column({ type: 'enum', enum: EstadoObservacion, default: EstadoObservacion.PENDIENTE })
   estado: EstadoObservacion;
   
-  @Column({ nullable: true, type: 'text' }) // 'text' para comentarios largos, o 'varchar' si prefieres
+  @Column({ nullable: true, type: 'text' })
   comentarios_asesor?: string;
 
   @Column({ type: 'float' })
@@ -39,6 +39,9 @@ export class Observacion {
   @Column({ type: 'int' })
   pagina_fin: number;
 
+  @Column({ type: 'varchar', length: 7, default: '#FFD700' })
+  color: string;
+
   @Column({ type: 'boolean', default: false })
   archivada: boolean;
 
@@ -51,7 +54,7 @@ export class Observacion {
   @ManyToOne(() => Asesor, (asesor) => asesor.observaciones_realizadas, { eager: true })
   autor: Asesor;
   
-  @ManyToOne(() => Documento, (documento) => documento.observaciones, { eager: true }) // eager: true para cargar automáticamente
+  @ManyToOne(() => Documento, (documento) => documento.observaciones, { eager: true }) 
   documento: Documento;
 
   @OneToOne(() => Correccion, (correccion) => correccion.observacion, { nullable: true })

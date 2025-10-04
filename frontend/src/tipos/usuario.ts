@@ -42,15 +42,15 @@ export interface Observacion {
   id: number;
   titulo: string;
   contenido: string;
-  // estado: 'pendiente' | 'corregida' | 'aprobada';
   estado: string;
-  comentario_asesor:string;
+  comentarios_asesor?: string;
   x_inicio: number;
   y_inicio: number;
   x_fin: number;
   y_fin: number;
   pagina_inicio: number;
   pagina_fin: number;
+  color: string;
   archivada: boolean;
   fecha_creacion: string;
   fecha_actualizacion: string;
@@ -68,6 +68,7 @@ export interface Correccion {
   y_fin: number;
   pagina_inicio: number;
   pagina_fin: number;
+  color: string;
   fecha_creacion: string;
   estudiante: any;
   observacion?: Observacion;

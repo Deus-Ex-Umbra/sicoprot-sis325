@@ -8,7 +8,8 @@ import {
   FaFileAlt, 
   FaComments,
   FaUserGraduate,
-  FaChalkboardTeacher 
+  FaChalkboardTeacher,
+  FaClipboardList
 } from 'react-icons/fa';
 
 interface Props {
@@ -100,6 +101,18 @@ const BarraLateral: React.FC<Props> = ({ isOpen }) => {
               >
                 <FaUserGraduate className="me-2" />
                 Mis Estudiantes
+              </NavLink>
+            </Nav.Item>
+
+            <Nav.Item className="mb-2">
+              <NavLink 
+                to="/panel/gestion-observaciones" 
+                className={({ isActive }) => 
+                  `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
+                }
+              >
+                <FaClipboardList className="me-2" />
+                Observaciones
               </NavLink>
             </Nav.Item>
 

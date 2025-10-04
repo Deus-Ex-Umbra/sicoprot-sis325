@@ -1,22 +1,16 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CorreccionesService } from './correcciones.servicio';
 import { CorreccionesController } from './correcciones.controlador';
+import { CorreccionesService } from './correcciones.servicio';
 import { Correccion } from './entidades/correccion.entidad';
-import { ObservacionesModule } from '../observaciones/observaciones.modulo';
-import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
-import { DocumentosModule } from '../documentos/documentos.modulo';
-
+import { Observacion } from '../observaciones/entidades/observacion.entidad';
+import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
+import { Documento } from '../documentos/entidades/documento.entidad';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Correccion]),
-    ObservacionesModule,
-    EstudiantesModule,
-    DocumentosModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Correccion, Observacion, Estudiante, Documento])],
   controllers: [CorreccionesController],
   providers: [CorreccionesService],
-  exports: [TypeOrmModule],
+  exports: [CorreccionesService],
 })
 export class CorreccionesModule {}

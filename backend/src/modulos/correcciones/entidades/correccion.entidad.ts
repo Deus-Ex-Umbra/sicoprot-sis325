@@ -32,6 +32,9 @@ export class Correccion {
   @Column({ type: 'int' })
   pagina_fin: number;
 
+  @Column({ type: 'varchar', length: 7, default: '#28a745' })
+  color: string;
+
   @CreateDateColumn({ name: 'fecha_creacion' })
   fecha_creacion: Date;
 

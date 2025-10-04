@@ -1,18 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Row, Col, Card, Button, ListGroup, Badge, Alert, Form } from 'react-bootstrap';
-import { FaArrowLeft, FaFileUpload } from 'react-icons/fa';
+import { FaArrowLeft, FaFileUpload, FaPlus } from 'react-icons/fa';
 import VisualizadorDocumento from '../componentes/VisualizadorDocumento';
 import { obtenerProyectoPorId } from '../servicios/proyectos.servicio';
 import { subirDocumento } from '../servicios/documentos.servicio';
-import { 
-  obtenerObservacionesPorDocumento, 
-  crearObservacion 
-} from '../servicios/observaciones.servicio';
-import { 
-  obtenerCorreccionesPorDocumento,
-  crearCorreccion 
-} from '../servicios/correcciones.servicio';
+import { obtenerObservacionesPorProyecto } from '../servicios/observaciones.servicio';
+import { obtenerCorreccionesPorProyecto } from '../servicios/correcciones.servicio';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { type Proyecto, type Documento, type Observacion, type Correccion, Rol } from '../tipos/usuario';
 import api from '../servicios/api';
@@ -31,9 +25,15 @@ const DetalleProyecto = () => {
   const [error, setError] = useState('');
   const [archivo, setArchivo] = useState<File | null>(null);
   const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+  const [observacionSeleccionada, setObservacionSeleccionada] = useState<number | null>(null);
+  const [correccionSeleccionada, setCorreccionSeleccionada] = useState<number | null>(null);
   
   const esEstudiante = usuario?.rol === Rol.Estudiante;
   const esAsesor = usuario?.rol === Rol.Asesor;
+
+  const observacionesPendientes = observaciones.filter(obs => 
+    obs.estado === 'pendiente' && !obs.correccion
+  );
 
   useEffect(() => {
     if (id) {
@@ -41,46 +41,30 @@ const DetalleProyecto = () => {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (documentoSeleccionado) {
-      cargarObservacionesYCorrecciones(documentoSeleccionado.id);
-    } else {
-      setObservaciones([]);
-      setCorrecciones([]);
-    }
-  }, [documentoSeleccionado]);
-
   const cargarDatos = async () => {
     try {
       setCargando(true);
       const proyectoData = await obtenerProyectoPorId(parseInt(id!));
       setProyecto(proyectoData);
       
-      const documentosData = proyectoData.documentos?.sort((a, b) => a.version - b.version) || [];
+      const documentosData = proyectoData.documentos?.sort((a, b) => b.version - a.version) || [];
       setDocumentos(documentosData);
       
       if (documentosData.length > 0) {
-        setDocumentoSeleccionado(documentosData[documentosData.length - 1]);
+        setDocumentoSeleccionado(documentosData[0]);
       }
+
+      const [obsData, corrData] = await Promise.all([
+        obtenerObservacionesPorProyecto(parseInt(id!)),
+        obtenerCorreccionesPorProyecto(parseInt(id!)),
+      ]);
+      setObservaciones(obsData);
+      setCorrecciones(corrData);
     } catch (err: any) {
       console.error('Error al cargar datos:', err);
       setError('Error al cargar el proyecto');
     } finally {
       setCargando(false);
-    }
-  };
-
-  const cargarObservacionesYCorrecciones = async (documentoId: number) => {
-    try {
-      const [obsData, corrData] = await Promise.all([
-        obtenerObservacionesPorDocumento(documentoId),
-        obtenerCorreccionesPorDocumento(documentoId),
-      ]);
-      setObservaciones(obsData);
-      setCorrecciones(corrData);
-    } catch (err) {
-      console.error('Error al cargar observaciones y correcciones:', err);
-      setError('Error al cargar las anotaciones del documento.');
     }
   };
 
@@ -105,25 +89,13 @@ const DetalleProyecto = () => {
     }
   };
 
-  const manejarCrearObservacion = async (observacion: any) => {
-    if (!documentoSeleccionado) return;
-    
-    try {
-      await crearObservacion(documentoSeleccionado.id, observacion);
-      await cargarObservacionesYCorrecciones(documentoSeleccionado.id);
-    } catch (err: any) {
-      setError('Error al crear la observación');
-    }
-  };
+  const observacionesDelDocumento = documentoSeleccionado
+    ? observaciones.filter(obs => (obs as any).documento.id === documentoSeleccionado.id)
+    : [];
 
-  const manejarCrearCorreccion = async (correccion: any) => {
-    try {
-      await crearCorreccion(correccion);
-      await cargarObservacionesYCorrecciones(documentoSeleccionado!.id);
-    } catch (err: any) {
-      setError('Error al crear la corrección');
-    }
-  };
+  const correccionesDelDocumento = documentoSeleccionado
+    ? correcciones.filter(corr => (corr as any).documento.id === documentoSeleccionado.id)
+    : [];
 
   if (cargando) {
     return (
@@ -145,8 +117,6 @@ const DetalleProyecto = () => {
       </Alert>
     );
   }
-  
-  const observacionesPendientes = observaciones.filter(obs => obs.estado === 'pendiente');
 
   return (
     <div>
@@ -162,6 +132,26 @@ const DetalleProyecto = () => {
           </Button>
           <h2 className="text-light mb-0">{proyecto.titulo}</h2>
         </div>
+        <div className="d-flex gap-2">
+          {esAsesor && documentos.length > 0 && (
+            <Button
+              variant="warning"
+              onClick={() => navigate(`/panel/proyecto/${id}/crear-observacion`)}
+            >
+              <FaPlus className="me-2" />
+              Nueva Observación
+            </Button>
+          )}
+          {esEstudiante && observacionesPendientes.length > 0 && (
+            <Button
+              variant="success"
+              onClick={() => navigate(`/panel/proyecto/${id}/crear-correccion`)}
+            >
+              <FaPlus className="me-2" />
+              Nueva Corrección
+            </Button>
+          )}
+        </div>
       </div>
 
       {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
@@ -176,7 +166,7 @@ const DetalleProyecto = () => {
               {esEstudiante && (
                 <div className="mb-3">
                   <Form.Group className="mb-2">
-                     <Form.Label htmlFor="file-upload" className="btn btn-outline-primary w-100">
+                    <Form.Label htmlFor="file-upload" className="btn btn-outline-primary w-100">
                       Seleccionar Archivo
                     </Form.Label>
                     <Form.Control
@@ -187,7 +177,7 @@ const DetalleProyecto = () => {
                       disabled={subiendoArchivo}
                       style={{ display: 'none' }}
                     />
-                     {archivo && <p className="text-light mt-2 small">{archivo.name}</p>}
+                    {archivo && <p className="text-light mt-2 small">{archivo.name}</p>}
                   </Form.Group>
                   <Button 
                     variant="success" 
@@ -207,7 +197,11 @@ const DetalleProyecto = () => {
                     key={doc.id}
                     active={documentoSeleccionado?.id === doc.id}
                     action
-                    onClick={() => setDocumentoSeleccionado(doc)}
+                    onClick={() => {
+                      setDocumentoSeleccionado(doc);
+                      setObservacionSeleccionada(null);
+                      setCorreccionSeleccionada(null);
+                    }}
                     style={{ 
                       backgroundColor: documentoSeleccionado?.id === doc.id 
                         ? 'var(--color-acento)' 
@@ -240,12 +234,10 @@ const DetalleProyecto = () => {
             <VisualizadorDocumento
               key={documentoSeleccionado.id}
               urlDocumento={`${api.defaults.baseURL}/documentos/${documentoSeleccionado.id}/archivo`}
-              documentoId={documentoSeleccionado.id}
-              observaciones={observaciones}
-              observacionesPendientes={observacionesPendientes}
-              correcciones={correcciones}
-              onCrearObservacion={esAsesor ? manejarCrearObservacion : undefined}
-              onCrearCorreccion={esEstudiante ? manejarCrearCorreccion : undefined}
+              observaciones={observacionesDelDocumento}
+              correcciones={correccionesDelDocumento}
+              observacionSeleccionada={observacionSeleccionada}
+              correccionSeleccionada={correccionSeleccionada}
             />
           ) : (
             <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)', height: '80vh' }}>

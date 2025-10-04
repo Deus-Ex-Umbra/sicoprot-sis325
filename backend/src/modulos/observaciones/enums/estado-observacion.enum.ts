@@ -1,6 +1,6 @@
 export enum EstadoObservacion {
   PENDIENTE = 'pendiente',
-  CORREGIDO = 'corregido',
+  CORREGIDO = 'corregida',
   APROBADO = 'aprobado',
 
   EN_REVISION = 'en_revision', 

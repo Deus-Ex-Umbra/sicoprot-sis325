@@ -7,14 +7,8 @@ import { Documento } from '../documentos/entidades/documento.entidad';
 import { Asesor } from '../asesores/entidades/asesor.entidad';
 import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { ActualizarObservacionDto } from './dto/actualizar-observacion.dto';
-import { CambiarEstadoDto } from './dto/cambiar-estado.dto'; // Asumimos que este DTO existe o lo creamos basado en el primer bloque
-
-// Asumimos que la entidad Observacion tiene un campo 'estado' de tipo EstadoObservacion
-// Importamos el enum EstadoObservacion (ajusta la ruta si es necesario)
-import { EstadoObservacion } from './enums/estado-observacion.enum'; // Asegúrate de que exista en la entidad
-
-// Opcional: Si necesitas un servicio de notificaciones, inyéctalo aquí
-// import { NotificacionesService } from '../notificaciones/notificaciones.service';
+import { CambiarEstadoDto } from './dto/cambiar-estado.dto';
+import { EstadoObservacion } from './enums/estado-observacion.enum';
 
 @Injectable()
 export class ObservacionesService {
@@ -27,7 +21,6 @@ export class ObservacionesService {
     private readonly repositorio_asesor: Repository<Asesor>,
     @InjectRepository(Estudiante)
     private readonly repositorio_estudiante: Repository<Estudiante>,
-    // Opcional: @Inject(NotificacionesService) private readonly notificacionesService: NotificacionesService,
   ) {}
 
   async crear(id_documento: number, crear_observacion_dto: CrearObservacionDto, id_usuario: number) {
@@ -62,13 +55,16 @@ export class ObservacionesService {
 
     return this.repositorio_observacion.find({
       where: condiciones,
-      relations: ['correccion', 'correccion.estudiante'],
+      relations: ['correccion', 'correccion.estudiante', 'autor'],
       order: { fecha_creacion: 'DESC' },
     });
   }
 
   async obtenerPorEstudiante(id_usuario_estudiante: number) {
-    const estudiante = await this.repositorio_estudiante.findOne({ where: { usuario: { id: id_usuario_estudiante } }, relations: ['proyectos'] });
+    const estudiante = await this.repositorio_estudiante.findOne({ 
+      where: { usuario: { id: id_usuario_estudiante } }, 
+      relations: ['proyectos'] 
+    });
   
     if (!estudiante) {
       throw new NotFoundException(`Estudiante con ID de usuario '${id_usuario_estudiante}' no encontrado.`);
@@ -82,8 +78,24 @@ export class ObservacionesService {
   
     return this.repositorio_observacion.createQueryBuilder('observacion')
       .innerJoinAndSelect('observacion.documento', 'documento')
+      .innerJoinAndSelect('observacion.autor', 'autor')
+      .leftJoinAndSelect('observacion.correccion', 'correccion')
       .innerJoin('documento.proyecto', 'proyecto')
       .where('proyecto.id IN (:...proyectosIds)', { proyectosIds })
+      .andWhere('observacion.archivada = :archivada', { archivada: false })
+      .orderBy('observacion.fecha_creacion', 'DESC')
+      .getMany();
+  }
+
+  async obtenerPorProyecto(id_proyecto: number) {
+    return this.repositorio_observacion
+      .createQueryBuilder('observacion')
+      .innerJoinAndSelect('observacion.documento', 'documento')
+      .innerJoinAndSelect('observacion.autor', 'autor')
+      .leftJoinAndSelect('observacion.correccion', 'correccion')
+      .innerJoin('documento.proyecto', 'proyecto')
+      .where('proyecto.id = :id_proyecto', { id_proyecto })
+      .andWhere('observacion.archivada = :archivada', { archivada: false })
       .orderBy('observacion.fecha_creacion', 'DESC')
       .getMany();
   }
@@ -108,6 +120,32 @@ export class ObservacionesService {
 
     Object.assign(observacion, actualizar_observacion_dto);
     return this.repositorio_observacion.save(observacion);
+  }
+
+  async eliminar(id: number, id_usuario: number) {
+    const observacion = await this.repositorio_observacion.findOne({
+      where: { id },
+      relations: ['autor', 'correccion'],
+    });
+
+    if (!observacion) {
+      throw new NotFoundException(`Observación con ID '${id}' no encontrada.`);
+    }
+
+    const asesor = await this.repositorio_asesor.findOne({
+      where: { usuario: { id: id_usuario } },
+    });
+
+    if (!asesor || asesor.id !== observacion.autor.id) {
+      throw new ForbiddenException('Solo el asesor que creó la observación puede eliminarla.');
+    }
+
+    if (observacion.correccion) {
+      throw new BadRequestException('No se puede eliminar una observación que ya tiene una corrección asociada.');
+    }
+
+    await this.repositorio_observacion.remove(observacion);
+    return { message: 'Observación eliminada exitosamente.' };
   }
 
   async archivar(id: number, id_usuario: number) {
@@ -154,23 +192,20 @@ export class ObservacionesService {
     return this.repositorio_observacion.save(observacion);
   }
 
-  // Nueva función: Cambiar estado de observación, adaptada del primer bloque
   async cambiarEstado(
     id: number, 
     id_usuario: number, 
     cambiarEstadoDto: CambiarEstadoDto
   ): Promise<Observacion> {
-    // Obtener la observación con relaciones necesarias
     const observacion = await this.repositorio_observacion.findOne({
       where: { id },
-      relations: ['autor', 'documento', 'documento.proyecto', 'documento.proyecto.estudiantes'], // Ajusta relaciones según tu modelo para notificar
+      relations: ['autor', 'documento', 'documento.proyecto', 'correccion'],
     });
 
     if (!observacion) {
       throw new NotFoundException(`Observación con ID '${id}' no encontrada.`);
     }
 
-    // Verificar que el asesor tiene permisos (adaptado del primer bloque)
     const asesor = await this.repositorio_asesor.findOne({
       where: { usuario: { id: id_usuario } },
     });
@@ -179,10 +214,8 @@ export class ObservacionesService {
       throw new ForbiddenException('No tienes permisos para modificar esta observación');
     }
 
-    // Validar transición de estados (copiado y adaptado del primer bloque)
     this.validarTransicionEstado(observacion.estado, cambiarEstadoDto.estado);
 
-    // Actualizar la observación
     observacion.estado = cambiarEstadoDto.estado;
     if (cambiarEstadoDto.comentarios_asesor) {
       observacion.comentarios_asesor = cambiarEstadoDto.comentarios_asesor;
@@ -190,38 +223,27 @@ export class ObservacionesService {
 
     const observacionActualizada = await this.repositorio_observacion.save(observacion);
 
-    // Lógica de notificación al estudiante (ejemplo básico)
-    // Asumimos que hay estudiantes asociados al proyecto del documento
-    const estudiantes = observacion.documento?.proyecto?.estudiantes || [];
-    for (const estudiante of estudiantes) {
-      // Aquí integra tu sistema de notificaciones, e.g.:
-      // await this.notificacionesService.enviarNotificacion(estudiante.usuario.id, `La observación ${id} ha cambiado a ${cambiarEstadoDto.estado}. Progreso de correcciones actualizado.`);
-      console.log(`Notificando a estudiante ${estudiante.id}: Estado cambiado a ${cambiarEstadoDto.estado}`); // Placeholder; reemplaza con notificación real
-    }
-
     return observacionActualizada;
   }
 
-  // Método auxiliar para validar transiciones de estado (copiado del primer bloque)
   private validarTransicionEstado(estadoActual: EstadoObservacion, nuevoEstado: EstadoObservacion): void {
-  const transicionesValidas: { [key in EstadoObservacion]: EstadoObservacion[] } = {  // Tipado explícito aquí
-    [EstadoObservacion.PENDIENTE]: [EstadoObservacion.EN_REVISION],
-    [EstadoObservacion.EN_REVISION]: [
-      EstadoObservacion.CORREGIDO, 
-      EstadoObservacion.APROBADO, 
-      EstadoObservacion.RECHAZADO
-    ],
-    [EstadoObservacion.CORREGIDO]: [EstadoObservacion.EN_REVISION],
-    [EstadoObservacion.APROBADO]: [], // Estado final
-    [EstadoObservacion.RECHAZADO]: [EstadoObservacion.PENDIENTE]
-  };
+    const transicionesValidas: { [key in EstadoObservacion]: EstadoObservacion[] } = {
+      [EstadoObservacion.PENDIENTE]: [EstadoObservacion.EN_REVISION],
+      [EstadoObservacion.EN_REVISION]: [
+        EstadoObservacion.APROBADO, 
+        EstadoObservacion.RECHAZADO
+      ],
+      [EstadoObservacion.CORREGIDO]: [EstadoObservacion.EN_REVISION],
+      [EstadoObservacion.APROBADO]: [],
+      [EstadoObservacion.RECHAZADO]: [EstadoObservacion.EN_REVISION]
+    };
 
-  const transicionesPermitidas = transicionesValidas[estadoActual] || [];  // Ahora inferido como EstadoObservacion[]
-  
-  if (!transicionesPermitidas.includes(nuevoEstado)) {
-    throw new BadRequestException(
-      `Transición inválida de ${estadoActual} a ${nuevoEstado}`
-    );
+    const transicionesPermitidas = transicionesValidas[estadoActual] || [];
+    
+    if (!transicionesPermitidas.includes(nuevoEstado)) {
+      throw new BadRequestException(
+        `Transición inválida de ${estadoActual} a ${nuevoEstado}`
+      );
+    }
   }
-}
 }

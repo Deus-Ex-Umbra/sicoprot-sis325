@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards, Request } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards, Request, Delete } from '@nestjs/common';
 import { ObservacionesService } from './observaciones.servicio';
 import { CrearObservacionDto } from './dto/crear-observacion.dto';
 import { ActualizarObservacionDto } from './dto/actualizar-observacion.dto';
-import { CambiarEstadoDto } from './dto/cambiar-estado.dto'; // Asumimos que este DTO existe o lo creamos basado en el segundo bloque
+import { CambiarEstadoDto } from './dto/cambiar-estado.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtGuard } from '../autenticacion/guards/jwt.guard';
 
@@ -45,10 +45,18 @@ export class ObservacionesController {
     return this.servicio_observaciones.obtenerPorEstudiante(req.user.id_usuario);
   }
 
+  @Get('por-proyecto/:proyectoId')
+  @ApiOperation({ summary: 'Obtener todas las observaciones de un proyecto' })
+  @ApiParam({ name: 'proyectoId', description: 'ID del proyecto' })
+  @ApiResponse({ status: 200, description: 'Lista de observaciones del proyecto.' })
+  obtenerPorProyecto(@Param('proyectoId', ParseIntPipe) proyectoId: number) {
+    return this.servicio_observaciones.obtenerPorProyecto(proyectoId);
+  }
+
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar el estado de una observación' })
+  @ApiOperation({ summary: 'Actualizar una observación' })
   @ApiParam({ name: 'id', description: 'ID numérico de la observación a actualizar' })
-  @ApiResponse({ status: 200, description: 'Estado de la observación actualizado.' })
+  @ApiResponse({ status: 200, description: 'Observación actualizada.' })
   @ApiResponse({ status: 404, description: 'Observación no encontrada.' })
   @ApiResponse({ status: 403, description: 'No tiene permisos para actualizar esta observación.' })
   actualizar(
@@ -59,8 +67,18 @@ export class ObservacionesController {
     return this.servicio_observaciones.actualizar(id, actualizar_observacion_dto, req.user.id_usuario);
   }
 
+  @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar una observación' })
+  @ApiParam({ name: 'id', description: 'ID de la observación a eliminar' })
+  @ApiResponse({ status: 200, description: 'Observación eliminada exitosamente.' })
+  @ApiResponse({ status: 404, description: 'Observación no encontrada.' })
+  @ApiResponse({ status: 403, description: 'No tiene permisos para eliminar esta observación.' })
+  eliminar(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.servicio_observaciones.eliminar(id, req.user.id_usuario);
+  }
+
   @Patch(':id/archivar')
-  @ApiOperation({ summary: 'Archivar una observación (borrado suave)' })
+  @ApiOperation({ summary: 'Archivar una observación' })
   @ApiParam({ name: 'id', description: 'ID de la observación a archivar' })
   @ApiResponse({ status: 200, description: 'Observación archivada exitosamente.' })
   @ApiResponse({ status: 404, description: 'Observación no encontrada.' })
@@ -79,11 +97,10 @@ export class ObservacionesController {
     return this.servicio_observaciones.restaurar(id, req.user.id_usuario);
   }
 
-  // Nueva ruta: Cambiar estado de observación, adaptada del segundo bloque
   @Patch(':id/estado')
-  @ApiOperation({ summary: 'Cambiar el estado de una observación y notificar al estudiante' })
+  @ApiOperation({ summary: 'Cambiar el estado de una observación' })
   @ApiParam({ name: 'id', description: 'ID numérico de la observación a cambiar estado' })
-  @ApiResponse({ status: 200, description: 'Estado cambiado exitosamente y notificación enviada.' })
+  @ApiResponse({ status: 200, description: 'Estado cambiado exitosamente.' })
   @ApiResponse({ status: 404, description: 'Observación no encontrada.' })
   @ApiResponse({ status: 403, description: 'No tienes permisos para modificar esta observación.' })
   @ApiResponse({ status: 400, description: 'Transición de estado inválida.' })
@@ -93,7 +110,7 @@ export class ObservacionesController {
     @Request() req,
   ): Promise<{
     message: string;
-    observacion: any; // Ajusta el tipo según tu entidad Observacion
+    observacion: any;
   }> {
     const observacionActualizada = await this.servicio_observaciones.cambiarEstado(
       id, 
@@ -102,7 +119,7 @@ export class ObservacionesController {
     );
 
     return {
-      message: `Estado cambiado a "${cambiarEstadoDto.estado}" exitosamente. El estudiante ha sido notificado sobre el progreso de sus correcciones.`,
+      message: `Estado cambiado a "${cambiarEstadoDto.estado}" exitosamente.`,
       observacion: observacionActualizada
     };
   }

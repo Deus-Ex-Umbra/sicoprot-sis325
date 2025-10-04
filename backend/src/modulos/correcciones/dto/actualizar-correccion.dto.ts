@@ -1,16 +1,16 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min, Matches } from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CrearObservacionDto {
-  @ApiProperty({ example: 'Error de tipeo en la introducción' })
+export class ActualizarCorreccionDto {
+  @ApiProperty({ example: 'Error corregido', required: false })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  titulo: string;
+  titulo?: string;
 
-  @ApiProperty({ example: 'Revisar la ortografía del capítulo 2.' })
+  @ApiProperty({ example: 'Se corrigió la redacción', required: false })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  contenido: string;
+  descripcion?: string;
 
   @ApiProperty({ example: 10.5, required: false })
   @IsOptional()
@@ -48,7 +48,7 @@ export class CrearObservacionDto {
   @Min(1)
   pagina_fin?: number;
 
-  @ApiProperty({ example: '#FFD700', required: false })
+  @ApiProperty({ example: '#28a745', required: false })
   @IsOptional()
   @IsString()
   @Matches(/^#[0-9A-F]{6}$/i, { message: 'El color debe estar en formato hexadecimal #RRGGBB' })

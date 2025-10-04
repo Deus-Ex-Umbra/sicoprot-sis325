@@ -1,230 +1,295 @@
 import { useState, useRef, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { Card, Button, ButtonGroup, Badge, Form, Modal, Alert } from 'react-bootstrap';
-import { FaArrowLeft, FaArrowRight, FaPlus, FaMinus, FaComment, FaEdit } from 'react-icons/fa';
-import { useAutenticacion } from '../contextos/ContextoAutenticacion';
-import { type Observacion, type Correccion, Rol } from '../tipos/usuario';
-import TomSelect from 'tom-select';
+import { Card, Button, ButtonGroup, Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { FaArrowLeft, FaArrowRight, FaPlus, FaMinus } from 'react-icons/fa';
+import { type Observacion, type Correccion } from '../tipos/usuario';
 
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-interface Punto {
-  x: number;
-  y: number;
-  pagina: number;
-}
-
 interface Props {
   urlDocumento: string;
-  documentoId: number;
   observaciones: Observacion[];
-  observacionesPendientes: Observacion[];
   correcciones: Correccion[];
-  onCrearObservacion?: (observacion: any) => Promise<void>;
-  onCrearCorreccion?: (correccion: any) => Promise<void>;
+  observacionSeleccionada?: number | null;
+  correccionSeleccionada?: number | null;
 }
 
 const VisualizadorDocumento: React.FC<Props> = ({
   urlDocumento,
-  documentoId,
   observaciones,
-  observacionesPendientes,
   correcciones,
-  onCrearObservacion,
-  onCrearCorreccion,
+  observacionSeleccionada,
+  correccionSeleccionada,
 }) => {
   const [numPaginas, setNumPaginas] = useState<number | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
   const [escala, setEscala] = useState(1.5);
-  const [modoAnotacion, setModoAnotacion] = useState<'observacion' | 'correccion' | null>(null);
-  const [puntoInicio, setPuntoInicio] = useState<Punto | null>(null);
-  const [puntoFin, setPuntoFin] = useState<Punto | null>(null);
-
-  const [mostrarModalObservacion, setMostrarModalObservacion] = useState(false);
-  const [mostrarModalCorreccion, setMostrarModalCorreccion] = useState(false);
-  
-  const [tituloAnotacion, setTituloAnotacion] = useState('');
-  const [textoAnotacion, setTextoAnotacion] = useState('');
-  const [idObservacionAsociada, setIdObservacionAsociada] = useState<number | null>(null);
-
-  const [error, setError] = useState('');
+  const [dimensionesPagina, setDimensionesPagina] = useState<{ width: number; height: number } | null>(null);
+  const [hoveredAnotacion, setHoveredAnotacion] = useState<string | null>(null);
   
   const pageRef = useRef<HTMLDivElement>(null);
-  const { usuario } = useAutenticacion();
-  const esEstudiante = usuario?.rol === Rol.Estudiante;
-  const esAsesor = usuario?.rol === Rol.Asesor;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (mostrarModalCorreccion && observacionesPendientes.length > 0) {
-      const select = new TomSelect('#select-observacion', {
-        create: false,
-        sortField: [{ field: 'text', direction: 'asc' }],
-      });
-      return () => {
-        select.destroy();
-      };
+    if (observacionSeleccionada) {
+      const obs = observaciones.find(o => o.id === observacionSeleccionada);
+      if (obs && obs.pagina_inicio !== paginaActual) {
+        setPaginaActual(obs.pagina_inicio);
+      }
     }
-  }, [mostrarModalCorreccion, observacionesPendientes]);
+  }, [observacionSeleccionada, observaciones]);
 
+  useEffect(() => {
+    if (correccionSeleccionada) {
+      const corr = correcciones.find(c => c.id === correccionSeleccionada);
+      if (corr && corr.pagina_inicio !== paginaActual) {
+        setPaginaActual(corr.pagina_inicio);
+      }
+    }
+  }, [correccionSeleccionada, correcciones]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPaginas(numPages);
   };
 
-  const limpiarEstadoAnotacion = () => {
-    setPuntoInicio(null);
-    setPuntoFin(null);
-    setModoAnotacion(null);
-    setTextoAnotacion('');
-    setTituloAnotacion('');
-    setIdObservacionAsociada(null);
-    setError('');
+  const onPageLoadSuccess = (page: any) => {
+    const viewport = page.getViewport({ scale: 1 });
+    setDimensionesPagina({
+      width: viewport.width,
+      height: viewport.height
+    });
   };
 
-  const manejarClickPagina = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!modoAnotacion) return;
+  const dibujarCorchete = (
+    x: number, 
+    y: number, 
+    orientacion: 'izquierda' | 'derecha',
+    esHover: boolean,
+    color: string,
+    titulo: string
+  ) => {
+    const tamano = 25;
+    const grosor = esHover ? 4 : 3;
+    const colorFinal = esHover ? '#ffffff' : color;
     
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    const pagina = paginaActual;
+    const corchete = orientacion === 'izquierda' ? (
+      <path
+        d={`M ${x + tamano/2} ${y - tamano} L ${x} ${y - tamano} L ${x} ${y + tamano} L ${x + tamano/2} ${y + tamano}`}
+        fill="none"
+        stroke={colorFinal}
+        strokeWidth={grosor}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ) : (
+      <path
+        d={`M ${x - tamano/2} ${y - tamano} L ${x} ${y - tamano} L ${x} ${y + tamano} L ${x - tamano/2} ${y + tamano}`}
+        fill="none"
+        stroke={colorFinal}
+        strokeWidth={grosor}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    );
 
-    if (!puntoInicio) {
-      setPuntoInicio({ x, y, pagina });
-    } else {
-      setPuntoFin({ x, y, pagina });
-      if (modoAnotacion === 'observacion') {
-        setMostrarModalObservacion(true);
-      } else if (modoAnotacion === 'correccion') {
-        setMostrarModalCorreccion(true);
-      }
-    }
+    const tooltipContent = (
+      <Tooltip id={`tooltip-${orientacion}-${titulo}`}>
+        <strong>{titulo}</strong>
+      </Tooltip>
+    );
+
+    return (
+      <OverlayTrigger placement="top" overlay={tooltipContent}>
+        <g style={{ cursor: 'pointer' }}>
+          {corchete}
+        </g>
+      </OverlayTrigger>
+    );
   };
-  
-  const manejarCrearObservacion = async () => {
-    if (!puntoInicio || !puntoFin || !tituloAnotacion || !textoAnotacion) {
-      setError('El título y la descripción son obligatorios.');
-      return;
-    }
-
-    const nuevaObservacion = {
-      titulo: tituloAnotacion,
-      contenido: textoAnotacion,
-      x_inicio: puntoInicio.x,
-      y_inicio: puntoInicio.y,
-      pagina_inicio: puntoInicio.pagina,
-      x_fin: puntoFin.x,
-      y_fin: puntoFin.y,
-      pagina_fin: puntoFin.pagina,
-    };
-
-    if (onCrearObservacion) {
-      await onCrearObservacion(nuevaObservacion);
-      setMostrarModalObservacion(false);
-      limpiarEstadoAnotacion();
-    }
-  };
-
-  const manejarCrearCorreccion = async () => {
-    if (!puntoInicio || !puntoFin || !tituloAnotacion || !textoAnotacion || !idObservacionAsociada) {
-      setError('Todos los campos son obligatorios y debe seleccionar una observación.');
-      return;
-    }
-    
-    const nuevaCorreccion = {
-      titulo: tituloAnotacion,
-      descripcion: textoAnotacion,
-      x_inicio: puntoInicio.x,
-      y_inicio: puntoInicio.y,
-      pagina_inicio: puntoInicio.pagina,
-      x_fin: puntoFin.x,
-      y_fin: puntoFin.y,
-      pagina_fin: puntoFin.pagina,
-      id_observacion: idObservacionAsociada,
-      id_documento: documentoId,
-    };
-    
-    if (onCrearCorreccion) {
-      await onCrearCorreccion(nuevaCorreccion);
-      setMostrarModalCorreccion(false);
-      limpiarEstadoAnotacion();
-    }
-  };
-
 
   const renderizarAnotaciones = () => {
+    if (!pageRef.current || !dimensionesPagina) return null;
+
+    const contenedor = pageRef.current.querySelector('.react-pdf__Page__canvas');
+    if (!contenedor) return null;
+
+    const rect = contenedor.getBoundingClientRect();
     const elementos: JSX.Element[] = [];
 
-    const dibujarRectangulo = (key: string, p1: Punto, p2: Punto, color: string, borde: string, titulo: string) => {
-        return (
-            <div
-                key={key}
-                title={titulo}
-                style={{
-                    position: 'absolute',
-                    left: `${Math.min(p1.x, p2.x)}%`,
-                    top: `${Math.min(p1.y, p2.y)}%`,
-                    width: `${Math.abs(p2.x - p1.x)}%`,
-                    height: `${Math.abs(p2.y - p1.y)}%`,
-                    backgroundColor: color,
-                    border: `2px solid ${borde}`,
-                    pointerEvents: 'none',
-                }}
+    const dibujarMarcador = (
+      key: string,
+      anotacion: Observacion | Correccion,
+      color: string,
+      titulo: string,
+      contenido: string,
+      tipo: 'observacion' | 'correccion',
+      idItem: number
+    ) => {
+      const { x_inicio, y_inicio, x_fin, y_fin, pagina_inicio, pagina_fin } = anotacion;
+
+      if (pagina_inicio !== paginaActual && pagina_fin !== paginaActual) return;
+
+      const keyId = `${tipo}-${idItem}`;
+      const esHover = hoveredAnotacion === keyId;
+      const esSeleccionado = 
+        (tipo === 'observacion' && observacionSeleccionada === idItem) ||
+        (tipo === 'correccion' && correccionSeleccionada === idItem);
+
+      let x1Porcentaje = x_inicio;
+      let y1Porcentaje = y_inicio;
+      let x2Porcentaje = x_fin;
+      let y2Porcentaje = y_fin;
+
+      if (pagina_inicio !== pagina_fin) {
+        if (pagina_inicio === paginaActual) {
+          x2Porcentaje = 100;
+          y2Porcentaje = 100;
+        } else if (pagina_fin === paginaActual) {
+          x1Porcentaje = 0;
+          y1Porcentaje = 0;
+        }
+      }
+
+      const x1 = (x1Porcentaje / 100) * rect.width;
+      const y1 = (y1Porcentaje / 100) * rect.height;
+      const x2 = (x2Porcentaje / 100) * rect.width;
+      const y2 = (y2Porcentaje / 100) * rect.height;
+
+      const minX = Math.min(x1, x2);
+      const maxX = Math.max(x1, x2);
+      const minY = Math.min(y1, y2);
+      const maxY = Math.max(y1, y2);
+      const centroY = (minY + maxY) / 2;
+
+      elementos.push(
+        <svg
+          key={key}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            zIndex: esSeleccionado ? 1000 : 10,
+          }}
+        >
+          <defs>
+            <filter id={`glow-${keyId}`}>
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+
+          {esHover && (
+            <rect
+              x={minX}
+              y={minY}
+              width={maxX - minX}
+              height={maxY - minY}
+              fill={color}
+              opacity={0.15}
             />
-        );
+          )}
+
+          <g 
+            style={{ 
+              filter: esSeleccionado ? `url(#glow-${keyId})` : 'none',
+              opacity: esSeleccionado ? 1 : 0.85,
+              pointerEvents: 'all'
+            }}
+            onMouseEnter={() => setHoveredAnotacion(keyId)}
+            onMouseLeave={() => setHoveredAnotacion(null)}
+          >
+            {dibujarCorchete(minX, centroY, 'izquierda', esHover || esSeleccionado, color, titulo)}
+            {dibujarCorchete(maxX, centroY, 'derecha', esHover || esSeleccionado, color, titulo)}
+          </g>
+
+          {esHover && (
+            <line
+              x1={minX}
+              y1={centroY}
+              x2={maxX}
+              y2={centroY}
+              stroke={color}
+              strokeWidth={1.5}
+              strokeDasharray="5 3"
+              opacity={0.6}
+            />
+          )}
+        </svg>
+      );
+
+      const tooltipContent = (
+        <Tooltip id={`tooltip-${keyId}`}>
+          <div style={{ textAlign: 'left' }}>
+            <strong>{titulo}</strong>
+            <div style={{ fontSize: '0.85em', marginTop: '4px' }}>
+              {contenido.length > 100 ? `${contenido.substring(0, 100)}...` : contenido}
+            </div>
+          </div>
+        </Tooltip>
+      );
+
+      elementos.push(
+        <OverlayTrigger
+          key={`${key}-hover`}
+          placement="top"
+          overlay={tooltipContent}
+        >
+          <div
+            onMouseEnter={() => setHoveredAnotacion(keyId)}
+            onMouseLeave={() => setHoveredAnotacion(null)}
+            style={{
+              position: 'absolute',
+              left: `${minX}px`,
+              top: `${minY}px`,
+              width: `${maxX - minX}px`,
+              height: `${maxY - minY}px`,
+              cursor: 'pointer',
+              zIndex: esSeleccionado ? 999 : 5,
+            }}
+          />
+        </OverlayTrigger>
+      );
     };
 
-    const anotacionesEnPagina = (arr: Array<Observacion | Correccion>) => {
-        arr.forEach(item => {
-            const esObs = 'contenido' in item;
-            const color = esObs ? 'rgba(255, 193, 7, 0.3)' : 'rgba(40, 167, 69, 0.3)';
-            const borde = esObs ? '#ffc107' : '#28a745';
-            const titulo = esObs ? item.contenido : item.descripcion;
+    observaciones.forEach(obs => {
+      dibujarMarcador(
+        `obs-${obs.id}`,
+        obs,
+        obs.color,
+        obs.titulo,
+        obs.contenido,
+        'observacion',
+        obs.id
+      );
+    });
 
-            if (item.pagina_inicio === item.pagina_fin && item.pagina_inicio === paginaActual) {
-                elementos.push(dibujarRectangulo(
-                    `${esObs ? 'obs' : 'corr'}-${item.id}`,
-                    { x: item.x_inicio, y: item.y_inicio, pagina: item.pagina_inicio },
-                    { x: item.x_fin, y: item.y_fin, pagina: item.pagina_fin },
-                    color, borde, titulo
-                ));
-            } else {
-                if (item.pagina_inicio === paginaActual) {
-                    elementos.push(dibujarRectangulo(
-                        `${esObs ? 'obs' : 'corr'}-${item.id}-start`,
-                        { x: item.x_inicio, y: item.y_inicio, pagina: item.pagina_inicio },
-                        { x: 100, y: 100, pagina: item.pagina_inicio },
-                        color, borde, `Inicio: ${titulo}`
-                    ));
-                }
-                if (item.pagina_fin === paginaActual) {
-                    elementos.push(dibujarRectangulo(
-                        `${esObs ? 'obs' : 'corr'}-${item.id}-end`,
-                        { x: 0, y: 0, pagina: item.pagina_fin },
-                        { x: item.x_fin, y: item.y_fin, pagina: item.pagina_fin },
-                        color, borde, `Fin: ${titulo}`
-                    ));
-                }
-            }
-        });
-    };
-
-    anotacionesEnPagina(observaciones);
-    anotacionesEnPagina(correcciones);
-
-    if (puntoInicio && puntoInicio.pagina === paginaActual) {
-        elementos.push(<div key="start-marker" style={{ position: 'absolute', left: `${puntoInicio.x}%`, top: `${puntoInicio.y}%`, width: '10px', height: '10px', backgroundColor: 'blue', borderRadius: '50%', transform: 'translate(-50%, -50%)' }} />);
-    }
+    correcciones.forEach(corr => {
+      dibujarMarcador(
+        `corr-${corr.id}`,
+        corr,
+        corr.color,
+        corr.titulo || 'Corrección',
+        corr.descripcion,
+        'correccion',
+        corr.id
+      );
+    });
 
     return elementos;
   };
   
   return (
     <Card className="documento-viewer">
-       <Card.Header>
+      <Card.Header>
         <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div className="d-flex align-items-center gap-2">
             <Badge bg="info">
@@ -234,122 +299,89 @@ const VisualizadorDocumento: React.FC<Props> = ({
               Zoom: {Math.round(escala * 100)}%
             </Badge>
           </div>
-          
-          <div className="d-flex align-items-center gap-2">
-            {modoAnotacion && (
-                <Badge bg="warning" pill>Modo Anotación</Badge>
-            )}
-            {esAsesor && (
-              <Button
-                variant={modoAnotacion === 'observacion' ? 'warning' : 'outline-warning'}
-                onClick={() => setModoAnotacion(prev => prev ? null : 'observacion')}
-              >
-                <FaComment className="me-2" />
-                {modoAnotacion === 'observacion' ? 'Cancelar' : 'Observación'}
-              </Button>
-            )}
-            
-            {esEstudiante && (
-              <Button
-                variant={modoAnotacion === 'correccion' ? 'success' : 'outline-success'}
-                onClick={() => setModoAnotacion(prev => prev ? null : 'correccion')}
-              >
-                <FaEdit className="me-2" />
-                 {modoAnotacion === 'correccion' ? 'Cancelar' : 'Corrección'}
-              </Button>
-            )}
-          </div>
         </div>
-        {modoAnotacion && (
-             <Alert variant="info" className="mt-2 mb-0 small">
-                {puntoInicio ? 'Haga clic para marcar el punto final.' : 'Haga clic para marcar el punto de inicio.'}
-            </Alert>
-        )}
       </Card.Header>
 
       <Card.Body>
         <div className="pdf-controls">
           <ButtonGroup>
-            <Button variant="secondary" onClick={() => setPaginaActual(p => Math.max(1, p - 1))} disabled={paginaActual <= 1}><FaArrowLeft /></Button>
-            <Button variant="secondary" disabled>{paginaActual} / {numPaginas}</Button>
-            <Button variant="secondary" onClick={() => setPaginaActual(p => Math.min(numPaginas!, p + 1))} disabled={paginaActual >= (numPaginas || 1)}><FaArrowRight /></Button>
+            <Button 
+              variant="secondary" 
+              onClick={() => setPaginaActual(p => Math.max(1, p - 1))} 
+              disabled={paginaActual <= 1}
+            >
+              <FaArrowLeft />
+            </Button>
+            <Button variant="secondary" disabled>
+              {paginaActual} / {numPaginas}
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={() => setPaginaActual(p => Math.min(numPaginas!, p + 1))} 
+              disabled={paginaActual >= (numPaginas || 1)}
+            >
+              <FaArrowRight />
+            </Button>
           </ButtonGroup>
           <ButtonGroup className="ms-3">
-            <Button variant="secondary" onClick={() => setEscala(s => Math.max(0.5, s - 0.25))}><FaMinus /></Button>
-            <Button variant="secondary" disabled>{Math.round(escala * 100)}%</Button>
-            <Button variant="secondary" onClick={() => setEscala(s => Math.min(3, s + 0.25))}><FaPlus /></Button>
+            <Button 
+              variant="secondary" 
+              onClick={() => setEscala(s => Math.max(0.5, s - 0.25))}
+            >
+              <FaMinus />
+            </Button>
+            <Button variant="secondary" disabled>
+              {Math.round(escala * 100)}%
+            </Button>
+            <Button 
+              variant="secondary" 
+              onClick={() => setEscala(s => Math.min(3, s + 0.25))}
+            >
+              <FaPlus />
+            </Button>
           </ButtonGroup>
         </div>
 
         <div 
           ref={pageRef}
-          style={{ position: 'relative', cursor: modoAnotacion ? 'crosshair' : 'default' }}
-          onClick={manejarClickPagina}
+          style={{ 
+            position: 'relative', 
+            display: 'inline-block'
+          }}
         >
-          <Document file={urlDocumento} onLoadSuccess={onDocumentLoadSuccess} loading={<div className="spinner-border text-primary" role="status"><span className="visually-hidden">Cargando PDF...</span></div>}>
-            <Page pageNumber={paginaActual} scale={escala} renderTextLayer={false} renderAnnotationLayer={false}/>
+          <Document 
+            file={urlDocumento} 
+            onLoadSuccess={onDocumentLoadSuccess} 
+            loading={
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Cargando PDF...</span>
+              </div>
+            }
+          >
+            <Page 
+              pageNumber={paginaActual} 
+              scale={escala} 
+              renderTextLayer={false} 
+              renderAnnotationLayer={false}
+              onLoadSuccess={onPageLoadSuccess}
+              canvasRef={canvasRef}
+            />
           </Document>
-          <div className="annotation-layer">{renderizarAnotaciones()}</div>
+          <div 
+            className="annotation-layer"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none'
+            }}
+          >
+            {renderizarAnotaciones()}
+          </div>
         </div>
       </Card.Body>
-
-      {/* Modal para Observación */}
-      <Modal show={mostrarModalObservacion} onHide={() => { setMostrarModalObservacion(false); limpiarEstadoAnotacion(); }}>
-        <Modal.Header closeButton>
-          <Modal.Title>Nueva Observación</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {error && <Alert variant="danger">{error}</Alert>}
-          <p>Marcando desde la página <strong>{puntoInicio?.pagina}</strong> hasta la página <strong>{puntoFin?.pagina}</strong>.</p>
-          <Form.Group className="mb-3">
-            <Form.Label>Título</Form.Label>
-            <Form.Control type="text" value={tituloAnotacion} onChange={(e) => setTituloAnotacion(e.target.value)} placeholder="Ej: Corregir párrafo" />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Descripción</Form.Label>
-            <Form.Control as="textarea" rows={3} value={textoAnotacion} onChange={(e) => setTextoAnotacion(e.target.value)} placeholder="Escriba su observación aquí..." />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => { setMostrarModalObservacion(false); limpiarEstadoAnotacion(); }}>Cancelar</Button>
-          <Button variant="primary" onClick={manejarCrearObservacion}>Crear Observación</Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Modal para Corrección */}
-      <Modal show={mostrarModalCorreccion} onHide={() => { setMostrarModalCorreccion(false); limpiarEstadoAnotacion(); }}>
-        <Modal.Header closeButton>
-          <Modal.Title>Nueva Corrección</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {error && <Alert variant="danger">{error}</Alert>}
-           <p>Marcando desde la página <strong>{puntoInicio?.pagina}</strong> hasta la página <strong>{puntoFin?.pagina}</strong>.</p>
-          <Form.Group className="mb-3">
-            <Form.Label>Observación a Corregir</Form.Label>
-            <select id="select-observacion" onChange={(e) => setIdObservacionAsociada(parseInt(e.target.value))}>
-              <option value="">Seleccione una observación...</option>
-              {observacionesPendientes.map(obs => (
-                  <option key={obs.id} value={obs.id}>
-                      {`Pág. ${obs.pagina_inicio}: ${obs.titulo}`}
-                  </option>
-              ))}
-            </select>
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>Título de la Corrección</Form.Label>
-            <Form.Control type="text" value={tituloAnotacion} onChange={(e) => setTituloAnotacion(e.target.value)} placeholder="Ej: Párrafo corregido" />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label>Descripción de la Corrección</Form.Label>
-            <Form.Control as="textarea" rows={3} value={textoAnotacion} onChange={(e) => setTextoAnotacion(e.target.value)} placeholder="Describa la corrección realizada..." />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => { setMostrarModalCorreccion(false); limpiarEstadoAnotacion(); }}>Cancelar</Button>
-          <Button variant="success" onClick={manejarCrearCorreccion}>Crear Corrección</Button>
-        </Modal.Footer>
-      </Modal>
-
     </Card>
   );
 };

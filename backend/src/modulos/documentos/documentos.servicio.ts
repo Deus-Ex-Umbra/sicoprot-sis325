@@ -19,9 +19,18 @@ export class DocumentosService {
       throw new NotFoundException(`Proyecto con ID '${proyectoId}' no encontrado.`);
     }
 
+    const ultimoDocumento = await this.repositorio_documento
+      .createQueryBuilder('documento')
+      .where('documento.proyectoId = :proyectoId', { proyectoId })
+      .orderBy('documento.version', 'DESC')
+      .getOne();
+
+    const nuevaVersion = ultimoDocumento ? ultimoDocumento.version + 1 : 1;
+
     const nuevo_documento = this.repositorio_documento.create({
       nombre_archivo: archivo.originalname,
       ruta_archivo: archivo.path,
+      version: nuevaVersion,
       proyecto: proyecto,
     });
 
