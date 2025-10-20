@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Proyecto } from './entidades/proyecto.endidad';
@@ -20,14 +20,31 @@ export class ProyectosService {
   async crear(crear_proyecto_dto: CrearProyectoDto, id_usuario_estudiante: number) {
     const { id_asesor, titulo } = crear_proyecto_dto;
     
-    const estudiante = await this.repositorio_estudiante.findOne({ where: { usuario: { id: id_usuario_estudiante } } });
+    const estudiante = await this.repositorio_estudiante.findOne({ 
+      where: { usuario: { id: id_usuario_estudiante } },
+      relations: ['grupo', 'grupo.asesor']
+    });
+
     if (!estudiante) {
       throw new NotFoundException(`Estudiante con ID de usuario '${id_usuario_estudiante}' no encontrado.`);
     }
 
-    const asesor = await this.repositorio_asesor.findOneBy({ id: id_asesor });
+    let asesor: Asesor | null = null;
+
+    if (estudiante.grupo && estudiante.grupo.asesor) {
+      asesor = estudiante.grupo.asesor;
+      console.log(`Asignando automáticamente al asesor del grupo: ${asesor.nombre} ${asesor.apellido}`);
+    } else if (id_asesor) {
+      asesor = await this.repositorio_asesor.findOneBy({ id: id_asesor });
+      if (!asesor) {
+        throw new NotFoundException(`Asesor con ID '${id_asesor}' no encontrado.`);
+      }
+    } else {
+      throw new BadRequestException('Debes estar inscrito en un grupo o especificar un asesor para crear un proyecto.');
+    }
+
     if (!asesor) {
-      throw new NotFoundException(`Asesor con ID '${id_asesor}' no encontrado.`);
+      throw new BadRequestException('No se pudo determinar el asesor para el proyecto.');
     }
 
     const nuevo_proyecto = this.repositorio_proyecto.create({

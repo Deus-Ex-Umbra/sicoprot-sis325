@@ -17,6 +17,13 @@ export const EstadoUsuario = {
 
 export type EstadoUsuario = typeof EstadoUsuario[keyof typeof EstadoUsuario];
 
+export interface Estudiante {
+  id: number;
+  nombre: string;
+  apellido: string;
+  usuario?: Usuario;
+}
+
 export interface Usuario {
   id: number;
   correo: string;
@@ -55,7 +62,7 @@ export interface Grupo {
   activo: boolean;
   asesor: any;
   periodo: Periodo;
-  estudiantes?: any[];
+  estudiantes?: Estudiante[];
   fecha_creacion: string;
 }
 

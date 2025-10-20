@@ -63,6 +63,50 @@ export class UsuariosService {
     return usuario || undefined;
   }
 
+  async obtenerPerfilCompleto(id_usuario: number) {
+    const usuario = await this.repositorio_usuario.findOneBy({ id: id_usuario });
+    
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID '${id_usuario}' no encontrado.`);
+    }
+
+    const { contrasena: _, ...datos_usuario } = usuario;
+
+    let perfil_completo: any = null;
+    if (usuario.rol === Rol.Estudiante) {
+      const estudiante = await this.repositorio_estudiante.findOne({
+        where: { usuario: { id: usuario.id } },
+        relations: ['grupo', 'grupo.asesor', 'grupo.periodo'],
+      });
+      if (estudiante) {
+        perfil_completo = {
+          id_estudiante: estudiante.id,
+          nombre: estudiante.nombre,
+          apellido: estudiante.apellido,
+          grupo: estudiante.grupo || null,
+        };
+      }
+    } else if (usuario.rol === Rol.Asesor) {
+      const asesor = await this.repositorio_asesor.findOne({
+        where: { usuario: { id: usuario.id } },
+        relations: ['grupos'],
+      });
+      if (asesor) {
+        perfil_completo = {
+          id_asesor: asesor.id,
+          nombre: asesor.nombre,
+          apellido: asesor.apellido,
+          grupos: asesor.grupos,
+        };
+      }
+    }
+
+    return {
+      ...datos_usuario,
+      perfil: perfil_completo,
+    };
+  }
+
   async actualizar(id: number, actualizar_usuario_dto: ActualizarUsuarioDto) {
     if (actualizar_usuario_dto.contrasena) {
       actualizar_usuario_dto.contrasena = await bcrypt.hash(
@@ -145,16 +189,18 @@ export class UsuariosService {
     const usuario_actualizado = await this.repositorio_usuario.save(usuario);
     const { contrasena: _, ...usuario_para_retornar } = usuario_actualizado;
 
-    let perfil: { id_estudiante: number; nombre: string; apellido: string; } | { id_asesor: number; nombre: string; apellido: string; } | null = null;
+    let perfil: { id_estudiante: number; nombre: string; apellido: string; grupo?: any } | { id_asesor: number; nombre: string; apellido: string; } | null = null;
     if (usuario.rol === Rol.Estudiante) {
       const estudiante = await this.repositorio_estudiante.findOne({
         where: { usuario: { id: usuario.id } },
+        relations: ['grupo', 'grupo.asesor', 'grupo.periodo'],
       });
       if (estudiante) {
         perfil = {
           id_estudiante: estudiante.id,
           nombre: estudiante.nombre,
           apellido: estudiante.apellido,
+          grupo: estudiante.grupo || null,
         };
       }
     } else if (usuario.rol === Rol.Asesor) {

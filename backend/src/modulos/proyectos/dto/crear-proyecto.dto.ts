@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CrearProyectoDto {
@@ -7,8 +7,8 @@ export class CrearProyectoDto {
   @IsNotEmpty()
   titulo: string;
 
-  @ApiProperty({ description: 'ID del asesor asignado al proyecto', example: 2 })
+  @ApiProperty({ description: 'ID del asesor asignado al proyecto (opcional si el estudiante tiene grupo)', example: 2, required: false })
   @IsNumber()
-  @IsNotEmpty()
-  id_asesor: number;
+  @IsOptional()
+  id_asesor?: number;
 }
