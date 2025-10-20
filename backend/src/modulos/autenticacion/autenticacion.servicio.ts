@@ -16,6 +16,7 @@ export interface Perfil {
   id_asesor?: number;
   nombre: string;
   apellido: string;
+  grupo?: any;
 }
 
 @Injectable()
@@ -70,12 +71,14 @@ export class AutenticacionService {
     if (usuario.rol === Rol.Estudiante) {
       const estudiante = await this.repositorio_estudiante.findOne({
         where: { usuario: { id: usuario.id } },
+        relations: ['grupo', 'grupo.asesor', 'grupo.periodo'],
       });
       if (estudiante) {
         perfil_completo = {
           id_estudiante: estudiante.id,
           nombre: estudiante.nombre,
           apellido: estudiante.apellido,
+          grupo: estudiante.grupo || null,
         };
       }
     } else if (usuario.rol === Rol.Asesor) {

@@ -45,6 +45,15 @@ export class UsuariosController {
 
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
+  @Get('perfil/actual')
+  @ApiOperation({ summary: 'Obtener el perfil del usuario autenticado' })
+  @ApiResponse({ status: 200, description: 'Perfil del usuario.' })
+  obtenerPerfilActual(@Request() req) {
+    return this.servicio_usuarios.obtenerPerfilCompleto(req.user.id_usuario);
+  }
+
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
   @Patch('perfil/actualizar')
   @ApiOperation({ summary: 'Actualizar perfil del usuario autenticado' })
   @ApiResponse({ status: 200, description: 'Perfil actualizado exitosamente.' })
