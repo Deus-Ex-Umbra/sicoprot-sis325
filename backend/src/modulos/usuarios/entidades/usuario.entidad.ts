@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne } from 'typeorm';
 import { Rol } from '../enums/rol.enum';
+import { EstadoUsuario } from '../enums/estado-usuario.enum';
 import { Estudiante } from '../../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../../asesores/entidades/asesor.entidad';
 
@@ -16,6 +17,12 @@ export class Usuario {
 
   @Column({ type: 'enum', enum: Rol, default: Rol.Estudiante })
   rol: Rol;
+
+  @Column({ type: 'enum', enum: EstadoUsuario, default: EstadoUsuario.Pendiente })
+  estado: EstadoUsuario;
+
+  @Column({ name: 'fecha_aprobacion', type: 'timestamp', nullable: true })
+  fecha_aprobacion: Date;
 
   @CreateDateColumn({ name: 'creado_en', type: 'timestamp' })
   creado_en: Date;
