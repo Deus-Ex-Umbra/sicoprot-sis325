@@ -15,6 +15,7 @@ import { EstadoObservacion, estadoConfig } from '../tipos/estadoObservacion';
 import { Clock, Eye, CheckCircle, XCircle, Edit2, Trash2, Plus } from 'lucide-react';
 import { type Observacion, type Correccion } from '../tipos/usuario';
 import { toast } from 'react-toastify';
+import ChecklistObservaciones from '../componentes/ChecklistObservaciones';
 
 const iconos = {
   'clock': Clock,
@@ -132,6 +133,12 @@ const Observaciones = () => {
           </Badge>
         )}
       </div>
+
+      <Row className="mb-4">
+        <Col lg={12}>
+          <ChecklistObservaciones observaciones={observaciones} />
+        </Col>
+      </Row>
       
       <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }} className="mb-4">
         <Card.Header>

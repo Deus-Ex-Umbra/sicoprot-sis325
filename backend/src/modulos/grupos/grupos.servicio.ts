@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Grupo } from './entidades/grupo.entidad';
@@ -48,6 +48,29 @@ export class GruposService {
       relations: ['asesor', 'asesor.usuario', 'periodo', 'estudiantes', 'estudiantes.usuario'],
       order: { fecha_creacion: 'DESC' },
     });
+  }
+
+  async obtenerGruposDisponibles() {
+    const periodo_activo = await this.repositorio_periodo.findOne({
+      where: { activo: true }
+    });
+
+    if (!periodo_activo) {
+      return [];
+    }
+
+    const grupos = await this.repositorio_grupo.find({
+      where: { 
+        periodo: { id: periodo_activo.id },
+        activo: true
+      },
+      relations: ['asesor', 'asesor.usuario', 'periodo', 'estudiantes'],
+    });
+
+    return grupos.map(grupo => ({
+      ...grupo,
+      numero_estudiantes: grupo.estudiantes?.length || 0
+    }));
   }
 
   async obtenerPorPeriodo(id_periodo: number) {
@@ -131,6 +154,117 @@ export class GruposService {
     await this.repositorio_estudiante.save(estudiante);
 
     return this.obtenerUno(id_grupo);
+  }
+
+  async inscribirEstudiante(id_grupo: number, id_usuario: number) {
+    const grupo = await this.repositorio_grupo.findOne({
+      where: { id: id_grupo },
+      relations: ['estudiantes', 'periodo'],
+    });
+
+    if (!grupo) {
+      throw new NotFoundException(`Grupo con ID '${id_grupo}' no encontrado.`);
+    }
+
+    if (!grupo.activo) {
+      throw new BadRequestException('Este grupo no está activo.');
+    }
+
+    if (!grupo.periodo.activo) {
+      throw new BadRequestException('El período de inscripciones no está activo.');
+    }
+
+    const ahora = new Date();
+    ahora.setHours(0, 0, 0, 0);
+
+    const fecha_inicio = new Date(grupo.periodo.fecha_inicio_inscripciones);
+    fecha_inicio.setHours(0, 0, 0, 0);
+    
+    const fecha_fin = new Date(grupo.periodo.fecha_fin_inscripciones);
+    fecha_fin.setHours(23, 59, 59, 999);
+
+    console.log('Fecha actual:', ahora);
+    console.log('Fecha inicio inscripciones:', fecha_inicio);
+    console.log('Fecha fin inscripciones:', fecha_fin);
+    console.log('Está en rango:', ahora >= fecha_inicio && ahora <= fecha_fin);
+
+    if (ahora < fecha_inicio) {
+      const fecha_inicio_formato = fecha_inicio.toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      throw new BadRequestException(
+        `El período de inscripciones aún no ha comenzado. Inicia el ${fecha_inicio_formato}.`
+      );
+    }
+
+    if (ahora > fecha_fin) {
+      const fecha_fin_formato = fecha_fin.toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      throw new BadRequestException(
+        `El período de inscripciones ya finalizó el ${fecha_fin_formato}.`
+      );
+    }
+
+    const estudiante = await this.repositorio_estudiante.findOne({
+      where: { usuario: { id: id_usuario } },
+      relations: ['grupo'],
+    });
+
+    if (!estudiante) {
+      throw new NotFoundException('Estudiante no encontrado.');
+    }
+
+    if (estudiante.grupo) {
+      throw new BadRequestException('Ya estás inscrito en un grupo. Debes desinscribirte primero.');
+    }
+
+    estudiante.grupo = grupo;
+    await this.repositorio_estudiante.save(estudiante);
+
+    return {
+      message: 'Te has inscrito exitosamente al grupo.',
+      grupo: await this.obtenerUno(id_grupo)
+    };
+  }
+
+  async desinscribirEstudiante(id_grupo: number, id_usuario: number) {
+    const estudiante = await this.repositorio_estudiante.findOne({
+      where: { usuario: { id: id_usuario } },
+      relations: ['grupo', 'grupo.periodo'],
+    });
+
+    if (!estudiante) {
+      throw new NotFoundException('Estudiante no encontrado.');
+    }
+
+    if (!estudiante.grupo || estudiante.grupo.id !== id_grupo) {
+      throw new BadRequestException('No estás inscrito en este grupo.');
+    }
+
+    const ahora = new Date();
+    ahora.setHours(0, 0, 0, 0);
+
+    const fecha_inicio = new Date(estudiante.grupo.periodo.fecha_inicio_inscripciones);
+    fecha_inicio.setHours(0, 0, 0, 0);
+    
+    const fecha_fin = new Date(estudiante.grupo.periodo.fecha_fin_inscripciones);
+    fecha_fin.setHours(23, 59, 59, 999);
+
+    if (ahora < fecha_inicio || ahora > fecha_fin) {
+      throw new BadRequestException('No estás dentro del período de inscripciones para desinscribirte.');
+    }
+
+    estudiante.grupo = undefined as any;
+    await this.repositorio_estudiante.save(estudiante);
+
+    return {
+      message: 'Te has desinscrito exitosamente del grupo.'
+    };
   }
 
   async removerEstudiante(id_grupo: number, id_estudiante: number) {

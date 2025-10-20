@@ -12,6 +12,7 @@ import Observaciones from '../paginas/Observaciones';
 import ObservacionesAsesor from '../paginas/ObservacionesAsesor';
 import MisEstudiantes from '../paginas/MisEstudiantes';
 import RevisarDocumentos from '../paginas/RevisarDocumentos';
+import InscripcionGrupos from '../paginas/InscripcionGrupos';
 import RutaProtegida from '../componentes/RutaProtegida';
 import CrearObservacion from '../paginas/CrearObservacion';
 import CrearCorreccion from '../paginas/CrearCorreccion';
@@ -78,6 +79,14 @@ const router = createBrowserRouter([
         element: (
           <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
             <CrearCorreccion />
+          </RutaProtegida>
+        ),
+      },
+      {
+        path: 'inscripcion-grupos',
+        element: (
+          <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
+            <InscripcionGrupos />
           </RutaProtegida>
         ),
       },

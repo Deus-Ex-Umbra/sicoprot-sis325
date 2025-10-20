@@ -6,6 +6,11 @@ export const obtenerGrupos = async (): Promise<Grupo[]> => {
   return data;
 };
 
+export const obtenerGruposDisponibles = async (): Promise<Grupo[]> => {
+  const { data } = await api.get('/grupos/disponibles');
+  return data;
+};
+
 export const obtenerGruposPorPeriodo = async (periodoId: number): Promise<Grupo[]> => {
   const { data } = await api.get(`/grupos/periodo/${periodoId}`);
   return data;
@@ -23,6 +28,16 @@ export const crearGrupo = async (grupo: any): Promise<Grupo> => {
 
 export const actualizarGrupo = async (id: number, grupo: any): Promise<Grupo> => {
   const { data } = await api.patch(`/grupos/${id}`, grupo);
+  return data;
+};
+
+export const inscribirseAGrupo = async (grupoId: number): Promise<any> => {
+  const { data } = await api.post(`/grupos/${grupoId}/inscribirse`);
+  return data;
+};
+
+export const desinscribirseDeGrupo = async (grupoId: number): Promise<any> => {
+  const { data } = await api.delete(`/grupos/${grupoId}/desinscribirse`);
   return data;
 };
 

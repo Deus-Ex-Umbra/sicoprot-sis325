@@ -1,7 +1,7 @@
 import { Card, Row, Col } from 'react-bootstrap';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { Rol } from '../tipos/usuario';
-import { FaProjectDiagram, FaFileAlt, FaComments, FaUserGraduate, FaCog } from 'react-icons/fa';
+import { FaProjectDiagram, FaFileAlt, FaComments, FaUserGraduate, FaCog, FaUsers } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 const Panel = () => {
@@ -42,6 +42,20 @@ const Panel = () => {
 
         {esEstudiante && (
           <>
+            <Col md={6} lg={3}>
+              <Card 
+                className="text-center h-100"
+                style={{ cursor: 'pointer', backgroundColor: 'var(--color-fondo-tarjeta)' }}
+                onClick={() => navigate('/panel/inscripcion-grupos')}
+              >
+                <Card.Body>
+                  <FaUsers size={40} className="mb-3 text-info" />
+                  <h5 className="text-light">Grupos</h5>
+                  <p className="text-muted">Inscripción a grupos de asesoría</p>
+                </Card.Body>
+              </Card>
+            </Col>
+
             <Col md={6} lg={3}>
               <Card 
                 className="text-center h-100"
