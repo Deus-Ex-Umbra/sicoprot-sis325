@@ -1,31 +1,86 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Modal, Form, Alert } from 'react-bootstrap';
-import { FaUserCheck, FaUserTimes, FaUserSlash, FaTrash } from 'react-icons/fa';
+import { Card, Table, Badge, Button, Modal, Form, Alert, Row, Col, InputGroup } from 'react-bootstrap';
+import { FaSearch, FaTimes } from 'react-icons/fa';
 import { obtenerTodosUsuarios, cambiarEstadoUsuario } from '../../servicios/administracion.servicio';
 import { type Usuario, EstadoUsuario, Rol } from '../../tipos/usuario';
 import { toast } from 'react-toastify';
 
 const GestionUsuarios = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [usuariosFiltrados, setUsuariosFiltrados] = useState<Usuario[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [mostrarModal, setMostrarModal] = useState(false);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<Usuario | null>(null);
   const [nuevoEstado, setNuevoEstado] = useState<EstadoUsuario>(EstadoUsuario.Activo);
+  
+  const [filtros, setFiltros] = useState({
+    busqueda: '',
+    rol: '',
+    estado: '',
+    grupo: ''
+  });
 
   useEffect(() => {
     cargarUsuarios();
   }, []);
 
+  useEffect(() => {
+    aplicarFiltros();
+  }, [filtros, usuarios]);
+
   const cargarUsuarios = async () => {
     try {
       const data = await obtenerTodosUsuarios();
       setUsuarios(data);
+      setUsuariosFiltrados(data);
     } catch (err) {
       setError('Error al cargar los usuarios');
     } finally {
       setCargando(false);
     }
+  };
+
+  const aplicarFiltros = () => {
+    let resultado = [...usuarios];
+
+    if (filtros.busqueda) {
+      const busquedaLower = filtros.busqueda.toLowerCase();
+      resultado = resultado.filter(usuario => 
+        usuario.correo.toLowerCase().includes(busquedaLower) ||
+        (usuario.perfil?.nombre?.toLowerCase().includes(busquedaLower)) ||
+        (usuario.perfil?.apellido?.toLowerCase().includes(busquedaLower))
+      );
+    }
+
+    if (filtros.rol) {
+      resultado = resultado.filter(usuario => usuario.rol === filtros.rol);
+    }
+
+    if (filtros.estado) {
+      resultado = resultado.filter(usuario => usuario.estado === filtros.estado);
+    }
+
+    if (filtros.grupo === 'con_grupo') {
+      resultado = resultado.filter(usuario => 
+        usuario.rol === Rol.Estudiante && usuario.perfil?.grupo
+      );
+    } else if (filtros.grupo === 'sin_grupo') {
+      resultado = resultado.filter(usuario => 
+        usuario.rol === Rol.Estudiante && !usuario.perfil?.grupo
+      );
+    }
+
+    setUsuariosFiltrados(resultado);
+  };
+
+  const limpiarFiltros = () => {
+    setFiltros({
+      busqueda: '',
+      rol: '',
+      estado: '',
+      grupo: ''
+    });
   };
 
   const abrirModalCambiarEstado = (usuario: Usuario) => {
@@ -75,6 +130,8 @@ const GestionUsuarios = () => {
     }
   };
 
+  const hayFiltrosActivos = filtros.busqueda || filtros.rol || filtros.estado || filtros.grupo;
+
   if (cargando) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
@@ -90,6 +147,97 @@ const GestionUsuarios = () => {
   return (
     <div>
       <h2 className="text-light mb-4">Gestión de Usuarios</h2>
+      
+      <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }} className="mb-4">
+        <Card.Header>
+          <h5 className="mb-0">Filtros de Búsqueda</h5>
+        </Card.Header>
+        <Card.Body>
+          <Row className="g-3">
+            <Col md={6} lg={3}>
+              <Form.Group>
+                <Form.Label className="text-light">Buscar</Form.Label>
+                <InputGroup>
+                  <InputGroup.Text style={{ backgroundColor: 'var(--color-fondo-secundario)', borderColor: 'var(--color-borde)' }}>
+                    <FaSearch className="text-muted" />
+                  </InputGroup.Text>
+                  <Form.Control
+                    type="text"
+                    placeholder="Nombre, apellido o correo..."
+                    value={filtros.busqueda}
+                    onChange={(e) => setFiltros({ ...filtros, busqueda: e.target.value })}
+                    style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)', borderColor: 'var(--color-borde)' }}
+                  />
+                </InputGroup>
+              </Form.Group>
+            </Col>
+
+            <Col md={6} lg={3}>
+              <Form.Group>
+                <Form.Label className="text-light">Rol</Form.Label>
+                <Form.Select
+                  value={filtros.rol}
+                  onChange={(e) => setFiltros({ ...filtros, rol: e.target.value })}
+                  style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)', borderColor: 'var(--color-borde)' }}
+                >
+                  <option value="">Todos los roles</option>
+                  <option value={Rol.Estudiante}>Estudiante</option>
+                  <option value={Rol.Asesor}>Asesor</option>
+                  <option value={Rol.Administrador}>Administrador</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+
+            <Col md={6} lg={3}>
+              <Form.Group>
+                <Form.Label className="text-light">Estado</Form.Label>
+                <Form.Select
+                  value={filtros.estado}
+                  onChange={(e) => setFiltros({ ...filtros, estado: e.target.value })}
+                  style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)', borderColor: 'var(--color-borde)' }}
+                >
+                  <option value="">Todos los estados</option>
+                  <option value={EstadoUsuario.Activo}>Activo</option>
+                  <option value={EstadoUsuario.Pendiente}>Pendiente</option>
+                  <option value={EstadoUsuario.Inactivo}>Inactivo</option>
+                  <option value={EstadoUsuario.Eliminado}>Eliminado</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+
+            <Col md={6} lg={3}>
+              <Form.Group>
+                <Form.Label className="text-light">Grupo (Estudiantes)</Form.Label>
+                <Form.Select
+                  value={filtros.grupo}
+                  onChange={(e) => setFiltros({ ...filtros, grupo: e.target.value })}
+                  style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)', borderColor: 'var(--color-borde)' }}
+                >
+                  <option value="">Todos</option>
+                  <option value="con_grupo">Con grupo asignado</option>
+                  <option value="sin_grupo">Sin grupo asignado</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          {hayFiltrosActivos && (
+            <div className="mt-3">
+              <Button 
+                variant="outline-secondary" 
+                size="sm"
+                onClick={limpiarFiltros}
+              >
+                <FaTimes className="me-2" />
+                Limpiar Filtros
+              </Button>
+              <span className="text-muted ms-3">
+                Mostrando {usuariosFiltrados.length} de {usuarios.length} usuarios
+              </span>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
       
       <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
         <Card.Body>
@@ -107,7 +255,7 @@ const GestionUsuarios = () => {
               </tr>
             </thead>
             <tbody>
-              {usuarios.map((usuario) => (
+              {usuariosFiltrados.map((usuario) => (
                 <tr key={usuario.id}>
                   <td>{usuario.id}</td>
                   <td>
@@ -151,9 +299,11 @@ const GestionUsuarios = () => {
             </tbody>
           </Table>
 
-          {usuarios.length === 0 && (
+          {usuariosFiltrados.length === 0 && (
             <p className="text-muted text-center py-5">
-              No hay usuarios registrados.
+              {hayFiltrosActivos 
+                ? 'No se encontraron usuarios con los filtros aplicados.'
+                : 'No hay usuarios registrados.'}
             </p>
           )}
         </Card.Body>
