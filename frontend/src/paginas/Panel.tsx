@@ -7,12 +7,12 @@ import { useNavigate } from 'react-router-dom';
 const Panel = () => {
   const { usuario } = useAutenticacion();
   const navigate = useNavigate();
-  
+
   const esEstudiante = usuario?.rol === Rol.Estudiante;
   const esAsesor = usuario?.rol === Rol.Asesor;
   const esAdmin = usuario?.rol === Rol.Administrador;
 
-  const tieneGrupo = esEstudiante && usuario?.perfil?.grupo !== undefined && usuario?.perfil?.grupo !== null;
+  const tieneGrupo = !!(esEstudiante && usuario?.perfil?.grupo);
   const grupo = usuario?.perfil?.grupo;
 
   if (esAdmin) {
@@ -29,10 +29,10 @@ const Panel = () => {
       {esEstudiante && !tieneGrupo && (
         <Alert variant="warning" className="mb-4">
           <FaExclamationTriangle className="me-2" />
-          <strong>Importante:</strong> No estás inscrito en ningún grupo de asesoría. 
+          <strong>Importante:</strong> No estás inscrito en ningún grupo de asesoría.
           Para crear proyectos y recibir orientación, debes inscribirte en un grupo.
           <div className="mt-2">
-            <button 
+            <button
               className="btn btn-warning btn-sm"
               onClick={() => navigate('/panel/inscripcion-grupos')}
             >
@@ -81,11 +81,11 @@ const Panel = () => {
           </Card.Body>
         </Card>
       )}
-      
+
       <Row className="g-4">
         <Col md={6} lg={3}>
-          <Card 
-            className="text-center h-100" 
+          <Card
+            className="text-center h-100"
             style={{ cursor: 'pointer', backgroundColor: 'var(--color-fondo-tarjeta)' }}
             onClick={() => navigate('/panel/proyectos')}
           >
@@ -102,7 +102,7 @@ const Panel = () => {
         {esEstudiante && (
           <>
             <Col md={6} lg={3}>
-              <Card 
+              <Card
                 className="text-center h-100"
                 style={{ cursor: 'pointer', backgroundColor: 'var(--color-fondo-tarjeta)' }}
                 onClick={() => navigate('/panel/inscripcion-grupos')}
@@ -118,7 +118,7 @@ const Panel = () => {
             </Col>
 
             <Col md={6} lg={3}>
-              <Card 
+              <Card
                 className="text-center h-100"
                 style={{ cursor: 'pointer', backgroundColor: 'var(--color-fondo-tarjeta)' }}
                 onClick={() => navigate('/panel/mis-documentos')}
@@ -132,7 +132,7 @@ const Panel = () => {
             </Col>
 
             <Col md={6} lg={3}>
-              <Card 
+              <Card
                 className="text-center h-100"
                 style={{ cursor: 'pointer', backgroundColor: 'var(--color-fondo-tarjeta)' }}
                 onClick={() => navigate('/panel/observaciones')}
@@ -150,7 +150,7 @@ const Panel = () => {
         {esAsesor && (
           <>
             <Col md={6} lg={3}>
-              <Card 
+              <Card
                 className="text-center h-100"
                 style={{ cursor: 'pointer', backgroundColor: 'var(--color-fondo-tarjeta)' }}
                 onClick={() => navigate('/panel/estudiantes')}
@@ -164,7 +164,7 @@ const Panel = () => {
             </Col>
 
             <Col md={6} lg={3}>
-              <Card 
+              <Card
                 className="text-center h-100"
                 style={{ cursor: 'pointer', backgroundColor: 'var(--color-fondo-tarjeta)' }}
                 onClick={() => navigate('/panel/revisar')}

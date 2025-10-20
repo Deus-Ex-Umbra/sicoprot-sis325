@@ -7,7 +7,6 @@ interface ContextoAutenticacionTipo {
   token: string | null;
   cargando: boolean;
   iniciarSesion: (correo: string, contrasena: string) => Promise<void>;
-  registrarse: (datos: any) => Promise<void>;
   cerrarSesion: () => void;
   estaAutenticado: () => boolean;
   actualizarUsuario: (usuarioActualizado: Usuario) => void;
@@ -37,9 +36,15 @@ export const ProveedorAutenticacion: React.FC<Props> = ({ children }) => {
     const usuario_guardado = localStorage.getItem('usuario');
 
     if (token_guardado && usuario_guardado) {
-      setToken(token_guardado);
-      setUsuario(JSON.parse(usuario_guardado));
-      api.defaults.headers.common['Authorization'] = `Bearer ${token_guardado}`;
+      try {
+        const usuario_parseado = JSON.parse(usuario_guardado);
+        setToken(token_guardado);
+        setUsuario(usuario_parseado);
+        api.defaults.headers.common['Authorization'] = `Bearer ${token_guardado}`;
+      } catch (error) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+      }
     }
 
     setCargando(false);
@@ -56,27 +61,9 @@ export const ProveedorAutenticacion: React.FC<Props> = ({ children }) => {
 
       localStorage.setItem('token', token_acceso);
       localStorage.setItem('usuario', JSON.stringify(datos_usuario));
-      
+
       api.defaults.headers.common['Authorization'] = `Bearer ${token_acceso}`;
-      
-      setToken(token_acceso);
-      setUsuario(datos_usuario);
-    } catch (error) {
-      throw error;
-    }
-  };
 
-  const registrarse = async (datos: any) => {
-    try {
-      const response = await api.post('/autenticacion/registrarse', datos);
-
-      const { token_acceso, usuario: datos_usuario } = response.data;
-
-      localStorage.setItem('token', token_acceso);
-      localStorage.setItem('usuario', JSON.stringify(datos_usuario));
-      
-      api.defaults.headers.common['Authorization'] = `Bearer ${token_acceso}`;
-      
       setToken(token_acceso);
       setUsuario(datos_usuario);
     } catch (error) {
@@ -108,7 +95,6 @@ export const ProveedorAutenticacion: React.FC<Props> = ({ children }) => {
         token,
         cargando,
         iniciarSesion,
-        registrarse,
         cerrarSesion,
         estaAutenticado,
         actualizarUsuario,
