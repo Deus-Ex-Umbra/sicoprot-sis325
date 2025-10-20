@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany
 import { Usuario } from '../../usuarios/entidades/usuario.entidad';
 import { Proyecto } from '../../proyectos/entidades/proyecto.endidad';
 import { Observacion } from '../../observaciones/entidades/observacion.entidad';
+import { Grupo } from '../../grupos/entidades/grupo.entidad';
 
 @Entity('asesores')
 export class Asesor {
@@ -23,4 +24,7 @@ export class Asesor {
 
   @OneToMany(() => Observacion, (observacion) => observacion.autor)
   observaciones_realizadas: Observacion[];
+
+  @OneToMany(() => Grupo, (grupo) => grupo.asesor)
+  grupos: Grupo[];
 }

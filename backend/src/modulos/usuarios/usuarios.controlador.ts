@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
 import { UsuariosService } from './usuarios.servicio';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ActualizarPerfilDto } from './dto/actualizar-perfil.dto';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Usuario } from './entidades/usuario.entidad';
+import { JwtGuard } from '../autenticacion/guards/jwt.guard';
 
 @ApiTags('usuarios')
 @Controller('usuarios')
@@ -39,6 +41,15 @@ export class UsuariosController {
   @ApiResponse({ status: 404, description: 'El usuario con el ID especificado no fue encontrado.' })
   actualizar(@Param('id', ParseIntPipe) id: number, @Body() actualizar_usuario_dto: ActualizarUsuarioDto) {
     return this.servicio_usuarios.actualizar(id, actualizar_usuario_dto);
+  }
+
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @Patch('perfil/actualizar')
+  @ApiOperation({ summary: 'Actualizar perfil del usuario autenticado' })
+  @ApiResponse({ status: 200, description: 'Perfil actualizado exitosamente.' })
+  actualizarPerfil(@Request() req, @Body() actualizar_perfil_dto: ActualizarPerfilDto) {
+    return this.servicio_usuarios.actualizarPerfil(req.user.id_usuario, actualizar_perfil_dto);
   }
 
   @Delete(':id')

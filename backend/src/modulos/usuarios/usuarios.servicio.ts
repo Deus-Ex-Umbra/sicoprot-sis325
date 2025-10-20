@@ -1,9 +1,13 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from './entidades/usuario.entidad';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
+import { ActualizarPerfilDto } from './dto/actualizar-perfil.dto';
+import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
+import { Asesor } from '../asesores/entidades/asesor.entidad';
+import { Rol } from './enums/rol.enum';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -11,6 +15,10 @@ export class UsuariosService {
   constructor(
     @InjectRepository(Usuario)
     private readonly repositorio_usuario: Repository<Usuario>,
+    @InjectRepository(Estudiante)
+    private readonly repositorio_estudiante: Repository<Estudiante>,
+    @InjectRepository(Asesor)
+    private readonly repositorio_asesor: Repository<Asesor>,
   ) {}
 
   async crear(crear_usuario_dto: CrearUsuarioDto) {
@@ -72,6 +80,100 @@ export class UsuariosService {
     const usuario_actualizado = await this.repositorio_usuario.save(usuario);
     const { contrasena: _, ...usuario_para_retornar } = usuario_actualizado;
     return usuario_para_retornar;
+  }
+
+  async actualizarPerfil(id: number, actualizar_perfil_dto: ActualizarPerfilDto) {
+    const usuario = await this.repositorio_usuario
+      .createQueryBuilder('usuario')
+      .addSelect('usuario.contrasena')
+      .where('usuario.id = :id', { id })
+      .getOne();
+
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID '${id}' no encontrado.`);
+    }
+
+    if (actualizar_perfil_dto.correo && actualizar_perfil_dto.correo !== usuario.correo) {
+      const correo_existe = await this.repositorio_usuario.findOne({
+        where: { correo: actualizar_perfil_dto.correo },
+      });
+      if (correo_existe) {
+        throw new BadRequestException('El correo ya está en uso.');
+      }
+      usuario.correo = actualizar_perfil_dto.correo;
+    }
+
+    if (actualizar_perfil_dto.contrasena_nueva) {
+      if (!actualizar_perfil_dto.contrasena_actual) {
+        throw new BadRequestException('Debe proporcionar la contraseña actual.');
+      }
+
+      const contrasena_valida = await bcrypt.compare(
+        actualizar_perfil_dto.contrasena_actual,
+        usuario.contrasena,
+      );
+
+      if (!contrasena_valida) {
+        throw new UnauthorizedException('La contraseña actual es incorrecta.');
+      }
+
+      usuario.contrasena = await bcrypt.hash(actualizar_perfil_dto.contrasena_nueva, 10);
+    }
+
+    if (actualizar_perfil_dto.nombre || actualizar_perfil_dto.apellido) {
+      if (usuario.rol === Rol.Estudiante) {
+        const estudiante = await this.repositorio_estudiante.findOne({
+          where: { usuario: { id: usuario.id } },
+        });
+        if (estudiante) {
+          if (actualizar_perfil_dto.nombre) estudiante.nombre = actualizar_perfil_dto.nombre;
+          if (actualizar_perfil_dto.apellido) estudiante.apellido = actualizar_perfil_dto.apellido;
+          await this.repositorio_estudiante.save(estudiante);
+        }
+      } else if (usuario.rol === Rol.Asesor) {
+        const asesor = await this.repositorio_asesor.findOne({
+          where: { usuario: { id: usuario.id } },
+        });
+        if (asesor) {
+          if (actualizar_perfil_dto.nombre) asesor.nombre = actualizar_perfil_dto.nombre;
+          if (actualizar_perfil_dto.apellido) asesor.apellido = actualizar_perfil_dto.apellido;
+          await this.repositorio_asesor.save(asesor);
+        }
+      }
+    }
+
+    const usuario_actualizado = await this.repositorio_usuario.save(usuario);
+    const { contrasena: _, ...usuario_para_retornar } = usuario_actualizado;
+
+    let perfil: { id_estudiante: number; nombre: string; apellido: string; } | { id_asesor: number; nombre: string; apellido: string; } | null = null;
+    if (usuario.rol === Rol.Estudiante) {
+      const estudiante = await this.repositorio_estudiante.findOne({
+        where: { usuario: { id: usuario.id } },
+      });
+      if (estudiante) {
+        perfil = {
+          id_estudiante: estudiante.id,
+          nombre: estudiante.nombre,
+          apellido: estudiante.apellido,
+        };
+      }
+    } else if (usuario.rol === Rol.Asesor) {
+      const asesor = await this.repositorio_asesor.findOne({
+        where: { usuario: { id: usuario.id } },
+      });
+      if (asesor) {
+        perfil = {
+          id_asesor: asesor.id,
+          nombre: asesor.nombre,
+          apellido: asesor.apellido,
+        };
+      }
+    }
+
+    return {
+      ...usuario_para_retornar,
+      perfil,
+    };
   }
 
   async eliminar(id: number) {

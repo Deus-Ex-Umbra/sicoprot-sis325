@@ -9,6 +9,11 @@ import { ObservacionesModule } from './modulos/observaciones/observaciones.modul
 import { CorreccionesModule } from './modulos/correcciones/correcciones.modulo';
 import { EstudiantesModule } from './modulos/estudiantes/estudiantes.modulo';
 import { AsesoresModule } from './modulos/asesores/asesores.modulo';
+import { PeriodosModule } from './modulos/periodos/periodos.modulo';
+import { GruposModule } from './modulos/grupos/grupos.modulo';
+import { SolicitudesRegistroModule } from './modulos/solicitudes-registro/solicitudes-registro.modulo';
+import { AdministracionModule } from './modulos/administracion/administracion.modulo';
+import { SemillaModule } from './modulos/semilla/semilla.modulo';
 
 console.log({
   user: process.env.DB_USER,
@@ -17,6 +22,7 @@ console.log({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
 });
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -32,6 +38,7 @@ console.log({
       autoLoadEntities: true,
       synchronize: true,
     }),
+    SemillaModule,
     AutenticacionModule,
     UsuariosModule,
     ProyectosModule,
@@ -40,11 +47,12 @@ console.log({
     CorreccionesModule,
     EstudiantesModule,
     AsesoresModule,
+    PeriodosModule,
+    GruposModule,
+    SolicitudesRegistroModule,
+    AdministracionModule,
   ],
   controllers: [],
   providers: [],
 })
-
 export class AppModule {}
-
-
