@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Proyecto } from './entidades/proyecto.endidad';
@@ -39,21 +39,66 @@ export class ProyectosService {
     return this.repositorio_proyecto.save(nuevo_proyecto);
   }
 
-  async obtenerTodos() {
-    return this.repositorio_proyecto.find({
-      relations: ['estudiante', 'asesor', 'documentos'],
-      order: { fecha_creacion: 'DESC' },
-    });
+  async obtenerTodos(id_usuario: number, rol: string) {
+    const query = this.repositorio_proyecto.createQueryBuilder('proyecto')
+      .leftJoinAndSelect('proyecto.estudiante', 'estudiante')
+      .leftJoinAndSelect('proyecto.asesor', 'asesor')
+      .leftJoinAndSelect('proyecto.documentos', 'documentos')
+      .orderBy('proyecto.fecha_creacion', 'DESC');
+
+    if (rol === 'estudiante') {
+      const estudiante = await this.repositorio_estudiante.findOne({
+        where: { usuario: { id: id_usuario } }
+      });
+      
+      if (!estudiante) {
+        throw new NotFoundException('Estudiante no encontrado.');
+      }
+      
+      query.where('proyecto.estudiante.id = :estudianteId', { estudianteId: estudiante.id });
+    } else if (rol === 'asesor') {
+      const asesor = await this.repositorio_asesor.findOne({
+        where: { usuario: { id: id_usuario } }
+      });
+      
+      if (!asesor) {
+        throw new NotFoundException('Asesor no encontrado.');
+      }
+      
+      query.where('proyecto.asesor.id = :asesorId', { asesorId: asesor.id });
+    }
+
+    return query.getMany();
   }
   
-  async obtenerUno(id: number) {
+  async obtenerUno(id: number, id_usuario: number, rol: string) {
     const proyecto = await this.repositorio_proyecto.findOne({ 
       where: { id },
-      relations: ['estudiante', 'asesor', 'documentos'] 
+      relations: ['estudiante', 'estudiante.usuario', 'asesor', 'documentos'] 
     });
+    
     if (!proyecto) {
       throw new NotFoundException(`Proyecto con ID '${id}' no encontrado.`);
     }
+
+    if (rol === 'estudiante') {
+      const estudiante = await this.repositorio_estudiante.findOne({
+        where: { usuario: { id: id_usuario } }
+      });
+      
+      if (!estudiante || proyecto.estudiante.id !== estudiante.id) {
+        throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
+      }
+    } else if (rol === 'asesor') {
+      const asesor = await this.repositorio_asesor.findOne({
+        where: { usuario: { id: id_usuario } }
+      });
+      
+      if (!asesor || proyecto.asesor.id !== asesor.id) {
+        throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
+      }
+    }
+
     return proyecto;
   }
 }
