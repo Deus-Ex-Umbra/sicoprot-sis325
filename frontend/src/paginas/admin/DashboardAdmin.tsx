@@ -105,8 +105,7 @@ const DashboardAdmin = () => {
         <Col md={6} lg={4}>
           <Card 
             className="text-center h-100"
-            style={{ cursor: 'pointer', backgroundColor: 'var(--color-fondo-tarjeta)' }}
-            onClick={() => navigate('/panel/admin/estudiantes')}
+            style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}
           >
             <Card.Body>
               <FaUserGraduate size={40} className="mb-3 text-danger" />

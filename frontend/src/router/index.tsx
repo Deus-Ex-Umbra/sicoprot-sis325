@@ -161,14 +161,6 @@ const router = createBrowserRouter([
           </RutaProtegida>
         ),
       },
-      {
-        path: 'admin/estudiantes',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Administrador]}>
-            <GestionUsuarios />
-          </RutaProtegida>
-        ),
-      },
     ],
   },
 ]);

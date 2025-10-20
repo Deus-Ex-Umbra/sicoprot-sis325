@@ -2,9 +2,15 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Cabecera from '../componentes/Cabecera';
 import BarraLateral from '../componentes/BarraLateral';
+import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
+import { useAutenticacion } from '../contextos/ContextoAutenticacion';
+import { Rol } from '../tipos/usuario';
 
 const LayoutPanel = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { usuario } = useAutenticacion();
+
+  const esAdmin = usuario?.rol === Rol.Administrador;
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -13,7 +19,11 @@ const LayoutPanel = () => {
   return (
     <div className="wrapper">
       <Cabecera toggleSidebar={toggleSidebar} />
-      <BarraLateral isOpen={sidebarOpen} />
+      {esAdmin ? (
+        <BarraLateralAdmin isOpen={sidebarOpen} />
+      ) : (
+        <BarraLateral isOpen={sidebarOpen} />
+      )}
 
       <div 
         className="content-wrapper" 
