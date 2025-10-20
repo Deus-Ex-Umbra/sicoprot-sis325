@@ -8,16 +8,67 @@ export const Rol = {
 
 export type Rol = typeof Rol[keyof typeof Rol];
 
+export const EstadoUsuario = {
+  Pendiente: 'pendiente',
+  Activo: 'activo',
+  Inactivo: 'inactivo',
+  Eliminado: 'eliminado',
+} as const;
+
+export type EstadoUsuario = typeof EstadoUsuario[keyof typeof EstadoUsuario];
+
 export interface Usuario {
   id: number;
   correo: string;
   rol: Rol;
+  estado: EstadoUsuario;
+  fecha_aprobacion?: string;
+  creado_en: string;
+  actualizado_en: string;
   perfil?: {
     id_estudiante?: number;
     id_asesor?: number;
     nombre: string;
     apellido: string;
+    grupo?: Grupo;
+    grupos?: Grupo[];
   };
+}
+
+export interface Periodo {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  fecha_inicio_semestre: string;
+  fecha_fin_semestre: string;
+  fecha_inicio_inscripciones: string;
+  fecha_fin_inscripciones: string;
+  activo: boolean;
+  fecha_creacion: string;
+  grupos?: Grupo[];
+}
+
+export interface Grupo {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  activo: boolean;
+  asesor: any;
+  periodo: Periodo;
+  estudiantes?: any[];
+  fecha_creacion: string;
+}
+
+export interface SolicitudRegistro {
+  id: number;
+  nombre: string;
+  apellido: string;
+  correo: string;
+  rol: Rol;
+  estado: 'pendiente' | 'aprobada' | 'rechazada';
+  comentarios_admin?: string;
+  fecha_solicitud: string;
+  fecha_respuesta?: string;
 }
 
 export interface Proyecto {

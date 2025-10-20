@@ -1,0 +1,41 @@
+import api from './api';
+import { type Grupo } from '../tipos/usuario';
+
+export const obtenerGrupos = async (): Promise<Grupo[]> => {
+  const { data } = await api.get('/grupos');
+  return data;
+};
+
+export const obtenerGruposPorPeriodo = async (periodoId: number): Promise<Grupo[]> => {
+  const { data } = await api.get(`/grupos/periodo/${periodoId}`);
+  return data;
+};
+
+export const obtenerGrupoPorId = async (id: number): Promise<Grupo> => {
+  const { data } = await api.get(`/grupos/${id}`);
+  return data;
+};
+
+export const crearGrupo = async (grupo: any): Promise<Grupo> => {
+  const { data } = await api.post('/grupos', grupo);
+  return data;
+};
+
+export const actualizarGrupo = async (id: number, grupo: any): Promise<Grupo> => {
+  const { data } = await api.patch(`/grupos/${id}`, grupo);
+  return data;
+};
+
+export const asignarEstudiante = async (grupoId: number, estudianteId: number): Promise<Grupo> => {
+  const { data } = await api.post(`/grupos/${grupoId}/asignar-estudiante`, { id_estudiante: estudianteId });
+  return data;
+};
+
+export const removerEstudiante = async (grupoId: number, estudianteId: number): Promise<Grupo> => {
+  const { data } = await api.delete(`/grupos/${grupoId}/remover-estudiante/${estudianteId}`);
+  return data;
+};
+
+export const eliminarGrupo = async (id: number): Promise<void> => {
+  await api.delete(`/grupos/${id}`);
+};

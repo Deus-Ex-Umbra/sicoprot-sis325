@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Card, Form, Button, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { Rol } from '../tipos/usuario';
+import { crearSolicitud } from '../servicios/solicitudes.servicio';
 
 const Registro = () => {
   const [nombre, setNombre] = useState('');
@@ -12,14 +12,15 @@ const Registro = () => {
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
   const [rol, setRol] = useState<Rol>(Rol.Estudiante);
   const [error, setError] = useState('');
+  const [exito, setExito] = useState(false);
   const [cargando, setCargando] = useState(false);
   
-  const { registrarse } = useAutenticacion();
   const navigate = useNavigate();
 
   const manejarSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setExito(false);
 
     if (!nombre || !apellido || !correo || !contrasena || !confirmarContrasena) {
       setError('Todos los campos son obligatorios.');
@@ -39,14 +40,18 @@ const Registro = () => {
     setCargando(true);
 
     try {
-      await registrarse({
+      await crearSolicitud({
         nombre,
         apellido,
         correo,
         contrasena,
         rol,
       });
-      navigate('/panel');
+      
+      setExito(true);
+      setTimeout(() => {
+        navigate('/iniciar-sesion');
+      }, 3000);
     } catch (err: any) {
       console.error('Error al registrarse:', err);
       setError(err.response?.data?.message || 'Error en el servidor.');
@@ -55,10 +60,29 @@ const Registro = () => {
     }
   };
 
+  if (exito) {
+    return (
+      <Card>
+        <Card.Body className="register-card-body">
+          <Alert variant="success">
+            <h5>¡Solicitud enviada exitosamente!</h5>
+            <p className="mb-0">
+              Tu solicitud de registro ha sido enviada. Un administrador revisará tu solicitud y 
+              te notificaremos cuando tu cuenta sea aprobada. Serás redirigido al inicio de sesión...
+            </p>
+          </Alert>
+          <Link to="/iniciar-sesion" className="text-center d-block mt-3">
+            Ir a inicio de sesión
+          </Link>
+        </Card.Body>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <Card.Body className="register-card-body">
-        <p className="login-box-msg">Registrar una nueva cuenta</p>
+        <p className="login-box-msg">Solicitar una nueva cuenta</p>
         
         {error && <Alert variant="danger">{error}</Alert>}
 
@@ -132,7 +156,7 @@ const Registro = () => {
                 className="w-100"
                 disabled={cargando}
               >
-                {cargando ? 'Registrando...' : 'Registrarse'}
+                {cargando ? 'Enviando solicitud...' : 'Solicitar Registro'}
               </Button>
             </div>
           </div>

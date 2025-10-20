@@ -1,7 +1,7 @@
 import { Navbar, Nav, NavDropdown, Container } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
-import { FaUser, FaSignOutAlt, FaBars } from 'react-icons/fa';
+import { FaUser, FaSignOutAlt, FaBars, FaCog } from 'react-icons/fa';
 
 interface Props {
   toggleSidebar: () => void;
@@ -43,6 +43,11 @@ const Cabecera: React.FC<Props> = ({ toggleSidebar }) => {
             >
               <NavDropdown.Item disabled>
                 <small className="text-muted">Rol: {usuario?.rol}</small>
+              </NavDropdown.Item>
+              <NavDropdown.Divider />
+              <NavDropdown.Item onClick={() => navigate('/panel/perfil')}>
+                <FaCog className="me-2" />
+                Mi Perfil
               </NavDropdown.Item>
               <NavDropdown.Divider />
               <NavDropdown.Item onClick={manejarCerrarSesion}>

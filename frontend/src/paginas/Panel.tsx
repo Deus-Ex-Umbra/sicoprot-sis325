@@ -1,7 +1,7 @@
 import { Card, Row, Col } from 'react-bootstrap';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { Rol } from '../tipos/usuario';
-import { FaProjectDiagram, FaFileAlt, FaComments, FaUserGraduate } from 'react-icons/fa';
+import { FaProjectDiagram, FaFileAlt, FaComments, FaUserGraduate, FaCog } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 const Panel = () => {
@@ -10,6 +10,12 @@ const Panel = () => {
   
   const esEstudiante = usuario?.rol === Rol.Estudiante;
   const esAsesor = usuario?.rol === Rol.Asesor;
+  const esAdmin = usuario?.rol === Rol.Administrador;
+
+  if (esAdmin) {
+    navigate('/panel/admin');
+    return null;
+  }
 
   return (
     <div>

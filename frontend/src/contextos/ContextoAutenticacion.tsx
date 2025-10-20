@@ -1,18 +1,6 @@
 import { createContext, useState, useContext, useEffect, type ReactNode } from 'react';
 import api from '../servicios/api';
-import { Rol } from '../tipos/usuario';
-
-interface Usuario {
-  id: number;
-  correo: string;
-  rol: Rol;
-  perfil?: {
-    id_estudiante?: number;
-    id_asesor?: number;
-    nombre: string;
-    apellido: string;
-  };
-}
+import { type Usuario } from '../tipos/usuario';
 
 interface ContextoAutenticacionTipo {
   usuario: Usuario | null;
