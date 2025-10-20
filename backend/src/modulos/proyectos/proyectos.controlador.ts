@@ -20,10 +20,10 @@ export class ProyectosController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener todos los proyectos' })
-  @ApiResponse({ status: 200, description: 'Lista de todos los proyectos.' })
-  obtenerTodos() {
-    return this.servicio_proyectos.obtenerTodos();
+  @ApiOperation({ summary: 'Obtener todos los proyectos del usuario' })
+  @ApiResponse({ status: 200, description: 'Lista de proyectos del usuario.' })
+  obtenerTodos(@Request() req) {
+    return this.servicio_proyectos.obtenerTodos(req.user.id_usuario, req.user.rol);
   }
 
   @Get(':id')
@@ -31,7 +31,8 @@ export class ProyectosController {
   @ApiParam({ name: 'id', description: 'ID numérico del proyecto' })
   @ApiResponse({ status: 200, description: 'Proyecto encontrado.' })
   @ApiResponse({ status: 404, description: 'Proyecto no encontrado.' })
-  obtenerUno(@Param('id', ParseIntPipe) id: number) {
-    return this.servicio_proyectos.obtenerUno(id);
+  @ApiResponse({ status: 403, description: 'No tienes permiso para acceder a este proyecto.' })
+  obtenerUno(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.servicio_proyectos.obtenerUno(id, req.user.id_usuario, req.user.rol);
   }
 }
