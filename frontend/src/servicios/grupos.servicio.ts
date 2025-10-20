@@ -11,6 +11,18 @@ export const obtenerGruposDisponibles = async (): Promise<Grupo[]> => {
   return data;
 };
 
+export const obtenerMiGrupo = async (): Promise<Grupo | null> => {
+  try {
+    const { data } = await api.get('/grupos/mi-grupo');
+    return data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+};
+
 export const obtenerGruposPorPeriodo = async (periodoId: number): Promise<Grupo[]> => {
   const { data } = await api.get(`/grupos/periodo/${periodoId}`);
   return data;

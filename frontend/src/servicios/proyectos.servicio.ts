@@ -3,7 +3,7 @@ import { type Proyecto } from '../tipos/usuario';
 
 interface CrearProyectoPayload {
   titulo: string;
-  id_asesor: number;
+  id_asesor?: number;
 }
 
 export const obtenerProyectos = async (): Promise<Proyecto[]> => {

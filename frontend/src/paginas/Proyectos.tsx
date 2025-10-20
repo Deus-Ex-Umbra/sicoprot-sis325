@@ -1,34 +1,29 @@
-import { useState, useEffect, type ChangeEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Button, Table, Badge, Alert, Modal, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEye, FaFileUpload } from 'react-icons/fa';
+import { FaPlus, FaEye, FaFileUpload, FaInfoCircle } from 'react-icons/fa';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { obtenerProyectos, crearProyecto } from '../servicios/proyectos.servicio';
-import { obtenerAsesores } from '../servicios/asesores.servicio';
-import { type Proyecto, type Usuario, Rol } from '../tipos/usuario';
-import TomSelect from 'tom-select';
+import { type Proyecto, Rol } from '../tipos/usuario';
 
 const Proyectos = () => {
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
-  const [asesores, setAsesores] = useState<Usuario[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [mostrarModal, setMostrarModal] = useState(false);
   const [nuevoProyecto, setNuevoProyecto] = useState({
     titulo: '',
-    id_asesor: 0,
   });
   
   const { usuario } = useAutenticacion();
   const navigate = useNavigate();
   const esEstudiante = usuario?.rol === Rol.Estudiante;
+  const tieneGrupo = esEstudiante && usuario?.perfil?.grupo !== undefined && usuario?.perfil?.grupo !== null;
+  const grupo = usuario?.perfil?.grupo;
 
   useEffect(() => {
     cargarProyectos();
-    if (esEstudiante) {
-      cargarAsesores();
-    }
-  }, [esEstudiante]);
+  }, []);
 
   const cargarProyectos = async () => {
     try {
@@ -42,18 +37,14 @@ const Proyectos = () => {
     }
   };
 
-  const cargarAsesores = async () => {
-    try {
-      const data = await obtenerAsesores();
-      setAsesores(data);
-    } catch (err) {
-      setError('Error al cargar los asesores');
-    }
-  };
-
   const manejarCrearProyecto = async () => {
-    if (!nuevoProyecto.titulo || !nuevoProyecto.id_asesor) {
-      setError('Todos los campos son obligatorios');
+    if (!nuevoProyecto.titulo) {
+      setError('El título del proyecto es obligatorio');
+      return;
+    }
+
+    if (!tieneGrupo) {
+      setError('Debes estar inscrito en un grupo para crear un proyecto');
       return;
     }
 
@@ -61,28 +52,21 @@ const Proyectos = () => {
       await crearProyecto(nuevoProyecto);
       setMostrarModal(false);
       await cargarProyectos();
-      setNuevoProyecto({ titulo: '', id_asesor: 0 });
+      setNuevoProyecto({ titulo: '' });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al crear el proyecto');
     }
   };
 
-  useEffect(() => {
-    if (mostrarModal && asesores.length > 0) {
-      const select = new TomSelect('#select-asesor', {
-        create: false,
-        sortField: [
-          {
-            field: 'text',
-            direction: 'asc',
-          },
-        ],
-      });
-      return () => {
-        select.destroy();
-      };
+  const abrirModalCrear = () => {
+    if (!tieneGrupo) {
+      setError('Debes inscribirte a un grupo antes de crear un proyecto');
+      return;
     }
-  }, [mostrarModal, asesores]);
+    setError('');
+    setNuevoProyecto({ titulo: '' });
+    setMostrarModal(true);
+  };
 
   if (cargando) {
     return (
@@ -101,7 +85,11 @@ const Proyectos = () => {
           {esEstudiante ? 'Mis Proyectos' : 'Proyectos Asignados'}
         </h2>
         {esEstudiante && (
-          <Button variant="primary" onClick={() => setMostrarModal(true)}>
+          <Button 
+            variant="primary" 
+            onClick={abrirModalCrear}
+            disabled={!tieneGrupo}
+          >
             <FaPlus className="me-2" />
             Nuevo Proyecto
           </Button>
@@ -110,14 +98,31 @@ const Proyectos = () => {
 
       {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
 
+      {esEstudiante && !tieneGrupo && (
+        <Alert variant="warning">
+          <FaInfoCircle className="me-2" />
+          <strong>Información:</strong> Para crear proyectos, primero debes inscribirte a un grupo de asesoría. 
+          El asesor de tu grupo será automáticamente asignado a tus proyectos.
+          <div className="mt-2">
+            <Button 
+              variant="warning" 
+              size="sm"
+              onClick={() => navigate('/panel/inscripcion-grupos')}
+            >
+              Ir a Inscripción de Grupos
+            </Button>
+          </div>
+        </Alert>
+      )}
+
       {proyectos.length === 0 ? (
         <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
           <Card.Body className="text-center py-5">
             <p className="text-muted mb-3">
               {esEstudiante ? 'No tienes proyectos registrados' : 'No tienes proyectos asignados'}
             </p>
-            {esEstudiante && (
-              <Button variant="primary" onClick={() => setMostrarModal(true)}>
+            {esEstudiante && tieneGrupo && (
+              <Button variant="primary" onClick={abrirModalCrear}>
                 <FaPlus className="me-2" />
                 Crear mi primer proyecto
               </Button>
@@ -186,29 +191,27 @@ const Proyectos = () => {
           <Modal.Title>Crear Nuevo Proyecto</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
+          {tieneGrupo && grupo && grupo.asesor && (
+            <Alert variant="info" className="mb-3">
+              <FaInfoCircle className="me-2" />
+              <strong>Asesor asignado:</strong> {grupo.asesor.nombre} {grupo.asesor.apellido}
+              <br />
+              <small className="text-muted">
+                El asesor de tu grupo será automáticamente asignado a este proyecto.
+              </small>
+            </Alert>
+          )}
+          
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Título del Proyecto</Form.Label>
               <Form.Control
                 type="text"
                 value={nuevoProyecto.titulo}
-                onChange={(e) => setNuevoProyecto({ ...nuevoProyecto, titulo: e.target.value })}
+                onChange={(e) => setNuevoProyecto({ titulo: e.target.value })}
                 placeholder="Ingrese el título del proyecto"
+                autoFocus
               />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Asesor</Form.Label>
-              <select 
-                id="select-asesor"
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setNuevoProyecto({ ...nuevoProyecto, id_asesor: parseInt(e.target.value)})}
-              >
-                <option value="">Selecciona un asesor...</option>
-                {asesores.map(asesor => (
-                  <option key={asesor.id} value={asesor.perfil?.id_asesor}>
-                    {asesor.perfil?.nombre} {asesor.perfil?.apellido}
-                  </option>
-                ))}
-              </select>
             </Form.Group>
           </Form>
         </Modal.Body>

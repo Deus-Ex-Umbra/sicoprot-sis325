@@ -34,6 +34,14 @@ export class GruposController {
     return this.servicio_grupos.obtenerGruposDisponibles();
   }
 
+  @Get('mi-grupo')
+  @ApiOperation({ summary: 'Obtener el grupo del estudiante autenticado' })
+  @ApiResponse({ status: 200, description: 'Grupo del estudiante.' })
+  @ApiResponse({ status: 404, description: 'El estudiante no tiene grupo asignado.' })
+  obtenerMiGrupo(@Request() req) {
+    return this.servicio_grupos.obtenerGrupoDelEstudiante(req.user.id_usuario);
+  }
+
   @Get('periodo/:periodoId')
   @ApiOperation({ summary: 'Obtener grupos por período' })
   @ApiParam({ name: 'periodoId', description: 'ID del período' })

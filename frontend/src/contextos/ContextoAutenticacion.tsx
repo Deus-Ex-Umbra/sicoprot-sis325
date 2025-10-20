@@ -10,6 +10,7 @@ interface ContextoAutenticacionTipo {
   registrarse: (datos: any) => Promise<void>;
   cerrarSesion: () => void;
   estaAutenticado: () => boolean;
+  actualizarUsuario: (usuarioActualizado: Usuario) => void;
 }
 
 const ContextoAutenticacion = createContext<ContextoAutenticacionTipo | undefined>(undefined);
@@ -95,6 +96,11 @@ export const ProveedorAutenticacion: React.FC<Props> = ({ children }) => {
     return !!token;
   };
 
+  const actualizarUsuario = (usuarioActualizado: Usuario) => {
+    setUsuario(usuarioActualizado);
+    localStorage.setItem('usuario', JSON.stringify(usuarioActualizado));
+  };
+
   return (
     <ContextoAutenticacion.Provider
       value={{
@@ -105,6 +111,7 @@ export const ProveedorAutenticacion: React.FC<Props> = ({ children }) => {
         registrarse,
         cerrarSesion,
         estaAutenticado,
+        actualizarUsuario,
       }}
     >
       {children}

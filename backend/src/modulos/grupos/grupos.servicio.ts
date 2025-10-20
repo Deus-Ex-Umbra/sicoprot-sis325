@@ -64,13 +64,30 @@ export class GruposService {
         periodo: { id: periodo_activo.id },
         activo: true
       },
-      relations: ['asesor', 'asesor.usuario', 'periodo', 'estudiantes'],
+      relations: ['asesor', 'asesor.usuario', 'periodo', 'estudiantes', 'estudiantes.usuario'],
     });
 
     return grupos.map(grupo => ({
       ...grupo,
       numero_estudiantes: grupo.estudiantes?.length || 0
     }));
+  }
+
+  async obtenerGrupoDelEstudiante(id_usuario: number) {
+    const estudiante = await this.repositorio_estudiante.findOne({
+      where: { usuario: { id: id_usuario } },
+      relations: ['grupo', 'grupo.asesor', 'grupo.asesor.usuario', 'grupo.periodo', 'grupo.estudiantes', 'grupo.estudiantes.usuario'],
+    });
+
+    if (!estudiante) {
+      throw new NotFoundException('Estudiante no encontrado.');
+    }
+
+    if (!estudiante.grupo) {
+      return null;
+    }
+
+    return estudiante.grupo;
   }
 
   async obtenerPorPeriodo(id_periodo: number) {
@@ -182,11 +199,6 @@ export class GruposService {
     
     const fecha_fin = new Date(grupo.periodo.fecha_fin_inscripciones);
     fecha_fin.setHours(23, 59, 59, 999);
-
-    console.log('Fecha actual:', ahora);
-    console.log('Fecha inicio inscripciones:', fecha_inicio);
-    console.log('Fecha fin inscripciones:', fecha_fin);
-    console.log('Está en rango:', ahora >= fecha_inicio && ahora <= fecha_fin);
 
     if (ahora < fecha_inicio) {
       const fecha_inicio_formato = fecha_inicio.toLocaleDateString('es-ES', { 
