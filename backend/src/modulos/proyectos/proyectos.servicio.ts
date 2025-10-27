@@ -47,18 +47,25 @@ export class ProyectosService {
       throw new BadRequestException('No se pudo determinar el asesor para el proyecto.');
     }
 
+    // ✅ CORRECTO: solo asignamos 'asesor' (singular), NO 'estudiante'
     const nuevo_proyecto = this.repositorio_proyecto.create({
       titulo,
-      estudiante,
       asesor,
     });
 
-    return this.repositorio_proyecto.save(nuevo_proyecto);
+    const proyecto_guardado = await this.repositorio_proyecto.save(nuevo_proyecto);
+
+    // ✅ VINCULAMOS AL ESTUDIANTE AL PROYECTO (desde el lado del estudiante)
+    estudiante.proyecto = proyecto_guardado;
+    await this.repositorio_estudiante.save(estudiante);
+
+    return proyecto_guardado;
   }
 
   async obtenerTodos(id_usuario: number, rol: string) {
     const query = this.repositorio_proyecto.createQueryBuilder('proyecto')
-      .leftJoinAndSelect('proyecto.estudiante', 'estudiante')
+      .leftJoinAndSelect('proyecto.estudiantes', 'estudiante') // ✅ 'estudiantes' (plural)
+      .leftJoinAndSelect('estudiante.usuario', 'usuario_estudiante') // opcional, si necesitas el usuario
       .leftJoinAndSelect('proyecto.asesor', 'asesor')
       .leftJoinAndSelect('proyecto.documentos', 'documentos')
       .orderBy('proyecto.fecha_creacion', 'DESC');
@@ -72,7 +79,7 @@ export class ProyectosService {
         throw new NotFoundException('Estudiante no encontrado.');
       }
 
-      query.where('estudiante.id = :estudianteId', { estudianteId: estudiante.id });
+      query.andWhere('estudiante.id = :estudianteId', { estudianteId: estudiante.id });
     } else if (rol === Rol.Asesor) {
       const asesor = await this.repositorio_asesor.findOne({
         where: { usuario: { id: id_usuario } }
@@ -82,7 +89,7 @@ export class ProyectosService {
         throw new NotFoundException('Asesor no encontrado.');
       }
 
-      query.where('asesor.id = :asesorId', { asesorId: asesor.id });
+      query.andWhere('asesor.id = :asesorId', { asesorId: asesor.id });
     }
 
     return query.getMany();
@@ -91,7 +98,7 @@ export class ProyectosService {
   async obtenerUno(id: number, id_usuario: number, rol: string) {
     const proyecto = await this.repositorio_proyecto.findOne({
       where: { id },
-      relations: ['estudiante', 'estudiante.usuario', 'asesor', 'asesor.usuario', 'documentos']
+      relations: ['estudiantes', 'estudiantes.usuario', 'asesor', 'asesor.usuario'],
     });
 
     if (!proyecto) {
@@ -99,11 +106,15 @@ export class ProyectosService {
     }
 
     if (rol === Rol.Estudiante) {
-      if (!proyecto.estudiante || proyecto.estudiante.usuario.id !== id_usuario) {
+      const esMiembroDelProyecto = proyecto.estudiantes?.some(
+        estudiante => estudiante.usuario?.id === id_usuario
+      );
+
+      if (!esMiembroDelProyecto) {
         throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
       }
     } else if (rol === Rol.Asesor) {
-      if (!proyecto.asesor || proyecto.asesor.usuario.id !== id_usuario) {
+      if (!proyecto.asesor || proyecto.asesor.usuario?.id !== id_usuario) {
         throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
       }
     }
