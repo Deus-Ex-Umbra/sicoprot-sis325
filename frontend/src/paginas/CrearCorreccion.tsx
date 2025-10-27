@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Button, Form, Alert, Row, Col, Badge } from 'react-bootstrap';
 import { Document, Page, pdfjs } from 'react-pdf';
@@ -9,7 +9,6 @@ import { obtenerObservacionesPorProyecto } from '../servicios/observaciones.serv
 import { type Proyecto, type Documento, type Observacion } from '../tipos/usuario';
 import api from '../servicios/api';
 import { toast } from 'react-toastify';
-
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -20,6 +19,18 @@ interface Punto {
   y: number;
   pagina: number;
 }
+
+interface Observacion {
+  id: number;
+  pagina_inicio: number;
+  x_inicio: number;  // %
+  y_inicio: number;  // %
+  x_fin: number;     // %
+  y_fin: number;     // %
+  color: string;
+  texto?: string;    // Para tooltip
+}
+
 
 const CrearCorreccion = () => {
   const { proyectoId } = useParams<{ proyectoId: string }>();
@@ -154,6 +165,8 @@ const CrearCorreccion = () => {
       setPaginaActual(obs.pagina_inicio);
     }
   };
+  
+
 
   const renderizarMarcadores = () => {
     if (!pageRef.current || !dimensionesPagina) return null;
@@ -162,7 +175,7 @@ const CrearCorreccion = () => {
     if (!contenedor) return null;
 
     const rect = contenedor.getBoundingClientRect();
-    const elementos: JSX.Element[] = [];
+    const elementos: React.ReactElement[] = []; // Usa React.ReactElement en lugar de JSX.Element
 
     // Mostrar la observación seleccionada
     if (observacionSeleccionada && 
@@ -256,6 +269,7 @@ const CrearCorreccion = () => {
     return elementos;
   };
 
+  
   if (cargando) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
