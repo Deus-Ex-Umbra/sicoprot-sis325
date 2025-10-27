@@ -2,9 +2,10 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Reques
 import { CorreccionesService } from './correcciones.servicio';
 import { CrearCorreccionDto } from './dto/crear-correccion.dto';
 import { ActualizarCorreccionDto } from './dto/actualizar-correccion.dto';
+import { VerificarCorreccionDto } from './dto/verificar-correccion.dto';
+import { MarcarCorregidoDto } from './dto/marcar-correccion.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtGuard } from '../autenticacion/guards/jwt.guard';
-
 @ApiTags('correcciones')
 @ApiBearerAuth()
 @UseGuards(JwtGuard)
@@ -18,7 +19,15 @@ export class CorreccionesController {
   @ApiResponse({ status: 404, description: 'Observación o documento no encontrado.' })
   @ApiResponse({ status: 403, description: 'Solo los estudiantes pueden crear correcciones.' })
   crear(@Body() crear_correccion_dto: CrearCorreccionDto, @Request() req) {
-    return this.servicio_correcciones.crear(crear_correccion_dto, req.user.id_usuario);
+    if ((crear_correccion_dto as any).id_observacion) {
+      return this.servicio_correcciones.crearPorObservacion(
+        (crear_correccion_dto as any).id_observacion,
+        crear_correccion_dto,
+        req.user.id_usuario,
+      );
+    }
+    //return this.servicio_correcciones.crear(crear_correccion_dto, req.user.id_usuario);
+
   }
 
   @Get('por-documento/:documentoId')
@@ -67,4 +76,29 @@ export class CorreccionesController {
   eliminar(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.servicio_correcciones.eliminar(id, req.user.id_usuario);
   }
+
+  @Patch(':observacionId/marcar')
+  @ApiOperation({ summary: 'Marcar una corrección como completada (estudiante)' })
+  @ApiParam({ name: 'observacionId', description: 'ID de la observación corregida' })
+  @ApiResponse({ status: 200, description: 'Corrección marcada como completada.' })
+  marcarCompletada(
+    @Param('observacionId', ParseIntPipe) observacionId: number,
+    @Body() dto: MarcarCorregidoDto,
+    @Request() req,
+  ) {
+    return this.servicio_correcciones.marcarCompletada(observacionId, dto, req.user.id_usuario);
+  }
+
+  @Patch(':observacionId/verificar')
+  @ApiOperation({ summary: 'Verificar una corrección (asesor)' })
+  @ApiParam({ name: 'observacionId', description: 'ID de la observación a verificar' })
+  @ApiResponse({ status: 200, description: 'Corrección verificada (aprobada o rechazada).' })
+  verificar(
+    @Param('observacionId', ParseIntPipe) observacionId: number,
+    @Body() dto: VerificarCorreccionDto,
+    @Request() req,
+  ) {
+    return this.servicio_correcciones.verificar(observacionId, dto, req.user.id_usuario);
+}
+
 }
