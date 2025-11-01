@@ -14,11 +14,12 @@ export const obtenerGruposDisponibles = async (): Promise<Grupo[]> => {
 export const obtenerMiGrupo = async (): Promise<Grupo | null> => {
   try {
     const { data } = await api.get('/grupos/mi-grupo');
-    return data;
+    return data ? data : null;
   } catch (error: any) {
     if (error.response?.status === 404) {
       return null;
     }
+    console.error("Error al obtener mi grupo:", error);
     throw error;
   }
 };
@@ -43,13 +44,8 @@ export const actualizarGrupo = async (id: number, grupo: any): Promise<Grupo> =>
   return data;
 };
 
-export const inscribirseAGrupo = async (grupoId: number): Promise<any> => {
+export const inscribirseAGrupo = async (grupoId: number): Promise<{ message: string; grupo: Grupo }> => {
   const { data } = await api.post(`/grupos/${grupoId}/inscribirse`);
-  return data;
-};
-
-export const desinscribirseDeGrupo = async (grupoId: number): Promise<any> => {
-  const { data } = await api.delete(`/grupos/${grupoId}/desinscribirse`);
   return data;
 };
 

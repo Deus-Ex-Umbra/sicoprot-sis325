@@ -14,8 +14,11 @@ export class Proyecto {
   @CreateDateColumn({ name: 'fecha_creacion' })
   fecha_creacion: Date;
 
-  @ManyToOne(() => Estudiante, (estudiante) => estudiante.proyectos, { eager: true })
-  estudiante: Estudiante;
+  // @ManyToOne(() => Estudiante, (estudiante) => estudiante.proyectos, { eager: true })
+  // estudiante: Estudiante;
+  
+  @OneToMany(() => Estudiante, (estudiante) => estudiante.proyecto)
+  estudiantes: Estudiante[]; // ← plural, porque tiene MUCHOS estudiantes
 
   @ManyToOne(() => Asesor, (asesor) => asesor.proyectos_asesorados, { eager: true })
   asesor: Asesor;
@@ -26,7 +29,5 @@ export class Proyecto {
   @OneToMany(() => Documento, (documento) => documento.proyecto)
   documentos: Documento[]; // Inversa
 
-  @OneToMany(() => Estudiante, (estudiante) => estudiante.proyectos) // O @ManyToMany si un estudiante puede tener múltiples proyectos
-  estudiantes: Estudiante[]; // Aquí está 'estudiantes' como array
   
 }

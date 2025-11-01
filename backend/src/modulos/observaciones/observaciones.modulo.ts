@@ -6,6 +6,8 @@ import { Observacion } from './entidades/observacion.entidad'; // Usando la enti
 import { DocumentosModule } from '../documentos/documentos.modulo';
 import { AsesoresModule } from '../asesores/asesores.modulo';
 import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
+import { CorreccionesModule } from '../correcciones/correcciones.modulo';  // ← AGREGAR
+
 // Si tienes un módulo de notificaciones, agrégalo aquí si es necesario
 // import { NotificacionesModule } from '../notificaciones/notificaciones.modulo';
 
@@ -15,6 +17,8 @@ import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
     DocumentosModule,
     AsesoresModule,
     EstudiantesModule,
+
+    CorreccionesModule,
     // NotificacionesModule, // Descomenta si integras notificaciones reales
   ],
   controllers: [ObservacionesController],

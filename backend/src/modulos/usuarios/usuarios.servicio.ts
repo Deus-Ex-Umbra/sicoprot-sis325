@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from './entidades/usuario.entidad';
@@ -33,7 +38,6 @@ export class UsuariosService {
 
       const { contrasena: _, ...usuario_para_retornar } = nuevo_usuario;
       return usuario_para_retornar;
-
     } catch (error) {
       if (error.code === '23505') {
         throw new BadRequestException('El correo ya está en uso.');
@@ -56,16 +60,26 @@ export class UsuariosService {
 
   async buscarPorCorreo(correo: string): Promise<Usuario | undefined> {
     const usuario = await this.repositorio_usuario
-    .createQueryBuilder('usuario')
-    .addSelect('usuario.contrasena')
-    .where('usuario.correo = :correo', { correo })
-    .getOne();
+      .createQueryBuilder('usuario')
+      .addSelect('usuario.contrasena')
+      .where('usuario.correo = :correo', { correo })
+      .getOne();
     return usuario || undefined;
   }
 
   async obtenerPerfilCompleto(id_usuario: number) {
-    const usuario = await this.repositorio_usuario.findOneBy({ id: id_usuario });
-    
+    const usuario = await this.repositorio_usuario.findOne({
+        where: { id: id_usuario },
+        relations: [
+            'estudiante',
+            'estudiante.grupo',
+            'estudiante.grupo.asesor',
+            'estudiante.grupo.periodo',
+            'asesor',
+            'asesor.grupos',
+        ],
+    });
+
     if (!usuario) {
       throw new NotFoundException(`Usuario con ID '${id_usuario}' no encontrado.`);
     }
@@ -73,32 +87,20 @@ export class UsuariosService {
     const { contrasena: _, ...datos_usuario } = usuario;
 
     let perfil_completo: any = null;
-    if (usuario.rol === Rol.Estudiante) {
-      const estudiante = await this.repositorio_estudiante.findOne({
-        where: { usuario: { id: usuario.id } },
-        relations: ['grupo', 'grupo.asesor', 'grupo.periodo'],
-      });
-      if (estudiante) {
-        perfil_completo = {
-          id_estudiante: estudiante.id,
-          nombre: estudiante.nombre,
-          apellido: estudiante.apellido,
-          grupo: estudiante.grupo || null,
-        };
-      }
-    } else if (usuario.rol === Rol.Asesor) {
-      const asesor = await this.repositorio_asesor.findOne({
-        where: { usuario: { id: usuario.id } },
-        relations: ['grupos'],
-      });
-      if (asesor) {
-        perfil_completo = {
-          id_asesor: asesor.id,
-          nombre: asesor.nombre,
-          apellido: asesor.apellido,
-          grupos: asesor.grupos,
-        };
-      }
+    if (usuario.rol === Rol.Estudiante && usuario.estudiante) {
+      perfil_completo = {
+        id_estudiante: usuario.estudiante.id,
+        nombre: usuario.estudiante.nombre,
+        apellido: usuario.estudiante.apellido,
+        grupo: usuario.estudiante.grupo || null,
+      };
+    } else if (usuario.rol === Rol.Asesor && usuario.asesor) {
+      perfil_completo = {
+        id_asesor: usuario.asesor.id,
+        nombre: usuario.asesor.nombre,
+        apellido: usuario.asesor.apellido,
+        grupos: usuario.asesor.grupos,
+      };
     }
 
     return {
@@ -106,6 +108,7 @@ export class UsuariosService {
       perfil: perfil_completo,
     };
   }
+
 
   async actualizar(id: number, actualizar_usuario_dto: ActualizarUsuarioDto) {
     if (actualizar_usuario_dto.contrasena) {
@@ -130,8 +133,15 @@ export class UsuariosService {
     const usuario = await this.repositorio_usuario
       .createQueryBuilder('usuario')
       .addSelect('usuario.contrasena')
+      .leftJoinAndSelect('usuario.estudiante', 'estudiante')
+      .leftJoinAndSelect('estudiante.grupo', 'grupo')
+      .leftJoinAndSelect('grupo.asesor', 'grupoAsesor')
+      .leftJoinAndSelect('grupo.periodo', 'periodo')
+      .leftJoinAndSelect('usuario.asesor', 'asesor')
+      .leftJoinAndSelect('asesor.grupos', 'asesorGrupos')
       .where('usuario.id = :id', { id })
       .getOne();
+
 
     if (!usuario) {
       throw new NotFoundException(`Usuario con ID '${id}' no encontrado.`);
@@ -173,6 +183,7 @@ export class UsuariosService {
           if (actualizar_perfil_dto.nombre) estudiante.nombre = actualizar_perfil_dto.nombre;
           if (actualizar_perfil_dto.apellido) estudiante.apellido = actualizar_perfil_dto.apellido;
           await this.repositorio_estudiante.save(estudiante);
+          usuario.estudiante = estudiante;
         }
       } else if (usuario.rol === Rol.Asesor) {
         const asesor = await this.repositorio_asesor.findOne({
@@ -182,6 +193,7 @@ export class UsuariosService {
           if (actualizar_perfil_dto.nombre) asesor.nombre = actualizar_perfil_dto.nombre;
           if (actualizar_perfil_dto.apellido) asesor.apellido = actualizar_perfil_dto.apellido;
           await this.repositorio_asesor.save(asesor);
+          usuario.asesor = asesor;
         }
       }
     }
@@ -189,31 +201,21 @@ export class UsuariosService {
     const usuario_actualizado = await this.repositorio_usuario.save(usuario);
     const { contrasena: _, ...usuario_para_retornar } = usuario_actualizado;
 
-    let perfil: { id_estudiante: number; nombre: string; apellido: string; grupo?: any } | { id_asesor: number; nombre: string; apellido: string; } | null = null;
-    if (usuario.rol === Rol.Estudiante) {
-      const estudiante = await this.repositorio_estudiante.findOne({
-        where: { usuario: { id: usuario.id } },
-        relations: ['grupo', 'grupo.asesor', 'grupo.periodo'],
-      });
-      if (estudiante) {
-        perfil = {
-          id_estudiante: estudiante.id,
-          nombre: estudiante.nombre,
-          apellido: estudiante.apellido,
-          grupo: estudiante.grupo || null,
-        };
-      }
-    } else if (usuario.rol === Rol.Asesor) {
-      const asesor = await this.repositorio_asesor.findOne({
-        where: { usuario: { id: usuario.id } },
-      });
-      if (asesor) {
-        perfil = {
-          id_asesor: asesor.id,
-          nombre: asesor.nombre,
-          apellido: asesor.apellido,
-        };
-      }
+    let perfil: { id_estudiante: number; nombre: string; apellido: string; grupo?: any } | { id_asesor: number; nombre: string; apellido: string; grupos?: any[] } | null = null;
+    if (usuario.rol === Rol.Estudiante && usuario.estudiante) {
+      perfil = {
+        id_estudiante: usuario.estudiante.id,
+        nombre: usuario.estudiante.nombre,
+        apellido: usuario.estudiante.apellido,
+        grupo: usuario.estudiante.grupo || null,
+      };
+    } else if (usuario.rol === Rol.Asesor && usuario.asesor) {
+      perfil = {
+        id_asesor: usuario.asesor.id,
+        nombre: usuario.asesor.nombre,
+        apellido: usuario.asesor.apellido,
+        grupos: usuario.asesor.grupos,
+      };
     }
 
     return {

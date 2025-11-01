@@ -37,7 +37,7 @@ export interface Usuario {
     id_asesor?: number;
     nombre: string;
     apellido: string;
-    grupo?: Grupo;
+    grupo?: Grupo | null;
     grupos?: Grupo[];
   };
 }

@@ -14,11 +14,11 @@ const Proyectos = () => {
   const [nuevoProyecto, setNuevoProyecto] = useState({
     titulo: '',
   });
-  
+
   const { usuario } = useAutenticacion();
   const navigate = useNavigate();
   const esEstudiante = usuario?.rol === Rol.Estudiante;
-  const tieneGrupo = esEstudiante && usuario?.perfil?.grupo !== undefined && usuario?.perfil?.grupo !== null;
+  const tieneGrupo = !!(esEstudiante && usuario?.perfil?.grupo);
   const grupo = usuario?.perfil?.grupo;
 
   useEffect(() => {
@@ -43,10 +43,11 @@ const Proyectos = () => {
       return;
     }
 
-    if (!tieneGrupo) {
-      setError('Debes estar inscrito en un grupo para crear un proyecto');
-      return;
+    if (!tieneGrupo || !grupo?.asesor) {
+        setError('Debes estar inscrito en un grupo con un asesor asignado para crear un proyecto');
+        return;
     }
+
 
     try {
       await crearProyecto(nuevoProyecto);
@@ -59,8 +60,8 @@ const Proyectos = () => {
   };
 
   const abrirModalCrear = () => {
-    if (!tieneGrupo) {
-      setError('Debes inscribirte a un grupo antes de crear un proyecto');
+    if (!tieneGrupo || !grupo?.asesor) {
+      setError('Debes inscribirte a un grupo con un asesor asignado antes de crear un proyecto');
       return;
     }
     setError('');
@@ -85,10 +86,10 @@ const Proyectos = () => {
           {esEstudiante ? 'Mis Proyectos' : 'Proyectos Asignados'}
         </h2>
         {esEstudiante && (
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             onClick={abrirModalCrear}
-            disabled={!tieneGrupo}
+            disabled={!tieneGrupo || !grupo?.asesor}
           >
             <FaPlus className="me-2" />
             Nuevo Proyecto
@@ -98,14 +99,14 @@ const Proyectos = () => {
 
       {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
 
-      {esEstudiante && !tieneGrupo && (
+      {esEstudiante && (!tieneGrupo || !grupo?.asesor) && (
         <Alert variant="warning">
           <FaInfoCircle className="me-2" />
-          <strong>Información:</strong> Para crear proyectos, primero debes inscribirte a un grupo de asesoría. 
+          <strong>Información:</strong> Para crear proyectos, primero debes inscribirte a un grupo de asesoría que tenga un asesor asignado.
           El asesor de tu grupo será automáticamente asignado a tus proyectos.
           <div className="mt-2">
-            <Button 
-              variant="warning" 
+            <Button
+              variant="warning"
               size="sm"
               onClick={() => navigate('/panel/inscripcion-grupos')}
             >
@@ -121,7 +122,7 @@ const Proyectos = () => {
             <p className="text-muted mb-3">
               {esEstudiante ? 'No tienes proyectos registrados' : 'No tienes proyectos asignados'}
             </p>
-            {esEstudiante && tieneGrupo && (
+            {esEstudiante && tieneGrupo && grupo?.asesor && (
               <Button variant="primary" onClick={abrirModalCrear}>
                 <FaPlus className="me-2" />
                 Crear mi primer proyecto
@@ -201,7 +202,7 @@ const Proyectos = () => {
               </small>
             </Alert>
           )}
-          
+
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Título del Proyecto</Form.Label>
