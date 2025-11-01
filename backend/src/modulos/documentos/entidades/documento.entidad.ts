@@ -27,4 +27,10 @@ export class Documento {
 
   @OneToMany(() => Observacion, (observacion) => observacion.documento)
   observaciones: Observacion[];
+  
+  @Column({ type: 'text', nullable: true })
+  resumen?: string;
+
+  @Column({ type: 'simple-array', nullable: true })
+  palabras_clave: string[] = [];
 }

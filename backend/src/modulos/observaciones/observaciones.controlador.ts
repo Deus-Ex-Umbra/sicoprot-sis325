@@ -40,7 +40,7 @@ export class ObservacionesController {
   ) {
     return this.servicio_observaciones.crear(documentoId, crear_observacion_dto, req.user.id_usuario);
   }
-
+    
   @Get('por-documento/:documentoId')
   @ApiOperation({ summary: 'Obtener todas las observaciones de un documento' })
   @ApiParam({ name: 'documentoId', description: 'ID numérico del documento' })
@@ -53,11 +53,14 @@ export class ObservacionesController {
     return this.servicio_observaciones.obtenerPorDocumento(documentoId, incluir_archivadas);
   }
   
-  // @Get('por-estudiante')
-  // @ApiOperation({ summary: 'Obtener todas las observaciones de un estudiante' })
-  // obtenerPorEstudiante(@Request() req) {
-  //   return this.servicio_observaciones.obtenerPorEstudiante(req.user.id_usuario);
-  // }
+  @Get('mias')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Obtener todas las observaciones creadas por el asesor' })
+  @ApiResponse({ status: 200, description: 'Lista de observaciones del asesor.' })
+  async obtenerObservacionesDelAsesor(@Request() req) {
+    return await this.servicio_observaciones.obtenerObservacionesDelAsesor(req.user.id_usuario);
+  }
+
   @Get('por-estudiante')
   @ApiOperation({ summary: 'Obtener todas las observaciones de un estudiante' })
   @ApiResponse({ status: 200, description: 'Lista de observaciones del estudiante.' })
@@ -187,12 +190,6 @@ export class ObservacionesController {
 
   // ============ ENDPOINTS DE VERIFICACIÓN ============
 
-  @Get('verificacion/pendientes')
-  @ApiOperation({ summary: 'Listar todas las observaciones pendientes de verificación' })
-  @ApiResponse({ status: 200, description: 'Lista de observaciones pendientes.' })
-  async listarPendientes(@Request() req) {
-    return await this.servicio_observaciones.listarPendientes(req.user.id_usuario);
-  }
 
   @Patch('verificacion/:id')
   @ApiOperation({ summary: 'Verificar/Rechazar observación' })
@@ -256,6 +253,13 @@ export class ObservacionesController {
       req.user.id_usuario
     );
   }
+  
+  @Get('revision/pendientes')
+  @ApiOperation({ summary: 'Listar observaciones pendientes por revisor' })
+  @ApiResponse({ status: 200, description: 'Lista de observaciones pendientes.' })
+  async listarObservacionesPendientesRevisor(@Request() req) { // ✅ Nombre único
+    return await this.servicio_observaciones.listarPendientes(req.user.id_usuario);
+  }
 
   @Get(':id')
   @ApiOperation({ summary: 'Obtener observación por ID' })
@@ -268,6 +272,7 @@ export class ObservacionesController {
   ) {
     return await this.servicio_observaciones.obtenerObservacionPorId(id, req.user.id_usuario);
   }
+  
 
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar observación (solo administradores)' })
