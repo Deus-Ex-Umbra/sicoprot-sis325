@@ -28,37 +28,18 @@ export const eliminarObservacion = async (observacionId: number): Promise<void> 
 };
 
 
-// export const actualizarObservacion = async (
-//   observacionId: number, 
-//   datos: any
-// ): Promise<Observacion> => {
-//   const { data } = await api.patch(`/observaciones/${observacionId}`, datos);
-//   return data;
-// };
-
-// export const cambiarEstadoObservacion = async (
-//   observacionId: number, 
-//   estado: string, 
-//   comentarios_asesor?: string
-// ): Promise<{ message: string; observacion: Observacion }> => {
-//   const { data } = await api.patch(`/observaciones/${observacionId}/estado`, {
-//     estado,
-//     comentarios_asesor
-//   });
-//   return data;
-// };
-
 // Para el estudiante
 export const obtenerObservacionesPorEstudiante = async (): Promise<Observacion[]> => {
   const response = await api.get('/observaciones/por-estudiante');
   return response.data;
 };
 
-// Para el asesor
-export const obtenerObservacionesPorRevisor = async (): Promise<Observacion[]> => {
-  const response = await api.get('/observaciones/revision/pendientes');
+// Reemplaza esta función
+export const obtenerObservacionesPorRevisor = async () => {
+  const response = await api.get('/observaciones/mias'); // ← nuevo endpoint
   return response.data;
 };
+
 
 // Cambiar estado (asesor)
 export const actualizarObservacion = async (

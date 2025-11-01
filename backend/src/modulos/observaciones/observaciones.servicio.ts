@@ -51,6 +51,7 @@ export class ObservacionesService {
       ...crear_observacion_dto,
       documento,
       autor: asesor,
+      version_observada: documento.version,
     });
 
     return this.repositorio_observacion.save(nueva_observacion);
@@ -142,103 +143,57 @@ export class ObservacionesService {
 
   // ✅ HISTORIA DE USUARIO: Cambiar estado de observación y notificar al estudiante
   async cambiarEstado(
-  id: number, 
-  id_usuario: number, 
-  cambiarEstadoDto: ActualizarObservacionDto
-): Promise<Observacion> {
-  const observacion = await this.repositorio_observacion.findOne({
-    where: { id },
-    relations: ['autor', 'documento', 'documento.proyecto', 'documento.proyecto.estudiantes'],
-  });
+    id: number, 
+    id_usuario: number, 
+    cambiarEstadoDto: ActualizarObservacionDto
+  ): Promise<Observacion> {
+    const observacion = await this.repositorio_observacion.findOne({
+      where: { id },
+      relations: ['autor', 'documento', 'documento.proyecto', 'documento.proyecto.estudiantes'],
+    });
 
-  if (!observacion) {
-    throw new NotFoundException(`Observación con ID '${id}' no encontrada.`);
+    if (!observacion) {
+      throw new NotFoundException(`Observación con ID '${id}' no encontrada.`);
+    }
+
+    // ✅ Validar que el nuevo estado venga definido
+    if (!cambiarEstadoDto.estado) {
+      throw new BadRequestException('El nuevo estado de la observación es obligatorio.');
+    }
+
+    // ✅ Asignar estado inicial si no tiene uno
+    if (observacion.estado === undefined) {
+      observacion.estado = EstadoObservacion.PENDIENTE;
+    }
+
+    // ✅ Verificar permisos del asesor
+    const asesor = await this.repositorio_asesor.findOne({
+      where: { usuario: { id: id_usuario } },
+    });
+
+    if (!asesor || asesor.id !== observacion.autor.id) {
+      throw new ForbiddenException('No tienes permisos para modificar esta observación.');
+    }
+
+    // ✅ Validar la transición de estado
+    this.validarTransicionEstado(observacion.estado, cambiarEstadoDto.estado);
+
+    // ✅ Aplicar los cambios
+    observacion.estado = cambiarEstadoDto.estado;
+    if (cambiarEstadoDto.comentarios_asesor) {
+      observacion.comentarios_asesor = cambiarEstadoDto.comentarios_asesor;
+    }
+
+    const observacionActualizada = await this.repositorio_observacion.save(observacion);
+
+    // ✅ Notificar a los estudiantes
+    const estudiantes = observacion.documento?.proyecto?.estudiantes || [];
+    for (const estudiante of estudiantes) {
+      console.log(`Notificando a estudiante ${estudiante.id}: Estado cambiado a ${cambiarEstadoDto.estado}`);
+    }
+
+    return observacionActualizada;
   }
-
-  // ✅ Validar que el nuevo estado venga definido
-  if (!cambiarEstadoDto.estado) {
-    throw new BadRequestException('El nuevo estado de la observación es obligatorio.');
-  }
-
-  // ✅ Asignar estado inicial si no tiene uno
-  if (observacion.estado === undefined) {
-    observacion.estado = EstadoObservacion.PENDIENTE;
-  }
-
-  // ✅ Verificar permisos del asesor
-  const asesor = await this.repositorio_asesor.findOne({
-    where: { usuario: { id: id_usuario } },
-  });
-
-  if (!asesor || asesor.id !== observacion.autor.id) {
-    throw new ForbiddenException('No tienes permisos para modificar esta observación.');
-  }
-
-  // ✅ Validar la transición de estado
-  this.validarTransicionEstado(observacion.estado, cambiarEstadoDto.estado);
-
-  // ✅ Aplicar los cambios
-  observacion.estado = cambiarEstadoDto.estado;
-  if (cambiarEstadoDto.comentarios_asesor) {
-    observacion.comentarios_asesor = cambiarEstadoDto.comentarios_asesor;
-  }
-
-  const observacionActualizada = await this.repositorio_observacion.save(observacion);
-
-  // ✅ Notificar a los estudiantes
-  const estudiantes = observacion.documento?.proyecto?.estudiantes || [];
-  for (const estudiante of estudiantes) {
-    console.log(`Notificando a estudiante ${estudiante.id}: Estado cambiado a ${cambiarEstadoDto.estado}`);
-  }
-
-  return observacionActualizada;
-}
-
-  // async cambiarEstado(
-  //   id: number, 
-  //   id_usuario: number, 
-  //   cambiarEstadoDto: ActualizarObservacionDto
-  // ): Promise<Observacion> {
-  //   const observacion = await this.repositorio_observacion.findOne({
-  //     where: { id },
-  //     relations: ['autor', 'documento', 'documento.proyecto', 'documento.proyecto.estudiantes'],
-  //   });
-
-  //   if (!observacion) {
-  //     throw new NotFoundException(`Observación con ID '${id}' no encontrada.`);
-  //   }
-
-  //   if (observacion.estado === undefined) {
-  //   observacion.estado = EstadoObservacion.PENDIENTE;
-  //   }
-
-  //   const asesor = await this.repositorio_asesor.findOne({
-  //     where: { usuario: { id: id_usuario } },
-  //   });
-
-  //   if (!asesor || asesor.id !== observacion.autor.id) {
-  //     throw new ForbiddenException('No tienes permisos para modificar esta observación');
-  //   }
-
-  //   // Validar que la transición de estado sea válida
-  //   this.validarTransicionEstado(observacion.estado, cambiarEstadoDto.estado);
-
-  //   observacion.estado = cambiarEstadoDto.estado;
-  //   if (cambiarEstadoDto.comentarios_asesor) {
-  //     observacion.comentarios_asesor = cambiarEstadoDto.comentarios_asesor;
-  //   }
-
-  //   const observacionActualizada = await this.repositorio_observacion.save(observacion);
-
-  //   // Notificar a los estudiantes (aquí integrarías tu sistema de notificaciones)
-  //   const estudiantes = observacion.documento?.proyecto?.estudiantes || [];
-  //   for (const estudiante of estudiantes) {
-  //     console.log(`Notificando a estudiante ${estudiante.id}: Estado cambiado a ${cambiarEstadoDto.estado}`);
-  //   }
-
-  //   return observacionActualizada;
-  // }
-
   // Listar observaciones pendientes de verificación
   async listarPendientes(id_usuario: number): Promise<Observacion[]> {
     const asesor = await this.repositorio_asesor.findOne({
@@ -260,7 +215,7 @@ export class ObservacionesService {
   }
 
   // ✅ Verificar o rechazar una observación
-  async verificarObservacion(
+async verificarObservacion(
     id: number,
     dto: VerificarObservacionDto,
     id_usuario: number,
@@ -282,17 +237,35 @@ export class ObservacionesService {
       throw new ForbiddenException('Solo el asesor que creó la observación puede verificarla.');
     }
 
+    // ✅ VALIDACIÓN CLAVE: ¿El estudiante corrigió en una versión válida?
+    if (dto.nuevoEstado === EstadoObservacion.CORREGIDO) {
+      if (!obs.version_corregida) {
+        throw new BadRequestException('No se ha especificado en qué versión se corrigió la observación.');
+      }
+      
+      // Verificar que la versión de corrección sea >= versión observada
+      if (obs.version_corregida < (obs.version_observada || 1)) {
+        throw new BadRequestException(
+          `La versión de corrección (${obs.version_corregida}) debe ser mayor o igual a la versión observada (${obs.version_observada || 1}).`
+        );
+      }
+
+      // Verificar que la versión de corrección no supere la versión actual del documento
+      if (obs.version_corregida > obs.documento.version) {
+        throw new BadRequestException(
+          `La versión de corrección (${obs.version_corregida}) no puede ser mayor que la versión actual del documento (${obs.documento.version}).`
+        );
+      }
+    }
+
     obs.estado = dto.nuevoEstado;
-    
     if (dto.verificacion_asesor) {
       obs.comentario_verificacion = dto.verificacion_asesor;
     }
-    
     obs.fecha_verificacion = new Date();
 
     return await this.repositorio_observacion.save(obs);
   }
-
   // ============ MÉTODOS PARA CORRECCIONES ============
 
   async crearCorreccion(
@@ -349,9 +322,12 @@ export class ObservacionesService {
       throw new ForbiddenException('Solo los estudiantes pueden marcar correcciones como completadas');
     }
 
-    observacion.version_corregida = marcarCorreccionDto.version_corregida;
-    observacion.estado = EstadoObservacion.CORREGIDO;
+    // observacion.version_corregida = marcarCorreccionDto.version_corregida;
+    // observacion.estado = EstadoObservacion.CORREGIDO;
+    
 
+    observacion.version_corregida = marcarCorreccionDto.version_corregida || observacion.documento.version;
+    observacion.estado = EstadoObservacion.CORREGIDO;
     return await this.repositorio_observacion.save(observacion);
   }
 
@@ -385,7 +361,31 @@ export class ObservacionesService {
   }
 
   // ============ MÉTODOS DE CONSULTA ============
+  // En observaciones.servicio.ts
+  async obtenerObservacionesDelAsesor(id_usuario: number): Promise<Observacion[]> {
+    const asesor = await this.repositorio_asesor.findOne({
+      where: { usuario: { id: id_usuario } },
+    });
 
+    if (!asesor) {
+      throw new ForbiddenException('Solo los asesores pueden acceder a sus observaciones.');
+    }
+
+    return this.repositorio_observacion.find({
+      where: { autor: { id: asesor.id } },
+      relations: [  
+        'autor',                           
+        'autor.usuario', 
+        'documento', 
+        'documento.proyecto', 
+        'documento.proyecto.estudiantes',
+        'documento.proyecto.estudiantes.usuario',
+        'documento.proyecto.asesor',
+      ],
+      order: { fecha_creacion: 'DESC' },
+    });
+  }
+    
   async obtenerObservacionesPorProyecto(proyectoId: number, id_usuario: number) {
     return await this.repositorio_observacion
       .createQueryBuilder('observacion')
@@ -472,23 +472,36 @@ export class ObservacionesService {
     // 1. Verificar que el usuario sea un estudiante
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario } },
-      relations: ['usuario'],
+      // relations: ['usuario'],
+      relations: ['proyecto'],
     });
 
     if (!estudiante) {
       throw new ForbiddenException('Solo los estudiantes pueden acceder a sus observaciones.');
     }
+    
+    if (!estudiante.proyecto) {
+      return []; // ✅ Sin proyecto = sin observaciones
+    }
 
-    // 2. Obtener observaciones de los documentos de los proyectos del estudiante
-    return await this.repositorio_observacion
-      .createQueryBuilder('observacion')
-      .innerJoin('observacion.documento', 'documento')
-      .innerJoin('documento.proyecto', 'proyecto')
-      .innerJoin('proyecto.estudiantes', 'estudiante_proyecto')
-      .where('estudiante_proyecto.id = :estudianteId', { estudianteId: estudiante.id })
-      .andWhere('observacion.archivada = :archivada', { archivada: false })
-      .orderBy('observacion.fecha_creacion', 'DESC')
-      .getMany();
+    return this.repositorio_observacion.find({
+      where: {
+        documento: {
+          proyecto: { id: estudiante.proyecto.id }
+        },
+        archivada: false,
+      },
+      relations: [
+        'autor',
+        'autor.usuario',
+        'documento',
+        'documento.proyecto',
+        'documento.proyecto.estudiantes',
+        'documento.proyecto.estudiantes.usuario',
+        'documento.proyecto.asesor',
+      ],
+      order: { fecha_creacion: 'DESC' },
+    });
   }
 
   // Validar transiciones de estado permitidas

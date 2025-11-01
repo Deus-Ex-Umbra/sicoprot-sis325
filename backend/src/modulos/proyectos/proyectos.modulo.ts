@@ -6,6 +6,8 @@ import { Proyecto } from './entidades/proyecto.endidad';
 import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
 import { AsesoresModule } from '../asesores/asesores.modulo';
 
+
+import { EtapaProyecto } from './enums/etapa-proyecto.enum';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Proyecto]),
