@@ -67,7 +67,7 @@ export class GruposController {
   }
 
   @Post(':id/asignar-estudiante')
-  @ApiOperation({ summary: 'Asignar un estudiante a un grupo' })
+  @ApiOperation({ summary: 'Asignar un estudiante a un grupo (Admin)' })
   @ApiParam({ name: 'id', description: 'ID del grupo' })
   @ApiResponse({ status: 200, description: 'Estudiante asignado exitosamente.' })
   asignarEstudiante(@Param('id', ParseIntPipe) id: number, @Body() dto: AsignarEstudianteDto) {
@@ -75,7 +75,7 @@ export class GruposController {
   }
 
   @Post(':id/inscribirse')
-  @ApiOperation({ summary: 'Inscribirse a un grupo (auto-asignación)' })
+  @ApiOperation({ summary: 'Inscribirse a un grupo (Estudiante)' })
   @ApiParam({ name: 'id', description: 'ID del grupo' })
   @ApiResponse({ status: 200, description: 'Inscripción exitosa.' })
   @ApiResponse({ status: 400, description: 'No se puede inscribir (grupo lleno, ya inscrito, etc.).' })
@@ -84,20 +84,12 @@ export class GruposController {
   }
 
   @Delete(':id/remover-estudiante/:estudianteId')
-  @ApiOperation({ summary: 'Remover un estudiante de un grupo' })
+  @ApiOperation({ summary: 'Remover un estudiante de un grupo (Admin)' })
   @ApiParam({ name: 'id', description: 'ID del grupo' })
   @ApiParam({ name: 'estudianteId', description: 'ID del estudiante' })
   @ApiResponse({ status: 200, description: 'Estudiante removido exitosamente.' })
   removerEstudiante(@Param('id', ParseIntPipe) id: number, @Param('estudianteId', ParseIntPipe) estudianteId: number) {
     return this.servicio_grupos.removerEstudiante(id, estudianteId);
-  }
-
-  @Delete(':id/desinscribirse')
-  @ApiOperation({ summary: 'Desinscribirse de un grupo' })
-  @ApiParam({ name: 'id', description: 'ID del grupo' })
-  @ApiResponse({ status: 200, description: 'Desinscripción exitosa.' })
-  desinscribirseDeGrupo(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    return this.servicio_grupos.desinscribirEstudiante(id, req.user.id_usuario);
   }
 
   @Delete(':id')
