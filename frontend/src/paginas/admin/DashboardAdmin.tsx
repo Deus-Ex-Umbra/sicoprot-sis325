@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/c
 import { cn } from '../../lib/utilidades';
 import Cabecera from '../../componentes/Cabecera';
 import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
-import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Rol } from '../../tipos/usuario';
 import BarraLateral from '../../componentes/BarraLateral';
 

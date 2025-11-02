@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { useAutenticacion } from '../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { Rol } from '../tipos/usuario';
 
 interface RutaProtegidaProps {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAutenticacion } from '../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { Rol } from '../tipos/usuario';
 import {
   FolderKanban,
@@ -39,13 +39,13 @@ const Panel = () => {
     }
   }, [es_admin, navigate]);
 
-  if (es_admin) {
-    return null;
-  }
-
   const toggleSidebar = () => {
     set_sidebar_open(!sidebar_open);
   };
+
+  if (es_admin) {
+    return null;
+  }
 
   const tarjetas_estudiante = [
     {
@@ -53,28 +53,28 @@ const Panel = () => {
       descripcion: 'Gestiona y sube documentos',
       icono: FolderKanban,
       ruta: '/panel/proyectos',
-      color: 'bg-blue-500/10 text-blue-600 dark:text-blue-500'
+      color: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
     },
     {
       titulo: 'Mis Documentos',
       descripcion: 'Revisa tus documentos subidos',
       icono: FileText,
       ruta: '/panel/mis-documentos',
-      color: 'bg-green-500/10 text-green-600 dark:text-green-500'
+      color: 'bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400'
     },
     {
       titulo: 'Observaciones',
       descripcion: 'Ver y atender observaciones',
       icono: MessageSquare,
       ruta: '/panel/observaciones',
-      color: 'bg-orange-500/10 text-orange-600 dark:text-orange-500'
+      color: 'bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400'
     },
     {
       titulo: 'Mi Grupo',
       descripcion: 'Ver información del grupo',
       icono: Users,
       ruta: '/panel/inscripcion-grupos',
-      color: 'bg-purple-500/10 text-purple-600 dark:text-purple-500'
+      color: 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
     }
   ];
 
@@ -84,28 +84,28 @@ const Panel = () => {
       descripcion: 'Ver proyectos asignados',
       icono: FolderKanban,
       ruta: '/panel/proyectos',
-      color: 'bg-blue-500/10 text-blue-600 dark:text-blue-500'
+      color: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
     },
     {
       titulo: 'Mis Estudiantes',
       descripcion: 'Gestionar estudiantes asignados',
       icono: GraduationCap,
       ruta: '/panel/estudiantes',
-      color: 'bg-green-500/10 text-green-600 dark:text-green-500'
+      color: 'bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400'
     },
     {
       titulo: 'Revisar Documentos',
       descripcion: 'Revisar y dar feedback',
       icono: BookOpen,
       ruta: '/panel/revisar',
-      color: 'bg-orange-500/10 text-orange-600 dark:text-orange-500'
+      color: 'bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400'
     },
     {
       titulo: 'Observaciones',
       descripcion: 'Gestionar observaciones',
       icono: MessageSquare,
       ruta: '/panel/gestion-observaciones',
-      color: 'bg-purple-500/10 text-purple-600 dark:text-purple-500'
+      color: 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
     }
   ];
 
@@ -190,11 +190,11 @@ const Panel = () => {
                 return (
                   <Card
                     key={index}
-                    className="hover:shadow-md transition-shadow cursor-pointer group"
+                    className="hover:shadow-md transition-all cursor-pointer group hover:scale-105"
                     onClick={() => navigate(tarjeta.ruta)}
                   >
                     <CardHeader className="space-y-3">
-                      <div className={`h-12 w-12 rounded-lg ${tarjeta.color} flex items-center justify-center`}>
+                      <div className={`h-12 w-12 rounded-lg ${tarjeta.color} flex items-center justify-center transition-transform group-hover:scale-110`}>
                         <Icono className="h-6 w-6" />
                       </div>
                       <div className="space-y-1">
@@ -223,7 +223,7 @@ const Panel = () => {
                   <>
                     <Button
                       variant="outline"
-                      className="w-full justify-start"
+                      className="w-full justify-start hover:bg-accent transition-colors"
                       onClick={() => navigate('/panel/proyectos')}
                     >
                       <FolderKanban className="mr-2 h-4 w-4" />
@@ -231,11 +231,11 @@ const Panel = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full justify-start"
+                      className="w-full justify-start hover:bg-accent transition-colors"
                       onClick={() => navigate('/panel/observaciones')}
                     >
                       <MessageSquare className="mr-2 h-4 w-4" />
-                      Ver observaciones pendientes
+                      Ver mis observaciones pendientes
                     </Button>
                   </>
                 )}
@@ -243,7 +243,7 @@ const Panel = () => {
                   <>
                     <Button
                       variant="outline"
-                      className="w-full justify-start"
+                      className="w-full justify-start hover:bg-accent transition-colors"
                       onClick={() => navigate('/panel/estudiantes')}
                     >
                       <GraduationCap className="mr-2 h-4 w-4" />
@@ -251,7 +251,7 @@ const Panel = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full justify-start"
+                      className="w-full justify-start hover:bg-accent transition-colors"
                       onClick={() => navigate('/panel/revisar')}
                     >
                       <BookOpen className="mr-2 h-4 w-4" />

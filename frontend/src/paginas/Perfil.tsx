@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useAutenticacion } from '../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { usuariosApi } from '../servicios/api';
 import { toast } from 'sonner';
 import { User, Mail, Lock, Save, Loader2, Camera, Upload } from 'lucide-react';
