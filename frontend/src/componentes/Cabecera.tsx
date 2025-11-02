@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { Rol } from '../tipos/usuario';
+import { SwitchModo } from './switch-modo';
 
 interface CabeceraProps {
   toggleSidebar: () => void;
@@ -66,6 +67,8 @@ const Cabecera = ({ toggleSidebar }: CabeceraProps) => {
         </div>
 
         <div className="flex-1" />
+
+        <SwitchModo />
 
         {tiene_grupo && usuario?.perfil?.grupo && (
           <Badge
