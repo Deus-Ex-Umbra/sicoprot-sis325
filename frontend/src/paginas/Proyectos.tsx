@@ -5,6 +5,10 @@ import { FaPlus, FaEye, FaFileUpload, FaInfoCircle } from 'react-icons/fa';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { obtenerProyectos, crearProyecto } from '../servicios/proyectos.servicio';
 import { type Proyecto, Rol } from '../tipos/usuario';
+import Cabecera from '../componentes/Cabecera';
+import BarraLateral from '../componentes/BarraLateral';
+import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
+import { cn } from '../lib/utilidades';
 
 const Proyectos = () => {
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
@@ -17,9 +21,16 @@ const Proyectos = () => {
 
   const { usuario } = useAutenticacion();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const esEstudiante = usuario?.rol === Rol.Estudiante;
+  const es_admin = usuario?.rol === Rol.Administrador;
   const tieneGrupo = !!(esEstudiante && usuario?.perfil?.grupo);
   const grupo = usuario?.perfil?.grupo;
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
   useEffect(() => {
     cargarProyectos();
@@ -69,17 +80,7 @@ const Proyectos = () => {
     setMostrarModal(true);
   };
 
-  if (cargando) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
+  const contenidoPagina = (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="text-light">
@@ -225,6 +226,38 @@ const Proyectos = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+    </div>
+  );
+
+  if (cargando) {
+    contenidoPagina = (
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Cabecera toggleSidebar={toggleSidebar} />
+      {es_admin ? (
+        <BarraLateralAdmin isOpen={sidebarOpen} />
+      ) : (
+        <BarraLateral isOpen={sidebarOpen} />
+      )}
+
+      <main
+        className={cn(
+          'transition-all duration-300 pt-14',
+          sidebarOpen ? 'ml-64' : 'ml-0'
+        )}
+      >
+        <div className="container mx-auto p-6 max-w-7xl">
+          {contenidoPagina}
+        </div>
+      </main>
     </div>
   );
 };
