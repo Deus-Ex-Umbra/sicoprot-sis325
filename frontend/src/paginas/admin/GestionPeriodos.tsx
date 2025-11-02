@@ -1,17 +1,46 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Modal, Form, Alert, Row, Col } from 'react-bootstrap';
-import { FaPlus, FaEdit, FaTrash, FaCheckCircle } from 'react-icons/fa';
-import { obtenerPeriodos, crearPeriodo, actualizarPeriodo, eliminarPeriodo } from '../../servicios/periodos.servicio';
+import { Plus, Edit, Trash, CheckCircle, Loader2 } from 'lucide-react';
+import { periodosApi } from '../../servicios/api';
 import { type Periodo } from '../../tipos/usuario';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
+import { cn } from '../../lib/utilidades';
+import Cabecera from '../../componentes/Cabecera';
+import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { Rol } from '../../tipos/usuario';
+import { Button } from '../../componentes/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../componentes/ui/table';
+import { Badge } from '../../componentes/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '../../componentes/ui/dialog';
+import { Input } from '../../componentes/ui/input';
+import { Label } from '../../componentes/ui/label';
+import { Switch } from '../../componentes/ui/switch';
+import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
+import { Textarea } from '../../componentes/ui/textarea';
+import BarraLateral from '../../componentes/BarraLateral';
 
 const GestionPeriodos = () => {
-  const [periodos, setPeriodos] = useState<Periodo[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [periodoEditando, setPeriodoEditando] = useState<Periodo | null>(null);
-  const [formPeriodo, setFormPeriodo] = useState({
+  const [periodos, set_periodos] = useState<Periodo[]>([]);
+  const [cargando, set_cargando] = useState(true);
+  const [error, set_error] = useState('');
+  const [mostrar_modal, set_mostrar_modal] = useState(false);
+  const [periodo_editando, set_periodo_editando] = useState<Periodo | null>(null);
+  const [form_periodo, set_form_periodo] = useState({
     nombre: '',
     descripcion: '',
     fecha_inicio_semestre: '',
@@ -21,24 +50,32 @@ const GestionPeriodos = () => {
     activo: false,
   });
 
+  const { usuario } = useAutenticacion();
+  const [sidebar_open, set_sidebar_open] = useState(true);
+  const es_admin = usuario?.rol === Rol.Administrador;
+
+  const toggleSidebar = () => {
+    set_sidebar_open(!sidebar_open);
+  };
+
   useEffect(() => {
     cargarPeriodos();
   }, []);
 
   const cargarPeriodos = async () => {
     try {
-      const data = await obtenerPeriodos();
-      setPeriodos(data);
+      const data = await periodosApi.obtenerTodos();
+      set_periodos(data);
     } catch (err) {
-      setError('Error al cargar los períodos');
+      set_error('Error al cargar los períodos');
     } finally {
-      setCargando(false);
+      set_cargando(false);
     }
   };
 
   const abrirModalCrear = () => {
-    setPeriodoEditando(null);
-    setFormPeriodo({
+    set_periodo_editando(null);
+    set_form_periodo({
       nombre: '',
       descripcion: '',
       fecha_inicio_semestre: '',
@@ -47,12 +84,12 @@ const GestionPeriodos = () => {
       fecha_fin_inscripciones: '',
       activo: false,
     });
-    setMostrarModal(true);
+    set_mostrar_modal(true);
   };
 
   const abrirModalEditar = (periodo: Periodo) => {
-    setPeriodoEditando(periodo);
-    setFormPeriodo({
+    set_periodo_editando(periodo);
+    set_form_periodo({
       nombre: periodo.nombre,
       descripcion: periodo.descripcion || '',
       fecha_inicio_semestre: periodo.fecha_inicio_semestre.split('T')[0],
@@ -61,19 +98,19 @@ const GestionPeriodos = () => {
       fecha_fin_inscripciones: periodo.fecha_fin_inscripciones.split('T')[0],
       activo: periodo.activo,
     });
-    setMostrarModal(true);
+    set_mostrar_modal(true);
   };
 
   const manejarGuardar = async () => {
     try {
-      if (periodoEditando) {
-        await actualizarPeriodo(periodoEditando.id, formPeriodo);
+      if (periodo_editando) {
+        await periodosApi.actualizar(periodo_editando.id, form_periodo);
         toast.success('Período actualizado exitosamente');
       } else {
-        await crearPeriodo(formPeriodo);
+        await periodosApi.crear(form_periodo);
         toast.success('Período creado exitosamente');
       }
-      setMostrarModal(false);
+      set_mostrar_modal(false);
       await cargarPeriodos();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al guardar período');
@@ -84,7 +121,7 @@ const GestionPeriodos = () => {
     if (!window.confirm('¿Está seguro de eliminar este período?')) return;
 
     try {
-      await eliminarPeriodo(id);
+      await periodosApi.eliminar(id);
       toast.success('Período eliminado exitosamente');
       await cargarPeriodos();
     } catch (err: any) {
@@ -92,217 +129,219 @@ const GestionPeriodos = () => {
     }
   };
 
+  let contenido_pagina;
+
   if (cargando) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
+    contenido_pagina = (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (error) return <Alert variant="danger">{error}</Alert>;
-
-  return (
-    <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="text-light mb-0">Gestión de Períodos</h2>
-        <Button variant="primary" onClick={abrirModalCrear}>
-          <FaPlus className="me-2" />
-          Nuevo Período
-        </Button>
-      </div>
-      
-      <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-        <Card.Body>
-          <Table responsive hover variant="dark">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Semestre</th>
-                <th>Inscripciones</th>
-                <th>Estado</th>
-                <th>Grupos</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
+  } else if (error) {
+    contenido_pagina = <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
+  } else {
+    contenido_pagina = (
+      <Card>
+        <CardHeader>
+          <CardTitle>Lista de Períodos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Descripción</TableHead>
+                <TableHead>Semestre</TableHead>
+                <TableHead>Inscripciones</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Grupos</TableHead>
+                <TableHead>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {periodos.map((periodo) => (
-                <tr key={periodo.id}>
-                  <td>
-                    <strong>{periodo.nombre}</strong>
+                <TableRow key={periodo.id}>
+                  <TableCell className="font-medium">
+                    {periodo.nombre}
                     {periodo.activo && (
-                      <Badge bg="success" className="ms-2">
-                        <FaCheckCircle /> Activo
+                      <Badge className="ml-2">
+                        <CheckCircle className="h-3 w-3 mr-1" /> Activo
                       </Badge>
                     )}
-                  </td>
-                  <td>{periodo.descripcion || '-'}</td>
-                  <td>
-                    <small className="text-muted">
-                      {new Date(periodo.fecha_inicio_semestre).toLocaleDateString()} - 
-                      {new Date(periodo.fecha_fin_semestre).toLocaleDateString()}
-                    </small>
-                  </td>
-                  <td>
-                    <small className="text-muted">
-                      {new Date(periodo.fecha_inicio_inscripciones).toLocaleDateString()} - 
-                      {new Date(periodo.fecha_fin_inscripciones).toLocaleDateString()}
-                    </small>
-                  </td>
-                  <td>
-                    {periodo.activo ? (
-                      <Badge bg="success">Activo</Badge>
-                    ) : (
-                      <Badge bg="secondary">Inactivo</Badge>
-                    )}
-                  </td>
-                  <td>
-                    <Badge bg="info">{periodo.grupos?.length || 0}</Badge>
-                  </td>
-                  <td>
-                    <div className="d-flex gap-2">
+                  </TableCell>
+                  <TableCell>{periodo.descripcion || '-'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(periodo.fecha_inicio_semestre).toLocaleDateString()} - 
+                    {new Date(periodo.fecha_fin_semestre).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(periodo.fecha_inicio_inscripciones).toLocaleDateString()} - 
+                    {new Date(periodo.fecha_fin_inscripciones).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={periodo.activo ? 'default' : 'secondary'}>
+                      {periodo.activo ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{periodo.grupos?.length || 0}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
                       <Button
-                        variant="outline-warning"
-                        size="sm"
+                        variant="outline"
+                        size="icon"
                         onClick={() => abrirModalEditar(periodo)}
                       >
-                        <FaEdit />
+                        <Edit className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="outline-danger"
-                        size="sm"
+                        variant="outline"
+                        size="icon"
                         onClick={() => manejarEliminar(periodo.id)}
                       >
-                        <FaTrash />
+                        <Trash className="h-4 w-4" />
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
+            </TableBody>
           </Table>
 
           {periodos.length === 0 && (
-            <p className="text-muted text-center py-5">
+            <p className="text-muted-foreground text-center py-10">
               No hay períodos registrados.
             </p>
           )}
-        </Card.Body>
+        </CardContent>
       </Card>
+    );
+  }
 
-      <Modal show={mostrarModal} onHide={() => setMostrarModal(false)} size="lg">
-        <Modal.Header closeButton style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Modal.Title>{periodoEditando ? 'Editar' : 'Crear'} Período</Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Form>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-light">Nombre</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={formPeriodo.nombre}
-                    onChange={(e) => setFormPeriodo({ ...formPeriodo, nombre: e.target.value })}
-                    placeholder="Ej: 2025-1"
-                    style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-light">Estado</Form.Label>
-                  <Form.Check
-                    type="switch"
-                    label="Período Activo"
-                    checked={formPeriodo.activo}
-                    onChange={(e) => setFormPeriodo({ ...formPeriodo, activo: e.target.checked })}
-                    className="text-light"
-                  />
-                  <Form.Text className="text-muted">
-                    Solo puede haber un período activo a la vez
-                  </Form.Text>
-                </Form.Group>
-              </Col>
-            </Row>
+  return (
+    <div className="min-h-screen bg-background">
+      <Cabecera toggleSidebar={toggleSidebar} />
+      {es_admin ? (
+        <BarraLateralAdmin isOpen={sidebar_open} />
+      ) : (
+        <BarraLateral isOpen={sidebar_open} />
+      )}
 
-            <Form.Group className="mb-3">
-              <Form.Label className="text-light">Descripción</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                value={formPeriodo.descripcion}
-                onChange={(e) => setFormPeriodo({ ...formPeriodo, descripcion: e.target.value })}
-                placeholder="Descripción del período"
-                style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-              />
-            </Form.Group>
+      <main
+        className={cn(
+          'transition-all duration-300 pt-14',
+          sidebar_open ? 'ml-64' : 'ml-0'
+        )}
+      >
+        <div className="container mx-auto p-6 max-w-7xl">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold tracking-tight">Gestión de Períodos</h1>
+            <Button onClick={abrirModalCrear}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Período
+            </Button>
+          </div>
 
-            <h6 className="text-light mb-3">Fechas del Semestre</h6>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-light">Inicio Semestre</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={formPeriodo.fecha_inicio_semestre}
-                    onChange={(e) => setFormPeriodo({ ...formPeriodo, fecha_inicio_semestre: e.target.value })}
-                    style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-light">Fin Semestre</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={formPeriodo.fecha_fin_semestre}
-                    onChange={(e) => setFormPeriodo({ ...formPeriodo, fecha_fin_semestre: e.target.value })}
-                    style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
+          {contenido_pagina}
 
-            <h6 className="text-light mb-3">Fechas de Inscripciones</h6>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-light">Inicio Inscripciones</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={formPeriodo.fecha_inicio_inscripciones}
-                    onChange={(e) => setFormPeriodo({ ...formPeriodo, fecha_inicio_inscripciones: e.target.value })}
-                    style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
+          <Dialog open={mostrar_modal} onOpenChange={set_mostrar_modal}>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>{periodo_editando ? 'Editar' : 'Crear'} Período</DialogTitle>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nombre">Nombre</Label>
+                    <Input
+                      id="nombre"
+                      value={form_periodo.nombre}
+                      onChange={(e) => set_form_periodo({ ...form_periodo, nombre: e.target.value })}
+                      placeholder="Ej: 2025-1"
+                    />
+                  </div>
+                  <div className="space-y-2 pt-6">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="activo"
+                        checked={form_periodo.activo}
+                        onCheckedChange={(checked) => set_form_periodo({ ...form_periodo, activo: checked })}
+                      />
+                      <Label htmlFor="activo">Período Activo</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Solo puede haber un período activo a la vez.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="descripcion">Descripción</Label>
+                  <Textarea
+                    id="descripcion"
+                    value={form_periodo.descripcion}
+                    onChange={(e) => set_form_periodo({ ...form_periodo, descripcion: e.target.value })}
+                    placeholder="Descripción del período"
                   />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-light">Fin Inscripciones</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={formPeriodo.fecha_fin_inscripciones}
-                    onChange={(e) => setFormPeriodo({ ...formPeriodo, fecha_fin_inscripciones: e.target.value })}
-                    style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Button variant="secondary" onClick={() => setMostrarModal(false)}>
-            Cancelar
-          </Button>
-          <Button variant="primary" onClick={manejarGuardar}>
-            {periodoEditando ? 'Actualizar' : 'Crear'} Período
-          </Button>
-        </Modal.Footer>
-      </Modal>
+                </div>
+
+                <h6 className="font-semibold">Fechas del Semestre</h6>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fecha_inicio_semestre">Inicio Semestre</Label>
+                    <Input
+                      id="fecha_inicio_semestre"
+                      type="date"
+                      value={form_periodo.fecha_inicio_semestre}
+                      onChange={(e) => set_form_periodo({ ...form_periodo, fecha_inicio_semestre: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fecha_fin_semestre">Fin Semestre</Label>
+                    <Input
+                      id="fecha_fin_semestre"
+                      type="date"
+                      value={form_periodo.fecha_fin_semestre}
+                      onChange={(e) => set_form_periodo({ ...form_periodo, fecha_fin_semestre: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <h6 className="font-semibold">Fechas de Inscripciones</h6>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fecha_inicio_inscripciones">Inicio Inscripciones</Label>
+                    <Input
+                      id="fecha_inicio_inscripciones"
+                      type="date"
+                      value={form_periodo.fecha_inicio_inscripciones}
+                      onChange={(e) => set_form_periodo({ ...form_periodo, fecha_inicio_inscripciones: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fecha_fin_inscripciones">Fin Inscripciones</Label>
+                    <Input
+                      id="fecha_fin_inscripciones"
+                      type="date"
+                      value={form_periodo.fecha_fin_inscripciones}
+                      onChange={(e) => set_form_periodo({ ...form_periodo, fecha_fin_inscripciones: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </DialogClose>
+                <Button onClick={manejarGuardar}>
+                  {periodo_editando ? 'Actualizar' : 'Crear'} Período
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </main>
     </div>
   );
 };

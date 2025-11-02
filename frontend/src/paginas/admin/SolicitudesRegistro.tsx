@@ -1,18 +1,52 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Modal, Form, Alert } from 'react-bootstrap';
-import { FaCheck, FaTimes, FaEye } from 'react-icons/fa';
-import { obtenerSolicitudesPendientes, responderSolicitud } from '../../servicios/solicitudes.servicio';
+import { Check, X, Loader2 } from 'lucide-react';
+import { solicitudesRegistroApi } from '../../servicios/api';
 import { type SolicitudRegistro, Rol } from '../../tipos/usuario';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
+import { cn } from '../../lib/utilidades';
+import Cabecera from '../../componentes/Cabecera';
+import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { Button } from '../../componentes/ui/button';
+import { Card, CardContent } from '../../componentes/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../componentes/ui/table';
+import { Badge } from '../../componentes/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '../../componentes/ui/dialog';
+import { Label } from '../../componentes/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
+import { Textarea } from '../../componentes/ui/textarea';
+import BarraLateral from '../../componentes/BarraLateral';
 
 const SolicitudesRegistro = () => {
-  const [solicitudes, setSolicitudes] = useState<SolicitudRegistro[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [solicitudSeleccionada, setSolicitudSeleccionada] = useState<SolicitudRegistro | null>(null);
-  const [respuesta, setRespuesta] = useState<'aprobada' | 'rechazada'>('aprobada');
-  const [comentarios, setComentarios] = useState('');
+  const [solicitudes, set_solicitudes] = useState<SolicitudRegistro[]>([]);
+  const [cargando, set_cargando] = useState(true);
+  const [error, set_error] = useState('');
+  const [mostrar_modal, set_mostrar_modal] = useState(false);
+  const [solicitud_seleccionada, set_solicitud_seleccionada] = useState<SolicitudRegistro | null>(null);
+  const [respuesta, set_respuesta] = useState<'aprobada' | 'rechazada'>('aprobada');
+  const [comentarios, set_comentarios] = useState('');
+
+  const { usuario } = useAutenticacion();
+  const [sidebar_open, set_sidebar_open] = useState(true);
+  const es_admin = usuario?.rol === Rol.Administrador;
+
+  const toggleSidebar = () => {
+    set_sidebar_open(!sidebar_open);
+  };
 
   useEffect(() => {
     cargarSolicitudes();
@@ -20,33 +54,33 @@ const SolicitudesRegistro = () => {
 
   const cargarSolicitudes = async () => {
     try {
-      const data = await obtenerSolicitudesPendientes();
-      setSolicitudes(data);
+      const data = await solicitudesRegistroApi.obtenerPendientes();
+      set_solicitudes(data);
     } catch (err) {
-      setError('Error al cargar las solicitudes');
+      set_error('Error al cargar las solicitudes');
     } finally {
-      setCargando(false);
+      set_cargando(false);
     }
   };
 
   const abrirModalResponder = (solicitud: SolicitudRegistro, tipo: 'aprobada' | 'rechazada') => {
-    setSolicitudSeleccionada(solicitud);
-    setRespuesta(tipo);
-    setComentarios('');
-    setMostrarModal(true);
+    set_solicitud_seleccionada(solicitud);
+    set_respuesta(tipo);
+    set_comentarios('');
+    set_mostrar_modal(true);
   };
 
   const manejarResponder = async () => {
-    if (!solicitudSeleccionada) return;
+    if (!solicitud_seleccionada) return;
 
     try {
-      await responderSolicitud(solicitudSeleccionada.id, {
+      await solicitudesRegistroApi.responder(solicitud_seleccionada.id, {
         estado: respuesta,
         comentarios_admin: comentarios || undefined,
       });
       
       toast.success(`Solicitud ${respuesta === 'aprobada' ? 'aprobada' : 'rechazada'} exitosamente`);
-      setMostrarModal(false);
+      set_mostrar_modal(false);
       await cargarSolicitudes();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al procesar solicitud');
@@ -56,147 +90,166 @@ const SolicitudesRegistro = () => {
   const obtenerBadgeRol = (rol: Rol) => {
     switch (rol) {
       case Rol.Estudiante:
-        return <Badge bg="primary">Estudiante</Badge>;
+        return <Badge variant="outline" className="text-blue-500 border-blue-500">Estudiante</Badge>;
       case Rol.Asesor:
-        return <Badge bg="info">Asesor</Badge>;
+        return <Badge variant="outline" className="text-cyan-500 border-cyan-500">Asesor</Badge>;
       default:
-        return <Badge bg="secondary">{rol}</Badge>;
+        return <Badge variant="secondary">{rol}</Badge>;
     }
   };
 
+  let contenido_pagina;
+
   if (cargando) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
+    contenido_pagina = (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (error) return <Alert variant="danger">{error}</Alert>;
-
-  return (
-    <div>
-      <h2 className="text-light mb-4">Solicitudes de Registro Pendientes</h2>
-      
-      <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-        <Card.Body>
-          <Table responsive hover variant="dark">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Correo</th>
-                <th>Rol Solicitado</th>
-                <th>Fecha Solicitud</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
+  } else if (error) {
+    contenido_pagina = <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
+  } else {
+    contenido_pagina = (
+      <Card>
+        <CardContent className="pt-6">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Correo</TableHead>
+                <TableHead>Rol Solicitado</TableHead>
+                <TableHead>Fecha Solicitud</TableHead>
+                <TableHead>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {solicitudes.map((solicitud) => (
-                <tr key={solicitud.id}>
-                  <td>{solicitud.id}</td>
-                  <td>{solicitud.nombre} {solicitud.apellido}</td>
-                  <td>{solicitud.correo}</td>
-                  <td>{obtenerBadgeRol(solicitud.rol)}</td>
-                  <td>
-                    <small className="text-muted">
+                <TableRow key={solicitud.id}>
+                  <TableCell>{solicitud.id}</TableCell>
+                  <TableCell>{solicitud.nombre} {solicitud.apellido}</TableCell>
+                  <TableCell>{solicitud.correo}</TableCell>
+                  <TableCell>{obtenerBadgeRol(solicitud.rol)}</TableCell>
+                  <TableCell>
+                    <span className="text-muted-foreground text-xs">
                       {new Date(solicitud.fecha_solicitud).toLocaleDateString()}
-                    </small>
-                  </td>
-                  <td>
-                    <div className="d-flex gap-2">
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
                       <Button
-                        variant="success"
+                        variant="default"
                         size="sm"
                         onClick={() => abrirModalResponder(solicitud, 'aprobada')}
+                        className="bg-green-600 hover:bg-green-700"
                       >
-                        <FaCheck /> Aprobar
+                        <Check className="h-4 w-4 mr-1" /> Aprobar
                       </Button>
                       <Button
-                        variant="danger"
+                        variant="destructive"
                         size="sm"
                         onClick={() => abrirModalResponder(solicitud, 'rechazada')}
                       >
-                        <FaTimes /> Rechazar
+                        <X className="h-4 w-4 mr-1" /> Rechazar
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
+            </TableBody>
           </Table>
 
           {solicitudes.length === 0 && (
-            <p className="text-muted text-center py-5">
+            <p className="text-muted-foreground text-center py-10">
               No hay solicitudes pendientes.
             </p>
           )}
-        </Card.Body>
+        </CardContent>
       </Card>
+    );
+  }
+  
+  return (
+    <div className="min-h-screen bg-background">
+      <Cabecera toggleSidebar={toggleSidebar} />
+      {es_admin ? (
+        <BarraLateralAdmin isOpen={sidebar_open} />
+      ) : (
+        <BarraLateral isOpen={sidebar_open} />
+      )}
 
-      <Modal show={mostrarModal} onHide={() => setMostrarModal(false)}>
-        <Modal.Header closeButton style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Modal.Title>
-            {respuesta === 'aprobada' ? 'Aprobar' : 'Rechazar'} Solicitud
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          {solicitudSeleccionada && (
-            <>
-              <p className="text-light">
-                <strong>Solicitante:</strong> {solicitudSeleccionada.nombre} {solicitudSeleccionada.apellido}
-              </p>
-              <p className="text-light">
-                <strong>Correo:</strong> {solicitudSeleccionada.correo}
-              </p>
-              <p className="text-light">
-                <strong>Rol solicitado:</strong> {obtenerBadgeRol(solicitudSeleccionada.rol)}
-              </p>
+      <main
+        className={cn(
+          'transition-all duration-300 pt-14',
+          sidebar_open ? 'ml-64' : 'ml-0'
+        )}
+      >
+        <div className="container mx-auto p-6 max-w-7xl">
+          <h1 className="text-3xl font-bold tracking-tight mb-6">Solicitudes de Registro Pendientes</h1>
+          {contenido_pagina}
 
-              <Form.Group className="mb-3">
-                <Form.Label className="text-light">
-                  Comentarios {respuesta === 'rechazada' ? '(recomendado)' : '(opcional)'}
-                </Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  value={comentarios}
-                  onChange={(e) => setComentarios(e.target.value)}
-                  placeholder={
-                    respuesta === 'rechazada' 
-                      ? 'Explica el motivo del rechazo...'
-                      : 'Mensaje de bienvenida opcional...'
-                  }
-                  style={{ 
-                    backgroundColor: 'var(--color-fondo-secundario)', 
-                    color: 'var(--color-texto-principal)' 
-                  }}
-                />
-              </Form.Group>
+          <Dialog open={mostrar_modal} onOpenChange={set_mostrar_modal}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {respuesta === 'aprobada' ? 'Aprobar' : 'Rechazar'} Solicitud
+                </DialogTitle>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                {solicitud_seleccionada && (
+                  <>
+                    <p>
+                      <strong>Solicitante:</strong> {solicitud_seleccionada.nombre} {solicitud_seleccionada.apellido}
+                    </p>
+                    <p>
+                      <strong>Correo:</strong> {solicitud_seleccionada.correo}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <strong>Rol solicitado:</strong> {obtenerBadgeRol(solicitud_seleccionada.rol)}
+                    </div>
 
-              <Alert variant={respuesta === 'aprobada' ? 'success' : 'warning'}>
-                {respuesta === 'aprobada' 
-                  ? '✓ Se creará una cuenta activa para este usuario.'
-                  : '⚠ La solicitud será rechazada y el usuario será notificado.'
-                }
-              </Alert>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Button variant="secondary" onClick={() => setMostrarModal(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            variant={respuesta === 'aprobada' ? 'success' : 'danger'} 
-            onClick={manejarResponder}
-          >
-            Confirmar {respuesta === 'aprobada' ? 'Aprobación' : 'Rechazo'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+                    <div className="space-y-2">
+                      <Label htmlFor="comentarios">
+                        Comentarios {respuesta === 'rechazada' ? '(recomendado)' : '(opcional)'}
+                      </Label>
+                      <Textarea
+                        id="comentarios"
+                        value={comentarios}
+                        onChange={(e) => set_comentarios(e.target.value)}
+                        placeholder={
+                          respuesta === 'rechazada' 
+                            ? 'Explica el motivo del rechazo...'
+                            : 'Mensaje de bienvenida opcional...'
+                        }
+                      />
+                    </div>
+
+                    <Alert variant={respuesta === 'aprobada' ? 'default' : 'destructive'}>
+                      <AlertDescription>
+                        {respuesta === 'aprobada' 
+                          ? '✓ Se creará una cuenta activa para este usuario.'
+                          : '⚠ La solicitud será rechazada y el usuario será notificado.'
+                        }
+                      </AlertDescription>
+                    </Alert>
+                  </>
+                )}
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </DialogClose>
+                <Button 
+                  variant={respuesta === 'aprobada' ? 'default' : 'destructive'} 
+                  onClick={manejarResponder}
+                >
+                  Confirmar {respuesta === 'aprobada' ? 'Aprobación' : 'Rechazo'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </main>
     </div>
   );
 };

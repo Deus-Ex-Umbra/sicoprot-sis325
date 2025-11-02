@@ -9,10 +9,10 @@ import { Label } from '../../componentes/ui/label';
 import { Alert, AlertDescription } from '../../componentes/ui/alert';
 
 const IniciarSesion = () => {
-  const [correo, setCorreo] = useState('');
-  const [contrasena, setContrasena] = useState('');
-  const [error, setError] = useState('');
-  const [cargando, setCargando] = useState(false);
+  const [correo, set_correo] = useState('');
+  const [contrasena, set_contrasena] = useState('');
+  const [error, set_error] = useState('');
+  const [cargando, set_cargando] = useState(false);
   
   const { iniciarSesion } = useAutenticacion();
   const navigate = useNavigate();
@@ -22,22 +22,22 @@ const IniciarSesion = () => {
 
   const manejarSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    set_error('');
 
     if (!correo || !contrasena) {
-      setError('Todos los campos son obligatorios.');
+      set_error('Todos los campos son obligatorios.');
       return;
     }
 
-    setCargando(true);
+    set_cargando(true);
 
     try {
       await iniciarSesion(correo, contrasena);
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error en el servidor.');
+      set_error(err.response?.data?.message || 'Error en el servidor.');
     } finally {
-      setCargando(false);
+      set_cargando(false);
     }
   };
 
@@ -136,7 +136,7 @@ const IniciarSesion = () => {
                       type="email"
                       placeholder="tu@correo.com"
                       value={correo}
-                      onChange={(e) => setCorreo(e.target.value)}
+                      onChange={(e) => set_correo(e.target.value)}
                       disabled={cargando}
                       className="pl-10"
                       autoFocus
@@ -153,7 +153,7 @@ const IniciarSesion = () => {
                       type="password"
                       placeholder="••••••••"
                       value={contrasena}
-                      onChange={(e) => setContrasena(e.target.value)}
+                      onChange={(e) => set_contrasena(e.target.value)}
                       disabled={cargando}
                       className="pl-10"
                     />

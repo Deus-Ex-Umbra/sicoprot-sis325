@@ -1,32 +1,72 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Modal, Form, Alert, Row, Col, ListGroup } from 'react-bootstrap';
-import { FaPlus, FaEdit, FaTrash, FaUserPlus, FaUserMinus } from 'react-icons/fa';
 import { 
-  obtenerGrupos, 
-  crearGrupo, 
-  actualizarGrupo, 
-  eliminarGrupo,
-  asignarEstudiante,
-  removerEstudiante 
-} from '../../servicios/grupos.servicio';
-import { obtenerPeriodos } from '../../servicios/periodos.servicio';
-import { obtenerAsesores } from '../../servicios/asesores.servicio';
-import { obtenerEstudiantesSinGrupo } from '../../servicios/administracion.servicio';
-import { type Grupo, type Periodo, type Usuario } from '../../tipos/usuario';
-import { toast } from 'react-toastify';
+  Plus, 
+  Edit, 
+  Trash, 
+  UserPlus, 
+  UserMinus,
+  Loader2
+} from 'lucide-react';
+import { 
+  gruposApi,
+  periodosApi,
+  asesoresApi,
+  adminApi,
+} from '../../servicios/api';
+import { type Grupo, type Periodo, type Usuario, type Estudiante } from '../../tipos/usuario';
+import { toast } from 'sonner';
+import { cn } from '../../lib/utilidades';
+import Cabecera from '../../componentes/Cabecera';
+import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { Rol } from '../../tipos/usuario';
+import { Button } from '../../componentes/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../componentes/ui/table';
+import { Badge } from '../../componentes/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '../../componentes/ui/dialog';
+import { Input } from '../../componentes/ui/input';
+import { Label } from '../../componentes/ui/label';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '../../componentes/ui/select';
+import { Switch } from '../../componentes/ui/switch';
+import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
+import { Textarea } from '../../componentes/ui/textarea';
+import BarraLateral from '../../componentes/BarraLateral';
 
 const GestionGrupos = () => {
-  const [grupos, setGrupos] = useState<Grupo[]>([]);
-  const [periodos, setPeriodos] = useState<Periodo[]>([]);
-  const [asesores, setAsesores] = useState<Usuario[]>([]);
-  const [estudiantesSinGrupo, setEstudiantesSinGrupo] = useState<any[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [mostrarModalEstudiantes, setMostrarModalEstudiantes] = useState(false);
-  const [grupoEditando, setGrupoEditando] = useState<Grupo | null>(null);
-  const [grupoSeleccionado, setGrupoSeleccionado] = useState<Grupo | null>(null);
-  const [formGrupo, setFormGrupo] = useState({
+  const [grupos, set_grupos] = useState<Grupo[]>([]);
+  const [periodos, set_periodos] = useState<Periodo[]>([]);
+  const [asesores, set_asesores] = useState<Usuario[]>([]);
+  const [estudiantes_sin_grupo, set_estudiantes_sin_grupo] = useState<Estudiante[]>([]);
+  const [cargando, set_cargando] = useState(true);
+  const [error, set_error] = useState('');
+  
+  const [mostrar_modal_grupo, set_mostrar_modal_grupo] = useState(false);
+  const [mostrar_modal_estudiantes, set_mostrar_modal_estudiantes] = useState(false);
+  
+  const [grupo_editando, set_grupo_editando] = useState<Grupo | null>(null);
+  const [grupo_seleccionado, set_grupo_seleccionado] = useState<Grupo | null>(null);
+  const [form_grupo, set_form_grupo] = useState({
     nombre: '',
     descripcion: '',
     id_asesor: 0,
@@ -34,70 +74,79 @@ const GestionGrupos = () => {
     activo: true,
   });
 
+  const { usuario } = useAutenticacion();
+  const [sidebar_open, set_sidebar_open] = useState(true);
+  const es_admin = usuario?.rol === Rol.Administrador;
+
+  const toggleSidebar = () => {
+    set_sidebar_open(!sidebar_open);
+  };
+
   useEffect(() => {
     cargarDatos();
   }, []);
 
   const cargarDatos = async () => {
     try {
-      const [gruposData, periodosData, asesoresData, estudiantesData] = await Promise.all([
-        obtenerGrupos(),
-        obtenerPeriodos(),
-        obtenerAsesores(),
-        obtenerEstudiantesSinGrupo(),
+      set_cargando(true);
+      const [grupos_data, periodos_data, asesores_data, estudiantes_data] = await Promise.all([
+        gruposApi.obtenerTodos(),
+        periodosApi.obtenerTodos(),
+        asesoresApi.obtenerTodos(),
+        adminApi.obtenerEstudiantesSinGrupo(),
       ]);
-      setGrupos(gruposData);
-      setPeriodos(periodosData);
-      setAsesores(asesoresData);
-      setEstudiantesSinGrupo(estudiantesData);
+      set_grupos(grupos_data);
+      set_periodos(periodos_data);
+      set_asesores(asesores_data);
+      set_estudiantes_sin_grupo(estudiantes_data);
     } catch (err) {
-      setError('Error al cargar los datos');
+      set_error('Error al cargar los datos');
     } finally {
-      setCargando(false);
+      set_cargando(false);
     }
   };
 
   const abrirModalCrear = () => {
-    setGrupoEditando(null);
-    const periodoActivo = periodos.find(p => p.activo);
-    setFormGrupo({
+    set_grupo_editando(null);
+    const periodo_activo = periodos.find(p => p.activo);
+    set_form_grupo({
       nombre: '',
       descripcion: '',
       id_asesor: 0,
-      id_periodo: periodoActivo?.id || 0,
+      id_periodo: periodo_activo?.id || 0,
       activo: true,
     });
-    setMostrarModal(true);
+    set_mostrar_modal_grupo(true);
   };
 
   const abrirModalEditar = (grupo: Grupo) => {
-    setGrupoEditando(grupo);
-    setFormGrupo({
+    set_grupo_editando(grupo);
+    set_form_grupo({
       nombre: grupo.nombre,
       descripcion: grupo.descripcion || '',
       id_asesor: grupo.asesor?.id || 0,
       id_periodo: grupo.periodo?.id || 0,
       activo: grupo.activo,
     });
-    setMostrarModal(true);
+    set_mostrar_modal_grupo(true);
   };
 
   const abrirModalEstudiantes = async (grupo: Grupo) => {
-    setGrupoSeleccionado(grupo);
+    set_grupo_seleccionado(grupo);
     await cargarDatos();
-    setMostrarModalEstudiantes(true);
+    set_mostrar_modal_estudiantes(true);
   };
 
   const manejarGuardar = async () => {
     try {
-      if (grupoEditando) {
-        await actualizarGrupo(grupoEditando.id, formGrupo);
+      if (grupo_editando) {
+        await gruposApi.actualizar(grupo_editando.id, form_grupo);
         toast.success('Grupo actualizado exitosamente');
       } else {
-        await crearGrupo(formGrupo);
+        await gruposApi.crear(form_grupo);
         toast.success('Grupo creado exitosamente');
       }
-      setMostrarModal(false);
+      set_mostrar_modal_grupo(false);
       await cargarDatos();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al guardar grupo');
@@ -108,7 +157,7 @@ const GestionGrupos = () => {
     if (!window.confirm('¿Está seguro de eliminar este grupo?')) return;
 
     try {
-      await eliminarGrupo(id);
+      await gruposApi.eliminar(id);
       toast.success('Grupo eliminado exitosamente');
       await cargarDatos();
     } catch (err: any) {
@@ -116,295 +165,311 @@ const GestionGrupos = () => {
     }
   };
 
-  const manejarAsignarEstudiante = async (estudianteId: number) => {
-    if (!grupoSeleccionado) return;
+  const manejarAsignarEstudiante = async (estudiante_id: number) => {
+    if (!grupo_seleccionado) return;
 
     try {
-      await asignarEstudiante(grupoSeleccionado.id, estudianteId);
+      await gruposApi.asignarEstudiante(grupo_seleccionado.id, { id_estudiante: estudiante_id });
       toast.success('Estudiante asignado exitosamente');
       await cargarDatos();
-      const grupoActualizado = grupos.find(g => g.id === grupoSeleccionado.id);
-      if (grupoActualizado) setGrupoSeleccionado(grupoActualizado);
+      const grupo_actualizado = await gruposApi.obtenerUno(grupo_seleccionado.id);
+      set_grupo_seleccionado(grupo_actualizado);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al asignar estudiante');
     }
   };
 
-  const manejarRemoverEstudiante = async (estudianteId: number) => {
-    if (!grupoSeleccionado) return;
+  const manejarRemoverEstudiante = async (estudiante_id: number) => {
+    if (!grupo_seleccionado) return;
     
     if (!window.confirm('¿Está seguro de remover este estudiante del grupo?')) return;
 
     try {
-      await removerEstudiante(grupoSeleccionado.id, estudianteId);
+      await gruposApi.removerEstudiante(grupo_seleccionado.id, estudiante_id);
       toast.success('Estudiante removido exitosamente');
       await cargarDatos();
-      const grupoActualizado = grupos.find(g => g.id === grupoSeleccionado.id);
-      if (grupoActualizado) {
-        setGrupoSeleccionado({
-          ...grupoActualizado,
-          estudiantes: grupoActualizado.estudiantes?.filter((e: any) => e.id !== estudianteId)
-        });
-      }
+      const grupo_actualizado = await gruposApi.obtenerUno(grupo_seleccionado.id);
+      set_grupo_seleccionado(grupo_actualizado);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al remover estudiante');
     }
   };
 
+  let contenido_pagina;
+
   if (cargando) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
+    contenido_pagina = (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (error) return <Alert variant="danger">{error}</Alert>;
-
-  return (
-    <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="text-light mb-0">Gestión de Grupos</h2>
-        <Button variant="primary" onClick={abrirModalCrear}>
-          <FaPlus className="me-2" />
-          Nuevo Grupo
-        </Button>
-      </div>
-      
-      <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-        <Card.Body>
-          <Table responsive hover variant="dark">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Asesor</th>
-                <th>Período</th>
-                <th>Estudiantes</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
+  } else if (error) {
+    contenido_pagina = <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
+  } else {
+    contenido_pagina = (
+      <Card>
+        <CardHeader>
+          <CardTitle>Lista de Grupos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Descripción</TableHead>
+                <TableHead>Asesor</TableHead>
+                <TableHead>Período</TableHead>
+                <TableHead>Estudiantes</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {grupos.map((grupo) => (
-                <tr key={grupo.id}>
-                  <td><strong>{grupo.nombre}</strong></td>
-                  <td>{grupo.descripcion || '-'}</td>
-                  <td>
+                <TableRow key={grupo.id}>
+                  <TableCell className="font-medium">{grupo.nombre}</TableCell>
+                  <TableCell>{grupo.descripcion || '-'}</TableCell>
+                  <TableCell>
                     {grupo.asesor?.nombre} {grupo.asesor?.apellido}
-                  </td>
-                  <td>
-                    <Badge bg={grupo.periodo?.activo ? 'success' : 'secondary'}>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={grupo.periodo?.activo ? 'default' : 'secondary'}>
                       {grupo.periodo?.nombre}
                     </Badge>
-                  </td>
-                  <td>
-                    <Badge bg="info">{grupo.estudiantes?.length || 0}</Badge>
-                  </td>
-                  <td>
-                    {grupo.activo ? (
-                      <Badge bg="success">Activo</Badge>
-                    ) : (
-                      <Badge bg="secondary">Inactivo</Badge>
-                    )}
-                  </td>
-                  <td>
-                    <div className="d-flex gap-2">
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{grupo.estudiantes?.length || 0}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={grupo.activo ? 'default' : 'secondary'}>
+                      {grupo.activo ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
                       <Button
-                        variant="outline-info"
+                        variant="outline"
                         size="sm"
                         onClick={() => abrirModalEstudiantes(grupo)}
                       >
-                        <FaUserPlus /> Estudiantes
+                        <UserPlus className="h-4 w-4 mr-1" /> Estudiantes
                       </Button>
                       <Button
-                        variant="outline-warning"
-                        size="sm"
+                        variant="outline"
+                        size="icon"
                         onClick={() => abrirModalEditar(grupo)}
                       >
-                        <FaEdit />
+                        <Edit className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="outline-danger"
-                        size="sm"
+                        variant="outline"
+                        size="icon"
                         onClick={() => manejarEliminar(grupo.id)}
                       >
-                        <FaTrash />
+                        <Trash className="h-4 w-4" />
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
+            </TableBody>
           </Table>
-
           {grupos.length === 0 && (
-            <p className="text-muted text-center py-5">
+            <p className="text-muted-foreground text-center py-10">
               No hay grupos registrados.
             </p>
           )}
-        </Card.Body>
+        </CardContent>
       </Card>
+    );
+  }
 
-      <Modal show={mostrarModal} onHide={() => setMostrarModal(false)} size="lg">
-        <Modal.Header closeButton style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Modal.Title>{grupoEditando ? 'Editar' : 'Crear'} Grupo</Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Form>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-light">Nombre del Grupo</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={formGrupo.nombre}
-                    onChange={(e) => setFormGrupo({ ...formGrupo, nombre: e.target.value })}
-                    placeholder="Ej: Grupo A - Ing. Software"
-                    style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
+  return (
+    <div className="min-h-screen bg-background">
+      <Cabecera toggleSidebar={toggleSidebar} />
+      {es_admin ? (
+        <BarraLateralAdmin isOpen={sidebar_open} />
+      ) : (
+        <BarraLateral isOpen={sidebar_open} />
+      )}
+
+      <main
+        className={cn(
+          'transition-all duration-300 pt-14',
+          sidebar_open ? 'ml-64' : 'ml-0'
+        )}
+      >
+        <div className="container mx-auto p-6 max-w-7xl">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold tracking-tight">Gestión de Grupos</h1>
+            <Button onClick={abrirModalCrear}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Grupo
+            </Button>
+          </div>
+          
+          {contenido_pagina}
+
+          {/* Modal Crear/Editar Grupo */}
+          <Dialog open={mostrar_modal_grupo} onOpenChange={set_mostrar_modal_grupo}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{grupo_editando ? 'Editar' : 'Crear'} Grupo</DialogTitle>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nombre">Nombre del Grupo</Label>
+                    <Input
+                      id="nombre"
+                      value={form_grupo.nombre}
+                      onChange={(e) => set_form_grupo({ ...form_grupo, nombre: e.target.value })}
+                      placeholder="Ej: Grupo A - Ing. Software"
+                    />
+                  </div>
+                  <div className="space-y-2 pt-6">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="activo"
+                        checked={form_grupo.activo}
+                        onCheckedChange={(checked) => set_form_grupo({ ...form_grupo, activo: checked })}
+                      />
+                      <Label htmlFor="activo">Grupo Activo</Label>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="descripcion">Descripción</Label>
+                  <Textarea
+                    id="descripcion"
+                    value={form_grupo.descripcion}
+                    onChange={(e) => set_form_grupo({ ...form_grupo, descripcion: e.target.value })}
+                    placeholder="Descripción del grupo"
                   />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-light">Estado</Form.Label>
-                  <Form.Check
-                    type="switch"
-                    label="Grupo Activo"
-                    checked={formGrupo.activo}
-                    onChange={(e) => setFormGrupo({ ...formGrupo, activo: e.target.checked })}
-                    className="text-light"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Form.Group className="mb-3">
-              <Form.Label className="text-light">Descripción</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                value={formGrupo.descripcion}
-                onChange={(e) => setFormGrupo({ ...formGrupo, descripcion: e.target.value })}
-                placeholder="Descripción del grupo"
-                style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-              />
-            </Form.Group>
-
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-light">Asesor Asignado</Form.Label>
-                  <Form.Select
-                    value={formGrupo.id_asesor}
-                    onChange={(e) => setFormGrupo({ ...formGrupo, id_asesor: parseInt(e.target.value) })}
-                    style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                  >
-                    <option value={0}>Seleccione un asesor...</option>
-                    {asesores.map(asesor => (
-                      <option key={asesor.id} value={asesor.perfil?.id_asesor}>
-                        {asesor.perfil?.nombre} {asesor.perfil?.apellido}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-light">Período</Form.Label>
-                  <Form.Select
-                    value={formGrupo.id_periodo}
-                    onChange={(e) => setFormGrupo({ ...formGrupo, id_periodo: parseInt(e.target.value) })}
-                    style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                  >
-                    <option value={0}>Seleccione un período...</option>
-                    {periodos.map(periodo => (
-                      <option key={periodo.id} value={periodo.id}>
-                        {periodo.nombre} {periodo.activo && '(Activo)'}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Button variant="secondary" onClick={() => setMostrarModal(false)}>
-            Cancelar
-          </Button>
-          <Button variant="primary" onClick={manejarGuardar}>
-            {grupoEditando ? 'Actualizar' : 'Crear'} Grupo
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      <Modal show={mostrarModalEstudiantes} onHide={() => setMostrarModalEstudiantes(false)} size="lg">
-        <Modal.Header closeButton style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Modal.Title>Gestionar Estudiantes - {grupoSeleccionado?.nombre}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Row>
-            <Col md={6}>
-              <h6 className="text-light mb-3">Estudiantes en el Grupo</h6>
-              <ListGroup style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {grupoSeleccionado?.estudiantes && grupoSeleccionado.estudiantes.length > 0 ? (
-                  grupoSeleccionado.estudiantes.map((estudiante: any) => (
-                    <ListGroup.Item
-                      key={estudiante.id}
-                      className="d-flex justify-content-between align-items-center"
-                      style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="asesor">Asesor Asignado</Label>
+                    <Select
+                      value={String(form_grupo.id_asesor)}
+                      onValueChange={(value) => set_form_grupo({ ...form_grupo, id_asesor: parseInt(value) })}
                     >
-                      <span>{estudiante.nombre} {estudiante.apellido}</span>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => manejarRemoverEstudiante(estudiante.id)}
-                      >
-                        <FaUserMinus />
-                      </Button>
-                    </ListGroup.Item>
-                  ))
-                ) : (
-                  <p className="text-muted">No hay estudiantes en este grupo</p>
-                )}
-              </ListGroup>
-            </Col>
-            <Col md={6}>
-              <h6 className="text-light mb-3">Estudiantes Disponibles</h6>
-              <ListGroup style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {estudiantesSinGrupo.length > 0 ? (
-                  estudiantesSinGrupo.map((estudiante: any) => (
-                    <ListGroup.Item
-                      key={estudiante.id}
-                      className="d-flex justify-content-between align-items-center"
-                      style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
+                      <SelectTrigger id="asesor">
+                        <SelectValue placeholder="Seleccione un asesor..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Seleccione un asesor...</SelectItem>
+                        {asesores.map(asesor => (
+                          <SelectItem key={asesor.id} value={String(asesor.perfil?.id_asesor)}>
+                            {asesor.perfil?.nombre} {asesor.perfil?.apellido}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="periodo">Período</Label>
+                    <Select
+                      value={String(form_grupo.id_periodo)}
+                      onValueChange={(value) => set_form_grupo({ ...form_grupo, id_periodo: parseInt(value) })}
                     >
-                      <span>{estudiante.nombre} {estudiante.apellido}</span>
-                      <Button
-                        variant="outline-success"
-                        size="sm"
-                        onClick={() => manejarAsignarEstudiante(estudiante.id)}
-                      >
-                        <FaUserPlus />
-                      </Button>
-                    </ListGroup.Item>
-                  ))
-                ) : (
-                  <p className="text-muted">No hay estudiantes sin grupo</p>
-                )}
-              </ListGroup>
-            </Col>
-          </Row>
-        </Modal.Body>
-        <Modal.Footer style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Button variant="secondary" onClick={() => setMostrarModalEstudiantes(false)}>
-            Cerrar
-          </Button>
-        </Modal.Footer>
-      </Modal>
+                      <SelectTrigger id="periodo">
+                        <SelectValue placeholder="Seleccione un período..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Seleccione un período...</SelectItem>
+                        {periodos.map(periodo => (
+                          <SelectItem key={periodo.id} value={String(periodo.id)}>
+                            {periodo.nombre} {periodo.activo && '(Activo)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </DialogClose>
+                <Button onClick={manejarGuardar}>
+                  {grupo_editando ? 'Actualizar' : 'Crear'} Grupo
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Modal Gestionar Estudiantes */}
+          <Dialog open={mostrar_modal_estudiantes} onOpenChange={set_mostrar_modal_estudiantes}>
+            <DialogContent className="sm:max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Gestionar Estudiantes - {grupo_seleccionado?.nombre}</DialogTitle>
+              </DialogHeader>
+              <div className="py-4 grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h6 className="font-semibold">Estudiantes en el Grupo</h6>
+                  <div className="border rounded-md max-h-60 overflow-y-auto">
+                    {grupo_seleccionado?.estudiantes && grupo_seleccionado.estudiantes.length > 0 ? (
+                      <div className="divide-y">
+                        {grupo_seleccionado.estudiantes.map((estudiante: any) => (
+                          <div
+                            key={estudiante.id}
+                            className="flex justify-between items-center p-3"
+                          >
+                            <span>{estudiante.nombre} {estudiante.apellido}</span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => manejarRemoverEstudiante(estudiante.id)}
+                            >
+                              <UserMinus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center p-4">No hay estudiantes en este grupo</p>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h6 className="font-semibold">Estudiantes Disponibles</h6>
+                  <div className="border rounded-md max-h-60 overflow-y-auto">
+                    {estudiantes_sin_grupo.length > 0 ? (
+                      <div className="divide-y">
+                        {estudiantes_sin_grupo.map((estudiante: any) => (
+                          <div
+                            key={estudiante.id}
+                            className="flex justify-between items-center p-3"
+                          >
+                            <span>{estudiante.nombre} {estudiante.apellido}</span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => manejarAsignarEstudiante(estudiante.id)}
+                            >
+                              <UserPlus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center p-4">No hay estudiantes sin grupo</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="secondary">Cerrar</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </main>
     </div>
   );
 };
