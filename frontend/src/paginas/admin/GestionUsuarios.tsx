@@ -28,12 +28,12 @@ import {
 } from '../../componentes/ui/dialog';
 import { Input } from '../../componentes/ui/input';
 import { Label } from '../../componentes/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '../../componentes/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
 import BarraLateral from '../../componentes/BarraLateral';
@@ -43,11 +43,11 @@ const GestionUsuarios = () => {
   const [usuarios_filtrados, set_usuarios_filtrados] = useState<Usuario[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
-  
+
   const [mostrar_modal, set_mostrar_modal] = useState(false);
   const [usuario_seleccionado, set_usuario_seleccionado] = useState<Usuario | null>(null);
   const [nuevo_estado, set_nuevo_estado] = useState<EstadoUsuario>(EstadoUsuario.Activo);
-  
+
   const [filtros, set_filtros] = useState({
     busqueda: '',
     rol: '',
@@ -88,7 +88,7 @@ const GestionUsuarios = () => {
 
     if (filtros.busqueda) {
       const busqueda_lower = filtros.busqueda.toLowerCase();
-      resultado = resultado.filter(usuario => 
+      resultado = resultado.filter(usuario =>
         usuario.correo.toLowerCase().includes(busqueda_lower) ||
         (usuario.perfil?.nombre?.toLowerCase().includes(busqueda_lower)) ||
         (usuario.perfil?.apellido?.toLowerCase().includes(busqueda_lower))
@@ -104,11 +104,11 @@ const GestionUsuarios = () => {
     }
 
     if (filtros.grupo === 'con_grupo') {
-      resultado = resultado.filter(usuario => 
+      resultado = resultado.filter(usuario =>
         usuario.rol === Rol.Estudiante && usuario.perfil?.grupo
       );
     } else if (filtros.grupo === 'sin_grupo') {
-      resultado = resultado.filter(usuario => 
+      resultado = resultado.filter(usuario =>
         usuario.rol === Rol.Estudiante && !usuario.perfil?.grupo
       );
     }
@@ -211,13 +211,13 @@ const GestionUsuarios = () => {
                 <Label htmlFor="rol">Rol</Label>
                 <Select
                   value={filtros.rol}
-                  onValueChange={(value) => set_filtros({ ...filtros, rol: value })}
+                  onValueChange={(value) => set_filtros({ ...filtros, rol: value === 'todos-roles' ? '' : value })}
                 >
                   <SelectTrigger id="rol">
                     <SelectValue placeholder="Todos los roles" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos los roles</SelectItem>
+                    <SelectItem value="todos-roles">Todos los roles</SelectItem>
                     <SelectItem value={Rol.Estudiante}>Estudiante</SelectItem>
                     <SelectItem value={Rol.Asesor}>Asesor</SelectItem>
                     <SelectItem value={Rol.Administrador}>Administrador</SelectItem>
@@ -228,13 +228,13 @@ const GestionUsuarios = () => {
                 <Label htmlFor="estado">Estado</Label>
                 <Select
                   value={filtros.estado}
-                  onValueChange={(value) => set_filtros({ ...filtros, estado: value })}
+                  onValueChange={(value) => set_filtros({ ...filtros, estado: value === 'todos-estados' ? '' : value })}
                 >
                   <SelectTrigger id="estado">
                     <SelectValue placeholder="Todos los estados" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos los estados</SelectItem>
+                    <SelectItem value="todos-estados">Todos los estados</SelectItem>
                     <SelectItem value={EstadoUsuario.Activo}>Activo</SelectItem>
                     <SelectItem value={EstadoUsuario.Pendiente}>Pendiente</SelectItem>
                     <SelectItem value={EstadoUsuario.Inactivo}>Inactivo</SelectItem>
@@ -246,13 +246,13 @@ const GestionUsuarios = () => {
                 <Label htmlFor="grupo">Grupo (Estudiantes)</Label>
                 <Select
                   value={filtros.grupo}
-                  onValueChange={(value) => set_filtros({ ...filtros, grupo: value })}
+                  onValueChange={(value) => set_filtros({ ...filtros, grupo: value === 'todos-grupos' ? '' : value })}
                 >
                   <SelectTrigger id="grupo">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="todos-grupos">Todos</SelectItem>
                     <SelectItem value="con_grupo">Con grupo asignado</SelectItem>
                     <SelectItem value="sin_grupo">Sin grupo asignado</SelectItem>
                   </SelectContent>
@@ -261,8 +261,8 @@ const GestionUsuarios = () => {
             </div>
             {hay_filtros_activos && (
               <div className="mt-4 flex items-center gap-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={limpiarFiltros}
                 >
@@ -276,7 +276,7 @@ const GestionUsuarios = () => {
             )}
           </CardContent>
         </Card>
-      
+
         <Card>
           <CardContent className="pt-6">
             <Table>
@@ -297,7 +297,7 @@ const GestionUsuarios = () => {
                   <TableRow key={usuario.id}>
                     <TableCell>{usuario.id}</TableCell>
                     <TableCell>
-                      {usuario.perfil 
+                      {usuario.perfil
                         ? `${usuario.perfil.nombre} ${usuario.perfil.apellido}`
                         : 'Sin perfil'
                       }
@@ -339,7 +339,7 @@ const GestionUsuarios = () => {
 
             {usuarios_filtrados.length === 0 && (
               <p className="text-muted-foreground text-center py-10">
-                {hay_filtros_activos 
+                {hay_filtros_activos
                   ? 'No se encontraron usuarios con los filtros aplicados.'
                   : 'No hay usuarios registrados.'}
               </p>

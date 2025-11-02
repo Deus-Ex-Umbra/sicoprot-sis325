@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { Rol } from '../tipos/usuario';
-import { 
-  FolderKanban, 
-  FileText, 
-  MessageSquare, 
-  GraduationCap, 
+import {
+  FolderKanban,
+  FileText,
+  MessageSquare,
+  GraduationCap,
   AlertCircle,
   BookOpen,
   Users,
@@ -24,7 +24,7 @@ import { cn } from '../lib/utilidades';
 const Panel = () => {
   const { usuario } = useAutenticacion();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebar_open, set_sidebar_open] = useState(true);
 
   const es_estudiante = usuario?.rol === Rol.Estudiante;
   const es_asesor = usuario?.rol === Rol.Asesor;
@@ -33,13 +33,18 @@ const Panel = () => {
   const tiene_grupo = !!(es_estudiante && usuario?.perfil?.grupo);
   const grupo = usuario?.perfil?.grupo;
 
+  useEffect(() => {
+    if (es_admin) {
+      navigate('/panel/admin', { replace: true });
+    }
+  }, [es_admin, navigate]);
+
   if (es_admin) {
-    navigate('/panel/admin');
     return null;
   }
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    set_sidebar_open(!sidebar_open);
   };
 
   const tarjetas_estudiante = [
@@ -110,15 +115,15 @@ const Panel = () => {
     <div className="min-h-screen bg-background">
       <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
-        <BarraLateralAdmin isOpen={sidebarOpen} />
+        <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
-        <BarraLateral isOpen={sidebarOpen} />
+        <BarraLateral isOpen={sidebar_open} />
       )}
 
       <main
         className={cn(
           'transition-all duration-300 pt-14',
-          sidebarOpen ? 'ml-64' : 'ml-0'
+          sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >
         <div className="container mx-auto p-6 max-w-7xl">
@@ -128,8 +133,8 @@ const Panel = () => {
                 ¡Bienvenido, {usuario?.perfil?.nombre || usuario?.correo}!
               </h1>
               <p className="text-muted-foreground">
-                {es_estudiante 
-                  ? 'Gestiona tus proyectos y documentos de titulación' 
+                {es_estudiante
+                  ? 'Gestiona tus proyectos y documentos de titulación'
                   : 'Supervisa y da seguimiento a tus estudiantes'}
               </p>
             </div>
@@ -142,8 +147,8 @@ const Panel = () => {
                   <p>
                     Para crear proyectos y recibir orientación, debes inscribirte en un grupo de asesoría.
                   </p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => navigate('/panel/inscripcion-grupos')}
                     className="mt-2"
@@ -183,8 +188,8 @@ const Panel = () => {
               {tarjetas.map((tarjeta, index) => {
                 const Icono = tarjeta.icono;
                 return (
-                  <Card 
-                    key={index} 
+                  <Card
+                    key={index}
                     className="hover:shadow-md transition-shadow cursor-pointer group"
                     onClick={() => navigate(tarjeta.ruta)}
                   >
@@ -216,16 +221,16 @@ const Panel = () => {
               <CardContent className="space-y-2">
                 {es_estudiante && (
                   <>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start"
                       onClick={() => navigate('/panel/proyectos')}
                     >
                       <FolderKanban className="mr-2 h-4 w-4" />
                       Ver todos mis proyectos
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start"
                       onClick={() => navigate('/panel/observaciones')}
                     >
@@ -236,16 +241,16 @@ const Panel = () => {
                 )}
                 {es_asesor && (
                   <>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start"
                       onClick={() => navigate('/panel/estudiantes')}
                     >
                       <GraduationCap className="mr-2 h-4 w-4" />
                       Ver mis estudiantes
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start"
                       onClick={() => navigate('/panel/revisar')}
                     >
