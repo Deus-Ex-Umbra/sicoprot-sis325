@@ -72,9 +72,9 @@ export class UsuariosService {
         where: { id: id_usuario },
         relations: [
             'estudiante',
-            'estudiante.grupo',
-            'estudiante.grupo.asesor',
-            'estudiante.grupo.periodo',
+            'estudiante.grupos',
+            'estudiante.grupos.asesor',
+            'estudiante.grupos.periodo',
             'asesor',
             'asesor.grupos',
         ],
@@ -88,11 +88,12 @@ export class UsuariosService {
 
     let perfil_completo: any = null;
     if (usuario.rol === Rol.Estudiante && usuario.estudiante) {
+      const grupo_activo = usuario.estudiante.grupos?.find(g => g.periodo.activo);
       perfil_completo = {
         id_estudiante: usuario.estudiante.id,
         nombre: usuario.estudiante.nombre,
         apellido: usuario.estudiante.apellido,
-        grupo: usuario.estudiante.grupo || null,
+        grupo: grupo_activo || null,
       };
     } else if (usuario.rol === Rol.Asesor && usuario.asesor) {
       perfil_completo = {
@@ -134,7 +135,7 @@ export class UsuariosService {
       .createQueryBuilder('usuario')
       .addSelect('usuario.contrasena')
       .leftJoinAndSelect('usuario.estudiante', 'estudiante')
-      .leftJoinAndSelect('estudiante.grupo', 'grupo')
+      .leftJoinAndSelect('estudiante.grupos', 'grupo')
       .leftJoinAndSelect('grupo.asesor', 'grupoAsesor')
       .leftJoinAndSelect('grupo.periodo', 'periodo')
       .leftJoinAndSelect('usuario.asesor', 'asesor')
@@ -203,11 +204,12 @@ export class UsuariosService {
 
     let perfil: { id_estudiante: number; nombre: string; apellido: string; grupo?: any } | { id_asesor: number; nombre: string; apellido: string; grupos?: any[] } | null = null;
     if (usuario.rol === Rol.Estudiante && usuario.estudiante) {
+      const grupo_activo = usuario.estudiante.grupos?.find(g => g.periodo.activo);
       perfil = {
         id_estudiante: usuario.estudiante.id,
         nombre: usuario.estudiante.nombre,
         apellido: usuario.estudiante.apellido,
-        grupo: usuario.estudiante.grupo || null,
+        grupo: grupo_activo || null,
       };
     } else if (usuario.rol === Rol.Asesor && usuario.asesor) {
       perfil = {

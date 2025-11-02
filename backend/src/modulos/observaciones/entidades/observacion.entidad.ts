@@ -3,12 +3,11 @@ import { Documento } from '../../documentos/entidades/documento.entidad';
 import { Asesor } from '../../asesores/entidades/asesor.entidad'; 
 import { EstadoObservacion } from '../enums/estado-observacion.enum'; 
 import { Correccion } from '../../correcciones/entidades/correccion.entidad';
-
-
+import { EtapaProyecto } from '../../proyectos/enums/etapa-proyecto.enum';
 
 @Entity('observaciones')
-@Index(['documento', 'version_observada']) // ← Nuevo
-@Index(['estado']) // ← Nuevo
+@Index(['documento', 'version_observada'])
+@Index(['estado'])
 export class Observacion {
   @PrimaryGeneratedColumn()
   id: number;
@@ -46,18 +45,17 @@ export class Observacion {
   @Column({ type: 'boolean', default: false })
   archivada: boolean;
 
-  // 🎯 CAMPOS ADICIONALES PARA LA HISTORIA DE USUARIO
   @Column({ name: 'version_observada', type: 'int', nullable: true })
-  version_observada?: number; // En qué versión del documento se hizo la observación
+  version_observada?: number;
 
   @Column({ name: 'version_corregida', type: 'int', nullable: true })
-  version_corregida?: number; // En qué versión se dice que fue corregida
+  version_corregida?: number;
 
   @Column({ name: 'fecha_verificacion', type: 'timestamp', nullable: true })
-  fecha_verificacion?: Date; // Cuándo el asesor verificó la corrección
+  fecha_verificacion?: Date;
 
   @Column({ name: 'comentario_verificacion', type: 'text', nullable: true })
-  comentario_verificacion?: string; // Comentario del asesor al verificar
+  comentario_verificacion?: string;
   
   @Column()
   descripcion_corta: string;
@@ -69,8 +67,13 @@ export class Observacion {
   })
   estado_revision:string;
   
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  
+  @Column({ 
+    type: 'enum', 
+    enum: EtapaProyecto, 
+    nullable: true 
+  })
+  etapa_observada: EtapaProyecto;
+
   @CreateDateColumn({ name: 'fecha_creacion' })
   fecha_creacion: Date;
 
@@ -84,5 +87,5 @@ export class Observacion {
   documento: Documento;
 
   @OneToOne(() => Correccion, (correccion) => correccion.observacion, { nullable: true })
-  correccion: Correccion;
+  correccion: Correccion | null;
 }

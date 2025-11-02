@@ -1,5 +1,6 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional, IsBoolean, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { TipoGrupo } from '../enums/tipo-grupo.enum';
 
 export class CrearGrupoDto {
   @ApiProperty({ description: 'Nombre del grupo', example: 'Grupo A - Ing. Software' })
@@ -26,4 +27,14 @@ export class CrearGrupoDto {
   @IsBoolean()
   @IsOptional()
   activo?: boolean;
+
+  @ApiProperty({ description: 'Tipo de grupo (Taller I o II)', enum: TipoGrupo, example: TipoGrupo.TALLER_GRADO_I, required: false })
+  @IsEnum(TipoGrupo)
+  @IsOptional()
+  tipo?: TipoGrupo;
+
+  @ApiProperty({ description: 'Carrera asociada al grupo', example: 'Ingeniería de Software', required: false })
+  @IsString()
+  @IsOptional()
+  carrera?: string;
 }
