@@ -5,13 +5,17 @@ import { ActualizarGrupoDto } from './dto/actualizar-grupo.dto';
 import { AsignarEstudianteDto } from './dto/asignar-estudiante.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtGuard } from '../autenticacion/guards/jwt.guard';
+import { AutenticacionService } from '../autenticacion/autenticacion.servicio';
 
 @ApiTags('grupos')
 @ApiBearerAuth()
 @UseGuards(JwtGuard)
 @Controller('grupos')
 export class GruposController {
-  constructor(private readonly servicio_grupos: GruposService) {}
+  constructor(
+    private readonly servicio_grupos: GruposService,
+    private readonly servicio_autenticacion: AutenticacionService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Crear un nuevo grupo' })
@@ -67,7 +71,7 @@ export class GruposController {
   }
 
   @Post(':id/asignar-estudiante')
-  @ApiOperation({ summary: 'Asignar un estudiante a un grupo (Admin)' })
+  @ApiOperation({ summary: 'Asignar un estudiante a un grupo' })
   @ApiParam({ name: 'id', description: 'ID del grupo' })
   @ApiResponse({ status: 200, description: 'Estudiante asignado exitosamente.' })
   asignarEstudiante(@Param('id', ParseIntPipe) id: number, @Body() dto: AsignarEstudianteDto) {
@@ -75,21 +79,41 @@ export class GruposController {
   }
 
   @Post(':id/inscribirse')
-  @ApiOperation({ summary: 'Inscribirse a un grupo (Estudiante)' })
+  @ApiOperation({ summary: 'Inscribirse a un grupo (auto-asignación)' })
   @ApiParam({ name: 'id', description: 'ID del grupo' })
   @ApiResponse({ status: 200, description: 'Inscripción exitosa.' })
   @ApiResponse({ status: 400, description: 'No se puede inscribir (grupo lleno, ya inscrito, etc.).' })
-  inscribirseAGrupo(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    return this.servicio_grupos.inscribirEstudiante(id, req.user.id_usuario);
+  async inscribirseAGrupo(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    const resultado = await this.servicio_grupos.inscribirEstudiante(id, req.user.id_usuario);
+    const usuario_actualizado = await this.servicio_autenticacion.obtenerDatosUsuarioCompletos(req.user.id_usuario);
+    
+    return {
+      ...resultado,
+      usuario_actualizado
+    };
   }
 
   @Delete(':id/remover-estudiante/:estudianteId')
-  @ApiOperation({ summary: 'Remover un estudiante de un grupo (Admin)' })
+  @ApiOperation({ summary: 'Remover un estudiante de un grupo' })
   @ApiParam({ name: 'id', description: 'ID del grupo' })
   @ApiParam({ name: 'estudianteId', description: 'ID del estudiante' })
   @ApiResponse({ status: 200, description: 'Estudiante removido exitosamente.' })
   removerEstudiante(@Param('id', ParseIntPipe) id: number, @Param('estudianteId', ParseIntPipe) estudianteId: number) {
     return this.servicio_grupos.removerEstudiante(id, estudianteId);
+  }
+
+  @Delete(':id/desinscribirse')
+  @ApiOperation({ summary: 'Desinscribirse de un grupo' })
+  @ApiParam({ name: 'id', description: 'ID del grupo' })
+  @ApiResponse({ status: 200, description: 'Desinscripción exitosa.' })
+  async desinscribirseDeGrupo(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    const resultado = await this.servicio_grupos.desinscribirEstudiante(id, req.user.id_usuario);
+    const usuario_actualizado = await this.servicio_autenticacion.obtenerDatosUsuarioCompletos(req.user.id_usuario);
+    
+    return {
+      ...resultado,
+      usuario_actualizado
+    };
   }
 
   @Delete(':id')

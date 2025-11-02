@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { UsuariosService } from '../usuarios/usuarios.servicio';
 import { IniciarSesionDto } from './dto/iniciar-sesion.dto';
 import * as bcrypt from 'bcrypt';
@@ -65,13 +65,29 @@ export class AutenticacionService {
 
     const token_acceso = await this.jwt_service.signAsync(payload);
 
+    const datos_usuario = await this.obtenerDatosUsuarioCompletos(usuario.id);
+
+    return {
+      message: 'Inicio de sesión exitoso',
+      token_acceso,
+      usuario: datos_usuario,
+    };
+  }
+
+  async obtenerDatosUsuarioCompletos(id_usuario: number) {
+    const usuario = await this.repositorio_usuario.findOneBy({ id: id_usuario });
+    
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
     const { contrasena: _, ...datos_usuario } = usuario;
 
     let perfil_completo: Perfil | null = null;
     if (usuario.rol === Rol.Estudiante) {
       const estudiante = await this.repositorio_estudiante.findOne({
         where: { usuario: { id: usuario.id } },
-        relations: ['grupo', 'grupo.asesor', 'grupo.periodo'],
+        relations: ['grupo', 'grupo.asesor', 'grupo.asesor.usuario', 'grupo.periodo'],
       });
       if (estudiante) {
         perfil_completo = {
@@ -95,12 +111,8 @@ export class AutenticacionService {
     }
 
     return {
-      message: 'Inicio de sesión exitoso',
-      token_acceso,
-      usuario: {
-        ...datos_usuario,
-        perfil: perfil_completo,
-      },
+      ...datos_usuario,
+      perfil: perfil_completo,
     };
   }
 
