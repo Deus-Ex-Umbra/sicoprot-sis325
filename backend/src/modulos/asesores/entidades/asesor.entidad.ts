@@ -15,6 +15,9 @@ export class Asesor {
   @Column({ type: 'varchar', length: 100 })
   apellido: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  ruta_foto: string;
+
   @OneToOne(() => Usuario, { cascade: true })
   @JoinColumn({ name: 'id_usuario' })
   usuario: Usuario;

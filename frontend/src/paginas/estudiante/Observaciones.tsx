@@ -6,7 +6,7 @@ import Cabecera from '../../componentes/Cabecera';
 import BarraLateral from '../../componentes/BarraLateral';
 import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
 import { cn } from '../../lib/utilidades';
-import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Rol } from '../../tipos/usuario';
 import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';

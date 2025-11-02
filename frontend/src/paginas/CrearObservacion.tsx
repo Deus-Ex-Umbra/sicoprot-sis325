@@ -11,7 +11,7 @@ import Cabecera from '../componentes/Cabecera';
 import BarraLateral from '../componentes/BarraLateral';
 import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
 import { cn } from '../lib/utilidades';
-import { useAutenticacion } from '../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { Card, CardContent, CardHeader, CardTitle } from '../componentes/ui/card';
 import { Button } from '../componentes/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '../componentes/ui/alert';

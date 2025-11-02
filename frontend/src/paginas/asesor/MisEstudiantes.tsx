@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, Loader2 } from 'lucide-react';
-import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { proyectosApi } from '../../servicios/api';
 import { type Proyecto, Rol } from '../../tipos/usuario';
 import Cabecera from '../../componentes/Cabecera';

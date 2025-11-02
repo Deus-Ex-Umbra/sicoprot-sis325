@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Loader2, GraduationCap, BookOpen, FileText, Users } from 'lucide-react';
-import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../componentes/ui/card';
 import { Button } from '../../componentes/ui/button';
 import { Input } from '../../componentes/ui/input';

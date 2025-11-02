@@ -11,8 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Avatar, AvatarFallback } from './ui/avatar';
-import { useAutenticacion } from '../contextos/ContextoAutenticacion';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { Rol } from '../tipos/usuario';
 import { SwitchModo } from './switch-modo';
 
@@ -45,6 +45,8 @@ const Cabecera = ({ toggleSidebar }: CabeceraProps) => {
     }
     return usuario?.correo || '';
   };
+
+  const ruta_foto = usuario?.ruta_foto || usuario?.perfil?.ruta_foto;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -85,6 +87,7 @@ const Cabecera = ({ toggleSidebar }: CabeceraProps) => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2 px-2">
               <Avatar className="h-8 w-8">
+                {ruta_foto && <AvatarImage src={ruta_foto} />}
                 <AvatarFallback className="text-xs">
                   {obtener_iniciales()}
                 </AvatarFallback>
@@ -109,6 +112,10 @@ const Cabecera = ({ toggleSidebar }: CabeceraProps) => {
             <DropdownMenuItem onClick={() => navigate('/panel/perfil')}>
               <Settings className="mr-2 h-4 w-4" />
               Mi Perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/panel/configuracion')}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configuración
             </DropdownMenuItem>
             {tiene_grupo && (
               <DropdownMenuItem onClick={() => navigate('/panel/inscripcion-grupos')}>

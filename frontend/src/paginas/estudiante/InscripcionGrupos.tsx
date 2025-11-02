@@ -9,7 +9,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { gruposApi } from '../../servicios/api';
-import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { type Grupo, Rol } from '../../tipos/usuario';
 import { toast } from 'sonner';
 import Cabecera from '../../componentes/Cabecera';

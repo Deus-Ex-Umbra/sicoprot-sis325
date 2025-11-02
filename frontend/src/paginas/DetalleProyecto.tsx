@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileUp, Plus, Loader2 } from 'lucide-react';
 import VisualizadorDocumento from '../componentes/visualizador-documento';
 import { proyectosApi, documentosApi, observacionesApi, correccionesApi } from '../servicios/api';
-import { useAutenticacion } from '../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { type Proyecto, type Documento, type Observacion, type Correccion, Rol } from '../tipos/usuario';
 import { api } from '../servicios/api';
 import Cabecera from '../componentes/Cabecera';

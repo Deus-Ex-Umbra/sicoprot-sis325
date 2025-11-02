@@ -21,6 +21,15 @@ export interface Estudiante {
   id: number;
   nombre: string;
   apellido: string;
+  ruta_foto?: string;
+  usuario?: Usuario;
+}
+
+export interface Asesor {
+  id: number;
+  nombre: string;
+  apellido: string;
+  ruta_foto?: string;
   usuario?: Usuario;
 }
 
@@ -32,11 +41,13 @@ export interface Usuario {
   fecha_aprobacion?: string;
   creado_en: string;
   actualizado_en: string;
+  ruta_foto?: string;
   perfil?: {
     id_estudiante?: number;
     id_asesor?: number;
     nombre: string;
     apellido: string;
+    ruta_foto?: string;
     foto_url?: string;
     grupo?: Grupo | null;
     grupos?: Grupo[];
@@ -61,7 +72,7 @@ export interface Grupo {
   nombre: string;
   descripcion?: string;
   activo: boolean;
-  asesor: any;
+  asesor: Asesor;
   periodo: Periodo;
   estudiantes?: Estudiante[];
   fecha_creacion: string;
@@ -84,7 +95,7 @@ export interface Proyecto {
   titulo: string;
   fecha_creacion: string;
   estudiante?: any;
-  asesor?: any;
+  asesor?: Asesor;
   documentos?: Documento[];
 }
 
@@ -113,7 +124,7 @@ export interface Observacion {
   archivada: boolean;
   fecha_creacion: string;
   fecha_actualizacion: string;
-  autor: any;
+  autor: Asesor;
   correccion?: Correccion;
 }
 
@@ -129,6 +140,6 @@ export interface Correccion {
   pagina_fin: number;
   color: string;
   fecha_creacion: string;
-  estudiante: any;
+  estudiante: Estudiante;
   observacion?: Observacion;
 }

@@ -19,7 +19,7 @@ import Cabecera from '../../componentes/Cabecera';
 import BarraLateral from '../../componentes/BarraLateral';
 import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
 import { cn } from '../../lib/utilidades';
-import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 
 const RevisarDocumentos = () => {
   const [proyectos, set_proyectos] = useState<Proyecto[]>([]);

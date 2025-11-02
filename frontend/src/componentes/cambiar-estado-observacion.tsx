@@ -3,7 +3,7 @@ import { Clock, Eye, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { EstadoObservacion, estadoConfig, type EstadoObservacion as TipoEstadoObservacion } from '../tipos/estadoObservacion';
 import { observacionesApi } from '../servicios/api';
-import { useAutenticacion } from '../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import type { Observacion } from '../tipos/usuario';
 import { Button } from './ui/button';
 import {

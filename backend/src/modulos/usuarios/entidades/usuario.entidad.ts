@@ -24,6 +24,9 @@ export class Usuario {
   @Column({ name: 'fecha_aprobacion', type: 'timestamp', nullable: true })
   fecha_aprobacion: Date;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  ruta_foto: string;
+
   @CreateDateColumn({ name: 'creado_en', type: 'timestamp' })
   creado_en: Date;
 

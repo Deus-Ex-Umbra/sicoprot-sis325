@@ -7,7 +7,7 @@ import Cabecera from '../../componentes/Cabecera';
 import BarraLateral from '../../componentes/BarraLateral';
 import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
 import { cn } from '../../lib/utilidades';
-import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import {
   Accordion,
   AccordionContent,
