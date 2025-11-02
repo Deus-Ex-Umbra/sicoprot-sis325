@@ -1,18 +1,16 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import LayoutAutenticacion from '../layouts/LayoutAutenticacion';
-import LayoutPanel from '../layouts/LayoutPanel';
-import IniciarSesion from '../paginas/IniciarSesion';
-import Registro from '../paginas/Registro';
+import IniciarSesion from '../paginas/auth/IniciarSesion';
+import Registro from '../paginas/auth/Registro';
 import Panel from '../paginas/Panel';
 import Perfil from '../paginas/Perfil';
 import Proyectos from '../paginas/Proyectos';
 import DetalleProyecto from '../paginas/DetalleProyecto';
-import MisDocumentos from '../paginas/MisDocumentos';
+import MisDocumentos from '../paginas/estudiante/MisDocumentos';
 import Observaciones from '../paginas/estudiante/Observaciones';
 import ObservacionesAsesor from '../paginas/asesor/ObservacionesAsesor';
 import MisEstudiantes from '../paginas/MisEstudiantes';
 import RevisarDocumentos from '../paginas/RevisarDocumentos';
-import InscripcionGrupos from '../paginas/InscripcionGrupos';
+import InscripcionGrupos from '../paginas/estudiante/InscripcionGrupos';
 import RutaProtegida from '../componentes/RutaProtegida';
 import CrearObservacion from '../paginas/CrearObservacion';
 import CrearCorreccion from '../paginas/CrearCorreccion';
@@ -29,148 +27,148 @@ const router = createBrowserRouter([
     element: <Navigate to="/panel" replace />,
   },
   {
-    path: '/',
-    element: <LayoutAutenticacion />,
-    children: [
-      {
-        path: 'iniciar-sesion',
-        element: <IniciarSesion />,
-      },
-      {
-        path: 'registrarse',
-        element: <Registro />,
-      },
-    ],
+    path: 'iniciar-sesion',
+    element: <IniciarSesion />,
+  },
+  {
+    path: 'registrarse',
+    element: <Registro />,
   },
   {
     path: '/panel',
     element: (
       <RutaProtegida>
-        <LayoutPanel />
+        <Panel />
       </RutaProtegida>
     ),
-    children: [
-      {
-        index: true,
-        element: <Panel />,
-      },
-      {
-        path: 'perfil',
-        element: <Perfil />,
-      },
-      {
-        path: 'proyectos',
-        element: <Proyectos />,
-      },
-      {
-        path: 'proyecto/:id',
-        element: <DetalleProyecto />,
-      },
-      {
-        path: 'proyecto/:proyectoId/crear-observacion',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Asesor]}>
-            <CrearObservacion />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'proyecto/:proyectoId/crear-correccion',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
-            <CrearCorreccion />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'inscripcion-grupos',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
-            <InscripcionGrupos />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'mis-documentos',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
-            <MisDocumentos />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'observaciones',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
-            <Observaciones />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'gestion-observaciones',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Asesor]}>
-            <ObservacionesAsesor />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'estudiantes',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Asesor]}>
-            <MisEstudiantes />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'revisar',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Asesor]}>
-            <RevisarDocumentos />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'admin',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Administrador]}>
-            <DashboardAdmin />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'admin/usuarios',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Administrador]}>
-            <GestionUsuarios />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'admin/solicitudes',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Administrador]}>
-            <SolicitudesRegistro />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'admin/periodos',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Administrador]}>
-            <GestionPeriodos />
-          </RutaProtegida>
-        ),
-      },
-      {
-        path: 'admin/grupos',
-        element: (
-          <RutaProtegida roles_permitidos={[Rol.Administrador]}>
-            <GestionGrupos />
-          </RutaProtegida>
-        ),
-      },
-    ],
+  },
+  {
+    path: '/panel/perfil',
+    element: (
+      <RutaProtegida>
+        <Perfil />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/proyectos',
+    element: (
+      <RutaProtegida>
+        <Proyectos />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/proyecto/:id',
+    element: (
+      <RutaProtegida>
+        <DetalleProyecto />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/proyecto/:proyectoId/crear-observacion',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Asesor]}>
+        <CrearObservacion />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/proyecto/:proyectoId/crear-correccion',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
+        <CrearCorreccion />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/inscripcion-grupos',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
+        <InscripcionGrupos />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/mis-documentos',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
+        <MisDocumentos />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/observaciones',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
+        <Observaciones />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/gestion-observaciones',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Asesor]}>
+        <ObservacionesAsesor />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/estudiantes',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Asesor]}>
+        <MisEstudiantes />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/revisar',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Asesor]}>
+        <RevisarDocumentos />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/admin',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Administrador]}>
+        <DashboardAdmin />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/admin/usuarios',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Administrador]}>
+        <GestionUsuarios />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/admin/solicitudes',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Administrador]}>
+        <SolicitudesRegistro />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/admin/periodos',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Administrador]}>
+        <GestionPeriodos />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/admin/grupos',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Administrador]}>
+        <GestionGrupos />
+      </RutaProtegida>
+    ),
   },
 ]);
 

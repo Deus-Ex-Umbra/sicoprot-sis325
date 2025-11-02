@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { Rol } from '../tipos/usuario';
@@ -15,10 +16,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Alert, AlertDescription, AlertTitle } from '../componentes/ui/alert';
 import { Button } from '../componentes/ui/button';
 import { Badge } from '../componentes/ui/badge';
+import Cabecera from '../componentes/Cabecera';
+import BarraLateral from '../componentes/BarraLateral';
+import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
+import { cn } from '../lib/utilidades';
 
 const Panel = () => {
   const { usuario } = useAutenticacion();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const es_estudiante = usuario?.rol === Rol.Estudiante;
   const es_asesor = usuario?.rol === Rol.Asesor;
@@ -31,6 +37,10 @@ const Panel = () => {
     navigate('/panel/admin');
     return null;
   }
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
   const tarjetas_estudiante = [
     {
@@ -97,140 +107,158 @@ const Panel = () => {
   const tarjetas = es_estudiante ? tarjetas_estudiante : tarjetas_asesor;
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">
-          ¡Bienvenido, {usuario?.perfil?.nombre || usuario?.correo}!
-        </h1>
-        <p className="text-muted-foreground">
-          {es_estudiante 
-            ? 'Gestiona tus proyectos y documentos de titulación' 
-            : 'Supervisa y da seguimiento a tus estudiantes'}
-        </p>
-      </div>
-
-      {es_estudiante && !tiene_grupo && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Importante: No estás inscrito en ningún grupo</AlertTitle>
-          <AlertDescription className="mt-2 space-y-2">
-            <p>
-              Para crear proyectos y recibir orientación, debes inscribirte en un grupo de asesoría.
-            </p>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/panel/inscripcion-grupos')}
-              className="mt-2"
-            >
-              Inscribirme en un Grupo
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </AlertDescription>
-        </Alert>
+    <div className="min-h-screen bg-background">
+      <Cabecera toggleSidebar={toggleSidebar} />
+      {es_admin ? (
+        <BarraLateralAdmin isOpen={sidebarOpen} />
+      ) : (
+        <BarraLateral isOpen={sidebarOpen} />
       )}
 
-      {tiene_grupo && grupo && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Tu Grupo de Asesoría
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">{grupo.nombre}</p>
-                <p className="text-sm text-muted-foreground">
-                  Asesor: {grupo.asesor?.nombre} {grupo.asesor?.apellido}
-                </p>
-              </div>
-              <Badge variant={grupo.activo ? 'default' : 'secondary'}>
-                {grupo.activo ? 'Activo' : 'Inactivo'}
-              </Badge>
+      <main
+        className={cn(
+          'transition-all duration-300 pt-14',
+          sidebarOpen ? 'ml-64' : 'ml-0'
+        )}
+      >
+        <div className="container mx-auto p-6 max-w-7xl">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold tracking-tight">
+                ¡Bienvenido, {usuario?.perfil?.nombre || usuario?.correo}!
+              </h1>
+              <p className="text-muted-foreground">
+                {es_estudiante 
+                  ? 'Gestiona tus proyectos y documentos de titulación' 
+                  : 'Supervisa y da seguimiento a tus estudiantes'}
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {tarjetas.map((tarjeta, index) => {
-          const Icono = tarjeta.icono;
-          return (
-            <Card 
-              key={index} 
-              className="hover:shadow-md transition-shadow cursor-pointer group"
-              onClick={() => navigate(tarjeta.ruta)}
-            >
-              <CardHeader className="space-y-3">
-                <div className={`h-12 w-12 rounded-lg ${tarjeta.color} flex items-center justify-center`}>
-                  <Icono className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                    {tarjeta.titulo}
+            {es_estudiante && !tiene_grupo && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Importante: No estás inscrito en ningún grupo</AlertTitle>
+                <AlertDescription className="mt-2 space-y-2">
+                  <p>
+                    Para crear proyectos y recibir orientación, debes inscribirte en un grupo de asesoría.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/panel/inscripcion-grupos')}
+                    className="mt-2"
+                  >
+                    Inscribirme en un Grupo
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {tiene_grupo && grupo && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Tu Grupo de Asesoría
                   </CardTitle>
-                  <CardDescription>
-                    {tarjeta.descripcion}
-                  </CardDescription>
-                </div>
-              </CardHeader>
-            </Card>
-          );
-        })}
-      </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">{grupo.nombre}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Asesor: {grupo.asesor?.nombre} {grupo.asesor?.apellido}
+                      </p>
+                    </div>
+                    <Badge variant={grupo.activo ? 'default' : 'secondary'}>
+                      {grupo.activo ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Acceso Rápido</CardTitle>
-          <CardDescription>
-            Enlaces directos a las funcionalidades más utilizadas
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {es_estudiante && (
-            <>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => navigate('/panel/proyectos')}
-              >
-                <FolderKanban className="mr-2 h-4 w-4" />
-                Ver todos mis proyectos
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => navigate('/panel/observaciones')}
-              >
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Ver observaciones pendientes
-              </Button>
-            </>
-          )}
-          {es_asesor && (
-            <>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => navigate('/panel/estudiantes')}
-              >
-                <GraduationCap className="mr-2 h-4 w-4" />
-                Ver mis estudiantes
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => navigate('/panel/revisar')}
-              >
-                <BookOpen className="mr-2 h-4 w-4" />
-                Revisar documentos pendientes
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {tarjetas.map((tarjeta, index) => {
+                const Icono = tarjeta.icono;
+                return (
+                  <Card 
+                    key={index} 
+                    className="hover:shadow-md transition-shadow cursor-pointer group"
+                    onClick={() => navigate(tarjeta.ruta)}
+                  >
+                    <CardHeader className="space-y-3">
+                      <div className={`h-12 w-12 rounded-lg ${tarjeta.color} flex items-center justify-center`}>
+                        <Icono className="h-6 w-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                          {tarjeta.titulo}
+                        </CardTitle>
+                        <CardDescription>
+                          {tarjeta.descripcion}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Acceso Rápido</CardTitle>
+                <CardDescription>
+                  Enlaces directos a las funcionalidades más utilizadas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {es_estudiante && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => navigate('/panel/proyectos')}
+                    >
+                      <FolderKanban className="mr-2 h-4 w-4" />
+                      Ver todos mis proyectos
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => navigate('/panel/observaciones')}
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Ver observaciones pendientes
+                    </Button>
+                  </>
+                )}
+                {es_asesor && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => navigate('/panel/estudiantes')}
+                    >
+                      <GraduationCap className="mr-2 h-4 w-4" />
+                      Ver mis estudiantes
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => navigate('/panel/revisar')}
+                    >
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      Revisar documentos pendientes
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

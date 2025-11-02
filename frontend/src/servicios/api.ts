@@ -1,342 +1,388 @@
 import axios from 'axios';
-import { 
-  type Usuario, 
-  type Proyecto, 
-  type Documento, 
-  type Observacion, 
-  type Correccion,
-  type Grupo,
-  type Periodo,
-  type SolicitudRegistro
-} from '../tipos/usuario';
 
-const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000';
+
+export const api = axios.create({
+  baseURL: `${API_URL}/api`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-export const autenticacion = {
-  iniciar_sesion: async (correo: string, contrasena: string) => {
-    const { data } = await api.post('/autenticacion/iniciar-sesion', { correo, contrasena });
-    if (data.token_acceso) {
-      localStorage.setItem('token', data.token_acceso);
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token_acceso');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    return data;
+    return config;
   },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
-  cerrar_sesion: () => {
-    localStorage.removeItem('token');
+api.interceptors.response.use(
+  (response) => {
+    return response;
   },
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token_acceso');
+      
+      if (window.location.pathname !== '/inicio-sesion' && window.location.pathname !== '/registro') {
+        window.location.href = '/inicio-sesion';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
-  obtener_perfil: async (): Promise<Usuario> => {
-    const { data } = await api.get('/autenticacion/perfil');
-    return data;
+export const verificarConexion = async (): Promise<boolean> => {
+  try {
+    await axios.get(`${API_URL}/api`, { timeout: 5000 });
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+export const autenticacionApi = {
+  iniciarSesion: async (credenciales: any) => {
+    const respuesta = await api.post('/autenticacion/iniciar-sesion', credenciales);
+    return respuesta.data;
+  },
+  cerrarSesion: async () => {
+    const respuesta = await api.post('/autenticacion/cerrar-sesion');
+    return respuesta.data;
   },
 };
 
-export const proyectos = {
-  obtener_todos: async (): Promise<Proyecto[]> => {
-    const { data } = await api.get('/proyectos');
-    return data;
+export const solicitudesRegistroApi = {
+  crear: async (datos: any) => {
+    const respuesta = await api.post('/solicitudes-registro', datos);
+    return respuesta.data;
   },
-
-  obtener_por_id: async (id: number): Promise<Proyecto> => {
-    const { data } = await api.get(`/proyectos/${id}`);
-    return data;
+  obtenerTodas: async () => {
+    const respuesta = await api.get('/solicitudes-registro');
+    return respuesta.data;
   },
-
-  crear: async (proyecto: any): Promise<Proyecto> => {
-    const { data } = await api.post('/proyectos', proyecto);
-    return data;
+  obtenerPendientes: async () => {
+    const respuesta = await api.get('/solicitudes-registro/pendientes');
+    return respuesta.data;
   },
-
-  actualizar: async (id: number, proyecto: any): Promise<Proyecto> => {
-    const { data } = await api.patch(`/proyectos/${id}`, proyecto);
-    return data;
+  obtenerUna: async (id: number) => {
+    const respuesta = await api.get(`/solicitudes-registro/${id}`);
+    return respuesta.data;
   },
-
-  eliminar: async (id: number): Promise<void> => {
-    await api.delete(`/proyectos/${id}`);
+  responder: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/solicitudes-registro/${id}/responder`, datos);
+    return respuesta.data;
   },
-
-  obtener_por_estudiante: async (): Promise<Proyecto[]> => {
-    const { data } = await api.get('/proyectos/estudiante');
-    return data;
-  },
-
-  obtener_por_asesor: async (): Promise<Proyecto[]> => {
-    const { data } = await api.get('/proyectos/asesor');
-    return data;
+  eliminar: async (id: number) => {
+    const respuesta = await api.delete(`/solicitudes-registro/${id}`);
+    return respuesta.data;
   },
 };
 
-export const documentos = {
-  subir: async (proyecto_id: number, form_data: FormData): Promise<Documento> => {
-    const { data } = await api.post(`/documentos/${proyecto_id}`, form_data, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+export const usuariosApi = {
+  crear: async (datos: any) => {
+    const respuesta = await api.post('/usuarios', datos);
+    return respuesta.data;
+  },
+  obtenerTodos: async () => {
+    const respuesta = await api.get('/usuarios');
+    return respuesta.data;
+  },
+  obtenerUno: async (id: number) => {
+    const respuesta = await api.get(`/usuarios/${id}`);
+    return respuesta.data;
+  },
+  actualizar: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/usuarios/${id}`, datos);
+    return respuesta.data;
+  },
+  obtenerPerfilActual: async () => {
+    const respuesta = await api.get('/usuarios/perfil/actual');
+    return respuesta.data;
+  },
+  actualizarPerfil: async (datos: any) => {
+    const respuesta = await api.patch('/usuarios/perfil/actualizar', datos);
+    return respuesta.data;
+  },
+  eliminar: async (id: number) => {
+    const respuesta = await api.delete(`/usuarios/${id}`);
+    return respuesta.data;
+  },
+};
+
+export const adminApi = {
+  obtenerTodosUsuarios: async () => {
+    const respuesta = await api.get('/administracion/usuarios');
+    return respuesta.data;
+  },
+  obtenerEstudiantes: async () => {
+    const respuesta = await api.get('/administracion/estudiantes');
+    return respuesta.data;
+  },
+  obtenerEstudiantesSinGrupo: async () => {
+    const respuesta = await api.get('/administracion/estudiantes/sin-grupo');
+    return respuesta.data;
+  },
+  obtenerEstadisticas: async () => {
+    const respuesta = await api.get('/administracion/estadisticas');
+    return respuesta.data;
+  },
+  cambiarEstadoUsuario: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/administracion/usuarios/${id}/cambiar-estado`, datos);
+    return respuesta.data;
+  },
+};
+
+export const asesoresApi = {
+  obtenerTodos: async () => {
+    const respuesta = await api.get('/asesores');
+    return respuesta.data;
+  },
+  obtenerEstudiantesDeMiGrupo: async () => {
+    const respuesta = await api.get('/asesores/mi-grupo/estudiantes');
+    return respuesta.data;
+  },
+};
+
+export const periodosApi = {
+  crear: async (datos: any) => {
+    const respuesta = await api.post('/periodos', datos);
+    return respuesta.data;
+  },
+  obtenerTodos: async () => {
+    const respuesta = await api.get('/periodos');
+    return respuesta.data;
+  },
+  obtenerActivo: async () => {
+    const respuesta = await api.get('/periodos/activo');
+    return respuesta.data;
+  },
+  obtenerUno: async (id: number) => {
+    const respuesta = await api.get(`/periodos/${id}`);
+    return respuesta.data;
+  },
+  actualizar: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/periodos/${id}`, datos);
+    return respuesta.data;
+  },
+  eliminar: async (id: number) => {
+    const respuesta = await api.delete(`/periodos/${id}`);
+    return respuesta.data;
+  },
+};
+
+export const gruposApi = {
+  crear: async (datos: any) => {
+    const respuesta = await api.post('/grupos', datos);
+    return respuesta.data;
+  },
+  obtenerTodos: async () => {
+    const respuesta = await api.get('/grupos');
+    return respuesta.data;
+  },
+  obtenerDisponibles: async () => {
+    const respuesta = await api.get('/grupos/disponibles');
+    return respuesta.data;
+  },
+  obtenerMiGrupo: async () => {
+    const respuesta = await api.get('/grupos/mi-grupo');
+    return respuesta.data;
+  },
+  obtenerPorPeriodo: async (periodoId: number) => {
+    const respuesta = await api.get(`/grupos/periodo/${periodoId}`);
+    return respuesta.data;
+  },
+  obtenerUno: async (id: number) => {
+    const respuesta = await api.get(`/grupos/${id}`);
+    return respuesta.data;
+  },
+  actualizar: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/grupos/${id}`, datos);
+    return respuesta.data;
+  },
+  asignarEstudiante: async (id: number, datos: any) => {
+    const respuesta = await api.post(`/grupos/${id}/asignar-estudiante`, datos);
+    return respuesta.data;
+  },
+  inscribirseAGrupo: async (id: number) => {
+    const respuesta = await api.post(`/grupos/${id}/inscribirse`);
+    return respuesta.data;
+  },
+  removerEstudiante: async (id: number, estudianteId: number) => {
+    const respuesta = await api.delete(`/grupos/${id}/remover-estudiante/${estudianteId}`);
+    return respuesta.data;
+  },
+  desinscribirseDeGrupo: async (id: number) => {
+    const respuesta = await api.delete(`/grupos/${id}/desinscribirse`);
+    return respuesta.data;
+  },
+  eliminar: async (id: number) => {
+    const respuesta = await api.delete(`/grupos/${id}`);
+    return respuesta.data;
+  },
+};
+
+export const proyectosApi = {
+  crear: async (datos: any) => {
+    const respuesta = await api.post('/proyectos', datos);
+    return respuesta.data;
+  },
+  obtenerTodos: async () => {
+    const respuesta = await api.get('/proyectos');
+    return respuesta.data;
+  },
+  obtenerUno: async (id: number) => {
+    const respuesta = await api.get(`/proyectos/${id}`);
+    return respuesta.data;
+  },
+  aprobarEtapa: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/proyectos/${id}/aprobar-etapa`, datos);
+    return respuesta.data;
+  },
+  gestionarTemaPropuesto: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/proyectos/${id}/tema`, datos);
+    return respuesta.data;
+  },
+  obtenerHistorialProgreso: async () => {
+    const respuesta = await api.get('/proyectos/historial-progreso');
+    return respuesta.data;
+  },
+  obtenerCronogramaProyecto: async () => {
+    const respuesta = await api.get('/proyectos/cronograma');
+    return respuesta.data;
+  },
+  buscarProyectos: async (params: any) => {
+    const respuesta = await api.get('/proyectos/buscar', { params });
+    return respuesta.data;
+  },
+};
+
+export const documentosApi = {
+  subirDocumento: async (proyectoId: number, formData: FormData) => {
+    const respuesta = await api.post(`/documentos/subir/${proyectoId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
-    return data;
+    return respuesta.data;
   },
-
-  obtener_por_proyecto: async (proyecto_id: number): Promise<Documento[]> => {
-    const { data } = await api.get(`/documentos/proyecto/${proyecto_id}`);
-    return data;
-  },
-
-  obtener_archivo: (documento_id: number): string => {
-    return `${api.defaults.baseURL}/documentos/${documento_id}/archivo`;
-  },
-
-  eliminar: async (documento_id: number): Promise<void> => {
-    await api.delete(`/documentos/${documento_id}`);
+  obtenerArchivoUrl: (id: number) => {
+    return `${api.defaults.baseURL}/documentos/${id}/archivo`;
   },
 };
 
-export const observaciones = {
-  crear: async (documento_id: number, observacion: any): Promise<Observacion> => {
-    const { data } = await api.post(`/observaciones/${documento_id}/crear`, observacion);
-    return data;
+export const observacionesApi = {
+  crear: async (documentoId: number, datos: any) => {
+    const respuesta = await api.post(`/observaciones/${documentoId}/crear`, datos);
+    return respuesta.data;
   },
-
-  obtener_por_documento: async (documento_id: number): Promise<Observacion[]> => {
-    const { data } = await api.get(`/observaciones/por-documento/${documento_id}`);
-    return data;
+  obtenerPorDocumento: async (documentoId: number, params?: any) => {
+    const respuesta = await api.get(`/observaciones/por-documento/${documentoId}`, { params });
+    return respuesta.data;
   },
-
-  obtener_por_proyecto: async (proyecto_id: number): Promise<Observacion[]> => {
-    const { data } = await api.get(`/observaciones/proyecto/${proyecto_id}`);
-    return data;
+  obtenerMias: async () => {
+    const respuesta = await api.get('/observaciones/mias');
+    return respuesta.data;
   },
-
-  obtener_por_estudiante: async (): Promise<Observacion[]> => {
-    const { data } = await api.get('/observaciones/por-estudiante');
-    return data;
+  obtenerPorEstudiante: async () => {
+    const respuesta = await api.get('/observaciones/por-estudiante');
+    return respuesta.data;
   },
-
-  obtener_por_asesor: async (): Promise<Observacion[]> => {
-    const { data } = await api.get('/observaciones/mias');
-    return data;
+  actualizar: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/observaciones/${id}`, datos);
+    return respuesta.data;
   },
-
-  actualizar: async (id: number, datos: any): Promise<Observacion> => {
-    const { data } = await api.patch(`/observaciones/${id}`, datos);
-    return data;
+  archivar: async (id: number) => {
+    const respuesta = await api.patch(`/observaciones/${id}/archivar`);
+    return respuesta.data;
   },
-
-  archivar: async (id: number): Promise<Observacion> => {
-    const { data } = await api.patch(`/observaciones/${id}/archivar`);
-    return data;
+  restaurar: async (id: number) => {
+    const respuesta = await api.patch(`/observaciones/${id}/restaurar`);
+    return respuesta.data;
   },
-
-  restaurar: async (id: number): Promise<Observacion> => {
-    const { data } = await api.patch(`/observaciones/${id}/restaurar`);
-    return data;
+  cambiarEstado: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/observaciones/${id}/estado`, datos);
+    return respuesta.data;
   },
-
-  cambiar_estado: async (id: number, estado: string): Promise<Observacion> => {
-    const { data } = await api.patch(`/observaciones/${id}/estado`, { estado });
-    return data;
+  crearCorreccion: async (id: number, datos: any) => {
+    const respuesta = await api.post(`/observaciones/${id}/correccion`, datos);
+    return respuesta.data;
   },
-};
-
-export const correcciones = {
-  crear: async (correccion: any): Promise<Correccion> => {
-    const { data } = await api.post('/correcciones', correccion);
-    return data;
+  marcarCorreccionCompletada: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/observaciones/${id}/correccion/marcar`, datos);
+    return respuesta.data;
   },
-
-  obtener_por_documento: async (documento_id: number): Promise<Correccion[]> => {
-    const { data } = await api.get(`/correcciones/por-documento/${documento_id}`);
-    return data;
+  verificarCorreccion: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/observaciones/${id}/correccion/verificar`, datos);
+    return respuesta.data;
   },
-
-  obtener_por_proyecto: async (proyecto_id: number): Promise<Correccion[]> => {
-    const { data } = await api.get(`/correcciones/por-proyecto/${proyecto_id}`);
-    return data;
+  verificarObservacion: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/observaciones/verificacion/${id}`, datos);
+    return respuesta.data;
   },
-
-  obtener_por_estudiante: async (): Promise<Correccion[]> => {
-    const { data } = await api.get('/correcciones/por-estudiante');
-    return data;
+  obtenerObservacionesPorProyecto: async (proyectoId: number) => {
+    const respuesta = await api.get(`/observaciones/proyecto/${proyectoId}`);
+    return respuesta.data;
   },
-
-  actualizar: async (id: number, datos: any): Promise<Correccion> => {
-    const { data } = await api.patch(`/correcciones/${id}`, datos);
-    return data;
+  obtenerEstadisticasPorDocumento: async (documentoId: number) => {
+    const respuesta = await api.get(`/observaciones/estadisticas/documento/${documentoId}`);
+    return respuesta.data;
   },
-
-  eliminar: async (id: number): Promise<void> => {
-    await api.delete(`/correcciones/${id}`);
+  obtenerObservacionesPorRevisor: async (revisorId: number) => {
+    const respuesta = await api.get(`/observaciones/revision/${revisorId}`);
+    return respuesta.data;
   },
-
-  marcar_completada: async (observacion_id: number, datos: any): Promise<Correccion> => {
-    const { data } = await api.patch(`/correcciones/${observacion_id}/marcar`, datos);
-    return data;
+  listarPendientes: async () => {
+    const respuesta = await api.get('/observaciones/revision/pendientes');
+    return respuesta.data;
   },
-
-  verificar: async (observacion_id: number, datos: any): Promise<any> => {
-    const { data } = await api.patch(`/correcciones/${observacion_id}/verificar`, datos);
-    return data;
+  obtenerObservacionPorId: async (id: number) => {
+    const respuesta = await api.get(`/observaciones/${id}`);
+    return respuesta.data;
+  },
+  eliminarObservacion: async (id: number) => {
+    const respuesta = await api.delete(`/observaciones/${id}`);
+    return respuesta.data;
   },
 };
 
-export const grupos = {
-  obtener_todos: async (): Promise<Grupo[]> => {
-    const { data } = await api.get('/grupos');
-    return data;
+export const correccionesApi = {
+  crear: async (datos: any) => {
+    const respuesta = await api.post('/correcciones', datos);
+    return respuesta.data;
   },
-
-  obtener_disponibles: async (): Promise<Grupo[]> => {
-    const { data } = await api.get('/grupos/disponibles');
-    return data;
+  obtenerPorDocumento: async (documentoId: number) => {
+    const respuesta = await api.get(`/correcciones/por-documento/${documentoId}`);
+    return respuesta.data;
   },
-
-  obtener_mi_grupo: async (): Promise<Grupo> => {
-    const { data } = await api.get('/grupos/mi-grupo');
-    return data;
+  obtenerPorProyecto: async (proyectoId: number) => {
+    const respuesta = await api.get(`/correcciones/por-proyecto/${proyectoId}`);
+    return respuesta.data;
   },
-
-  obtener_por_id: async (id: number): Promise<Grupo> => {
-    const { data } = await api.get(`/grupos/${id}`);
-    return data;
+  obtenerPorEstudiante: async () => {
+    const respuesta = await api.get('/correcciones/por-estudiante');
+    return respuesta.data;
   },
-
-  obtener_por_periodo: async (periodo_id: number): Promise<Grupo[]> => {
-    const { data } = await api.get(`/grupos/periodo/${periodo_id}`);
-    return data;
+  actualizar: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/correcciones/${id}`, datos);
+    return respuesta.data;
   },
-
-  crear: async (grupo: any): Promise<Grupo> => {
-    const { data } = await api.post('/grupos', grupo);
-    return data;
+  eliminar: async (id: number) => {
+    const respuesta = await api.delete(`/correcciones/${id}`);
+    return respuesta.data;
   },
-
-  actualizar: async (id: number, grupo: any): Promise<Grupo> => {
-    const { data } = await api.patch(`/grupos/${id}`, grupo);
-    return data;
+  marcarCompletada: async (observacionId: number, datos: any) => {
+    const respuesta = await api.patch(`/correcciones/${observacionId}/marcar`, datos);
+    return respuesta.data;
   },
-
-  eliminar: async (id: number): Promise<void> => {
-    await api.delete(`/grupos/${id}`);
-  },
-
-  inscribirse: async (id: number): Promise<any> => {
-    const { data } = await api.post(`/grupos/${id}/inscribirse`);
-    return data;
-  },
-
-  desinscribirse: async (id: number): Promise<any> => {
-    const { data } = await api.delete(`/grupos/${id}/desinscribirse`);
-    return data;
-  },
-
-  asignar_estudiante: async (id: number, estudiante_id: number): Promise<Grupo> => {
-    const { data } = await api.post(`/grupos/${id}/asignar-estudiante`, { id_estudiante: estudiante_id });
-    return data;
-  },
-
-  remover_estudiante: async (id: number, estudiante_id: number): Promise<Grupo> => {
-    const { data } = await api.delete(`/grupos/${id}/remover-estudiante/${estudiante_id}`);
-    return data;
+  verificar: async (observacionId: number, datos: any) => {
+    const respuesta = await api.patch(`/correcciones/${observacionId}/verificar`, datos);
+    return respuesta.data;
   },
 };
-
-export const periodos = {
-  obtener_todos: async (): Promise<Periodo[]> => {
-    const { data } = await api.get('/periodos');
-    return data;
-  },
-
-  obtener_activo: async (): Promise<Periodo> => {
-    const { data } = await api.get('/periodos/activo');
-    return data;
-  },
-
-  obtener_por_id: async (id: number): Promise<Periodo> => {
-    const { data } = await api.get(`/periodos/${id}`);
-    return data;
-  },
-
-  crear: async (periodo: any): Promise<Periodo> => {
-    const { data } = await api.post('/periodos', periodo);
-    return data;
-  },
-
-  actualizar: async (id: number, periodo: any): Promise<Periodo> => {
-    const { data } = await api.patch(`/periodos/${id}`, periodo);
-    return data;
-  },
-
-  eliminar: async (id: number): Promise<void> => {
-    await api.delete(`/periodos/${id}`);
-  },
-};
-
-export const solicitudes_registro = {
-  crear: async (solicitud: any): Promise<SolicitudRegistro> => {
-    const { data } = await api.post('/solicitudes-registro', solicitud);
-    return data;
-  },
-
-  obtener_todas: async (): Promise<SolicitudRegistro[]> => {
-    const { data } = await api.get('/solicitudes-registro');
-    return data;
-  },
-
-  obtener_pendientes: async (): Promise<SolicitudRegistro[]> => {
-    const { data } = await api.get('/solicitudes-registro/pendientes');
-    return data;
-  },
-
-  responder: async (id: number, respuesta: any): Promise<SolicitudRegistro> => {
-    const { data } = await api.patch(`/solicitudes-registro/${id}/responder`, respuesta);
-    return data;
-  },
-
-  eliminar: async (id: number): Promise<void> => {
-    await api.delete(`/solicitudes-registro/${id}`);
-  },
-};
-
-export const asesores = {
-  obtener_todos: async (): Promise<Usuario[]> => {
-    const { data } = await api.get('/asesores');
-    return data;
-  },
-};
-
-export const administracion = {
-  obtener_todos_usuarios: async (): Promise<Usuario[]> => {
-    const { data } = await api.get('/administracion/usuarios');
-    return data;
-  },
-
-  obtener_estudiantes: async (): Promise<any[]> => {
-    const { data } = await api.get('/administracion/estudiantes');
-    return data;
-  },
-
-  obtener_estudiantes_sin_grupo: async (): Promise<any[]> => {
-    const { data } = await api.get('/administracion/estudiantes/sin-grupo');
-    return data;
-  },
-
-  obtener_estadisticas: async (): Promise<any> => {
-    const { data } = await api.get('/administracion/estadisticas');
-    return data;
-  },
-
-  cambiar_estado_usuario: async (id_usuario: number, estado: string): Promise<Usuario> => {
-    const { data } = await api.patch(`/administracion/usuarios/${id_usuario}/cambiar-estado`, { estado });
-    return data;
-  },
-};
-
-export default api;

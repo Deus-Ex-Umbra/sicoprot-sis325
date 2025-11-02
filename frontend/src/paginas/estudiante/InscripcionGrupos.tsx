@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, Row, Col, Badge, Button, Alert, ListGroup, Table } from 'react-bootstrap';
 import { FaUserPlus, FaUserMinus, FaUsers, FaChalkboardTeacher, FaCalendar, FaUserGraduate } from 'react-icons/fa';
 import { obtenerGruposDisponibles, obtenerMiGrupo, inscribirseAGrupo, desinscribirseDeGrupo } from '../servicios/grupos.servicio';
-import { useAutenticacion } from '../contextos/ContextoAutenticacion';
-import { type Grupo } from '../tipos/usuario';
+import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { type Grupo } from '../../tipos/usuario';
 import { toast } from 'react-toastify';
 
 const InscripcionGrupos = () => {

@@ -1,5 +1,5 @@
 import { createContext, useState, useContext, useEffect, type ReactNode } from 'react';
-import api from '../servicios/api';
+import { autenticacionApi, usuariosApi } from '../servicios/api';
 import { type Usuario } from '../tipos/usuario';
 
 interface ContextoAutenticacionTipo {
@@ -9,7 +9,7 @@ interface ContextoAutenticacionTipo {
   iniciarSesion: (correo: string, contrasena: string) => Promise<void>;
   cerrarSesion: () => void;
   estaAutenticado: () => boolean;
-  actualizarUsuario: (usuarioActualizado: Usuario) => void;
+  actualizarUsuario: (usuario_actualizado: Usuario) => void;
 }
 
 const ContextoAutenticacion = createContext<ContextoAutenticacionTipo | undefined>(undefined);
@@ -32,49 +32,50 @@ export const ProveedorAutenticacion: React.FC<Props> = ({ children }) => {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    const token_guardado = localStorage.getItem('token');
-    const usuario_guardado = localStorage.getItem('usuario');
+    const verificarUsuario = async () => {
+      const token_guardado = localStorage.getItem('token_acceso');
+      const usuario_guardado = localStorage.getItem('usuario');
 
-    if (token_guardado && usuario_guardado) {
-      try {
-        const usuario_parseado = JSON.parse(usuario_guardado);
-        setToken(token_guardado);
-        setUsuario(usuario_parseado);
-        api.defaults.headers.common['Authorization'] = `Bearer ${token_guardado}`;
-      } catch (error) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('usuario');
+      if (token_guardado && usuario_guardado) {
+        try {
+          const usuario_parseado = JSON.parse(usuario_guardado);
+          setToken(token_guardado);
+          setUsuario(usuario_parseado);
+          await usuariosApi.obtenerPerfilActual(); 
+        } catch (error) {
+          console.error("Error al verificar autenticación", error);
+          cerrarSesion();
+        }
       }
-    }
+      setCargando(false);
+    };
 
-    setCargando(false);
+    verificarUsuario();
   }, []);
 
   const iniciarSesion = async (correo: string, contrasena: string) => {
     try {
-      const response = await api.post('/autenticacion/iniciar-sesion', {
+      const respuesta = await autenticacionApi.iniciarSesion({
         correo,
         contrasena,
       });
 
-      const { token_acceso, usuario: datos_usuario } = response.data;
+      const { token_acceso, usuario: datos_usuario } = respuesta;
 
-      localStorage.setItem('token', token_acceso);
+      localStorage.setItem('token_acceso', token_acceso);
       localStorage.setItem('usuario', JSON.stringify(datos_usuario));
-
-      api.defaults.headers.common['Authorization'] = `Bearer ${token_acceso}`;
 
       setToken(token_acceso);
       setUsuario(datos_usuario);
     } catch (error) {
+      cerrarSesion();
       throw error;
     }
   };
 
   const cerrarSesion = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('token_acceso');
     localStorage.removeItem('usuario');
-    delete api.defaults.headers.common['Authorization'];
     setToken(null);
     setUsuario(null);
   };
@@ -83,9 +84,9 @@ export const ProveedorAutenticacion: React.FC<Props> = ({ children }) => {
     return !!token;
   };
 
-  const actualizarUsuario = (usuarioActualizado: Usuario) => {
-    setUsuario(usuarioActualizado);
-    localStorage.setItem('usuario', JSON.stringify(usuarioActualizado));
+  const actualizarUsuario = (usuario_actualizado: Usuario) => {
+    setUsuario(usuario_actualizado);
+    localStorage.setItem('usuario', JSON.stringify(usuario_actualizado));
   };
 
   return (
