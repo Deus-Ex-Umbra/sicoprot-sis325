@@ -82,8 +82,9 @@ const GestionGrupos = () => {
     setMostrarModal(true);
   };
 
-  const abrirModalEstudiantes = (grupo: Grupo) => {
+  const abrirModalEstudiantes = async (grupo: Grupo) => {
     setGrupoSeleccionado(grupo);
+    await cargarDatos();
     setMostrarModalEstudiantes(true);
   };
 
@@ -122,7 +123,8 @@ const GestionGrupos = () => {
       await asignarEstudiante(grupoSeleccionado.id, estudianteId);
       toast.success('Estudiante asignado exitosamente');
       await cargarDatos();
-      setMostrarModalEstudiantes(false);
+      const grupoActualizado = grupos.find(g => g.id === grupoSeleccionado.id);
+      if (grupoActualizado) setGrupoSeleccionado(grupoActualizado);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al asignar estudiante');
     }
@@ -130,15 +132,20 @@ const GestionGrupos = () => {
 
   const manejarRemoverEstudiante = async (estudianteId: number) => {
     if (!grupoSeleccionado) return;
+    
     if (!window.confirm('¿Está seguro de remover este estudiante del grupo?')) return;
 
     try {
       await removerEstudiante(grupoSeleccionado.id, estudianteId);
       toast.success('Estudiante removido exitosamente');
       await cargarDatos();
-      const grupoActualizado = await obtenerGrupos();
-      const grupoNuevo = grupoActualizado.find(g => g.id === grupoSeleccionado.id);
-      if (grupoNuevo) setGrupoSeleccionado(grupoNuevo);
+      const grupoActualizado = grupos.find(g => g.id === grupoSeleccionado.id);
+      if (grupoActualizado) {
+        setGrupoSeleccionado({
+          ...grupoActualizado,
+          estudiantes: grupoActualizado.estudiantes?.filter((e: any) => e.id !== estudianteId)
+        });
+      }
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al remover estudiante');
     }
@@ -342,7 +349,7 @@ const GestionGrupos = () => {
           <Row>
             <Col md={6}>
               <h6 className="text-light mb-3">Estudiantes en el Grupo</h6>
-              <ListGroup>
+              <ListGroup style={{ maxHeight: '400px', overflowY: 'auto' }}>
                 {grupoSeleccionado?.estudiantes && grupoSeleccionado.estudiantes.length > 0 ? (
                   grupoSeleccionado.estudiantes.map((estudiante: any) => (
                     <ListGroup.Item
@@ -367,7 +374,7 @@ const GestionGrupos = () => {
             </Col>
             <Col md={6}>
               <h6 className="text-light mb-3">Estudiantes Disponibles</h6>
-              <ListGroup>
+              <ListGroup style={{ maxHeight: '400px', overflowY: 'auto' }}>
                 {estudiantesSinGrupo.length > 0 ? (
                   estudiantesSinGrupo.map((estudiante: any) => (
                     <ListGroup.Item

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Row, Col, Badge, Button, Alert, ListGroup, Table } from 'react-bootstrap';
-import { FaUserPlus, FaUsers, FaChalkboardTeacher, FaCalendar, FaUserGraduate } from 'react-icons/fa';
-import { obtenerGruposDisponibles, obtenerMiGrupo, inscribirseAGrupo } from '../servicios/grupos.servicio';
+import { FaUserPlus, FaUserMinus, FaUsers, FaChalkboardTeacher, FaCalendar, FaUserGraduate } from 'react-icons/fa';
+import { obtenerGruposDisponibles, obtenerMiGrupo, inscribirseAGrupo, desinscribirseDeGrupo } from '../servicios/grupos.servicio';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { type Grupo } from '../tipos/usuario';
 import { toast } from 'react-toastify';
@@ -23,34 +23,16 @@ const InscripcionGrupos = () => {
   const cargarDatos = async () => {
     try {
       setCargando(true);
-      setError('');
       const [grupoActual, gruposDisponibles] = await Promise.all([
         obtenerMiGrupo(),
         obtenerGruposDisponibles()
       ]);
-
+      
       setMiGrupo(grupoActual);
       setGrupos(gruposDisponibles);
-
-      if (usuario && usuario.perfil && usuario.perfil.grupo !== grupoActual) {
-        const usuarioActualizado = {
-          ...usuario,
-          perfil: {
-            ...usuario.perfil,
-            grupo: grupoActual,
-          },
-        };
-        actualizarUsuario(usuarioActualizado);
-      }
-
-    } catch (err: any) {
-      if (err.response?.status === 404 && err.response?.data?.message === 'Estudiante no encontrado.') {
-        setError('Esta sección es solo para estudiantes.');
-      } else {
-        setError('Error al cargar los grupos disponibles');
-      }
-      setMiGrupo(null);
-      setGrupos([]);
+    } catch (err) {
+      console.error('Error al cargar datos:', err);
+      setError('Error al cargar los grupos disponibles');
     } finally {
       setCargando(false);
     }
@@ -58,30 +40,46 @@ const InscripcionGrupos = () => {
 
   const manejarInscripcion = async (grupoId: number) => {
     if (procesando) return;
+    
+    setProcesando(true);
+    
+    try {
+      const respuesta = await inscribirseAGrupo(grupoId);
+      toast.success('¡Te has inscrito exitosamente al grupo!');
+      
+      if (respuesta.usuario_actualizado) {
+        actualizarUsuario(respuesta.usuario_actualizado);
+      }
+      
+      await cargarDatos();
+    } catch (err: any) {
+      const mensaje = err.response?.data?.message || 'Error al inscribirse al grupo';
+      toast.error(mensaje);
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  const manejarDesinscripcion = async () => {
+    if (!miGrupo || procesando) return;
+    
+    if (!window.confirm('¿Estás seguro de que deseas desinscribirte de este grupo?')) {
+      return;
+    }
 
     setProcesando(true);
 
     try {
-      const resultado = await inscribirseAGrupo(grupoId);
-      toast.success('¡Te has inscrito exitosamente al grupo!');
-
-      setMiGrupo(resultado.grupo);
-
-      if (usuario && usuario.perfil) {
-          const usuarioActualizado = {
-              ...usuario,
-              perfil: {
-                  ...usuario.perfil,
-                  grupo: resultado.grupo,
-              },
-          };
-          actualizarUsuario(usuarioActualizado);
+      const respuesta = await desinscribirseDeGrupo(miGrupo.id);
+      toast.success('Te has desinscrito exitosamente del grupo.');
+      
+      if (respuesta.usuario_actualizado) {
+        actualizarUsuario(respuesta.usuario_actualizado);
       }
       
       await cargarDatos();
-
     } catch (err: any) {
-      const mensaje = err.response?.data?.message || 'Error al inscribirse al grupo';
+      const mensaje = err.response?.data?.message || 'Error al desinscribirse del grupo';
       toast.error(mensaje);
     } finally {
       setProcesando(false);
@@ -125,7 +123,7 @@ const InscripcionGrupos = () => {
               </Card.Header>
               <Card.Body>
                 <Row className="mb-4">
-                  <Col md={12}>
+                  <Col md={6}>
                     {miGrupo.descripcion && (
                       <div className="mb-3">
                         <h6 className="text-light">Descripción:</h6>
@@ -153,6 +151,17 @@ const InscripcionGrupos = () => {
                         </small>
                       </div>
                     )}
+                  </Col>
+                  <Col md={6} className="d-flex align-items-center justify-content-end">
+                    <Button
+                      variant="outline-danger"
+                      size="lg"
+                      onClick={manejarDesinscripcion}
+                      disabled={procesando}
+                    >
+                      <FaUserMinus className="me-2" />
+                      {procesando ? 'Procesando...' : 'Desinscribirme del Grupo'}
+                    </Button>
                   </Col>
                 </Row>
 
@@ -198,7 +207,7 @@ const InscripcionGrupos = () => {
                   </Table>
                 ) : (
                   <Alert variant="info">
-                    Aún no hay otros estudiantes inscritos en este grupo.
+                    Aún no hay estudiantes inscritos en este grupo.
                   </Alert>
                 )}
               </Card.Body>
@@ -208,14 +217,14 @@ const InscripcionGrupos = () => {
       ) : (
         <>
           <Alert variant="info" className="mb-4">
-            <strong>ℹ️ Información:</strong> Selecciona un grupo de asesoría para recibir orientación personalizada durante tu proyecto de tesis.
+            <strong>ℹ️ Información:</strong> Selecciona un grupo de asesoría para recibir orientación personalizada durante tu proyecto de tesis. 
             Una vez inscrito, podrás ver a tus compañeros de grupo.
           </Alert>
 
           <Row className="g-4">
             {grupos.map((grupo) => (
               <Col key={grupo.id} md={6} lg={4}>
-                <Card
+                <Card 
                   style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}
                   className="h-100"
                 >

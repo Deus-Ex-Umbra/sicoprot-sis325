@@ -6,6 +6,7 @@ import { GruposService } from './grupos.servicio';
 import { AsesoresModule } from '../asesores/asesores.modulo';
 import { PeriodosModule } from '../periodos/periodos.modulo';
 import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
+import { AutenticacionModule } from '../autenticacion/autenticacion.modulo';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
     AsesoresModule,
     PeriodosModule,
     EstudiantesModule,
+    AutenticacionModule,
   ],
   controllers: [GruposController],
   providers: [GruposService],

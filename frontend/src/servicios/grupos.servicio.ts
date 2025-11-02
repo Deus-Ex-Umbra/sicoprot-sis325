@@ -1,5 +1,5 @@
 import api from './api';
-import { type Grupo } from '../tipos/usuario';
+import { type Grupo, type Usuario } from '../tipos/usuario';
 
 export const obtenerGrupos = async (): Promise<Grupo[]> => {
   const { data } = await api.get('/grupos');
@@ -14,12 +14,11 @@ export const obtenerGruposDisponibles = async (): Promise<Grupo[]> => {
 export const obtenerMiGrupo = async (): Promise<Grupo | null> => {
   try {
     const { data } = await api.get('/grupos/mi-grupo');
-    return data ? data : null;
+    return data;
   } catch (error: any) {
     if (error.response?.status === 404) {
       return null;
     }
-    console.error("Error al obtener mi grupo:", error);
     throw error;
   }
 };
@@ -44,8 +43,24 @@ export const actualizarGrupo = async (id: number, grupo: any): Promise<Grupo> =>
   return data;
 };
 
-export const inscribirseAGrupo = async (grupoId: number): Promise<{ message: string; grupo: Grupo }> => {
+export interface RespuestaInscripcion {
+  message: string;
+  grupo: Grupo;
+  usuario_actualizado?: Usuario;
+}
+
+export interface RespuestaDesinscripcion {
+  message: string;
+  usuario_actualizado?: Usuario;
+}
+
+export const inscribirseAGrupo = async (grupoId: number): Promise<RespuestaInscripcion> => {
   const { data } = await api.post(`/grupos/${grupoId}/inscribirse`);
+  return data;
+};
+
+export const desinscribirseDeGrupo = async (grupoId: number): Promise<RespuestaDesinscripcion> => {
+  const { data } = await api.delete(`/grupos/${grupoId}/desinscribirse`);
   return data;
 };
 
