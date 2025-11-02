@@ -30,14 +30,15 @@ export class AdministracionService {
         if (usuario.rol === Rol.Estudiante) {
           const estudiante = await this.repositorio_estudiante.findOne({
             where: { usuario: { id: usuario.id } },
-            relations: ['grupo'],
+            relations: ['grupos', 'grupos.periodo'],
           });
           if (estudiante) {
+            const grupo_activo = estudiante.grupos?.find(g => g.periodo.activo);
             perfil = {
               id_estudiante: estudiante.id,
               nombre: estudiante.nombre,
               apellido: estudiante.apellido,
-              grupo: estudiante.grupo,
+              grupo: grupo_activo,
             };
           }
         } else if (usuario.rol === Rol.Asesor) {
@@ -67,15 +68,18 @@ export class AdministracionService {
 
   async obtenerEstudiantes() {
     return this.repositorio_estudiante.find({
-      relations: ['usuario', 'grupo', 'grupo.asesor'],
+      relations: ['usuario', 'grupos', 'grupos.asesor', 'grupos.periodo'],
     });
   }
 
   async obtenerEstudiantesSinGrupo() {
-    return this.repositorio_estudiante.find({
-      where: { grupo: IsNull() },
-      relations: ['usuario'],
-    });
+    return this.repositorio_estudiante
+      .createQueryBuilder('estudiante')
+      .leftJoinAndSelect('estudiante.usuario', 'usuario')
+      .leftJoin('estudiante.grupos', 'grupo')
+      .leftJoin('grupo.periodo', 'periodo')
+      .where('periodo.activo IS NULL')
+      .getMany();
   }
 
   async cambiarEstadoUsuario(id_usuario: number, nuevo_estado: EstadoUsuario) {
@@ -103,9 +107,7 @@ export class AdministracionService {
     });
     const total_estudiantes = await this.repositorio_estudiante.count();
     const total_asesores = await this.repositorio_asesor.count();
-    const estudiantes_sin_grupo = await this.repositorio_estudiante.count({
-      where: { grupo: IsNull() },
-    });
+    const estudiantes_sin_grupo = await this.obtenerEstudiantesSinGrupo();
 
     return {
       total_usuarios,
@@ -113,7 +115,7 @@ export class AdministracionService {
       usuarios_pendientes,
       total_estudiantes,
       total_asesores,
-      estudiantes_sin_grupo,
+      estudiantes_sin_grupo: estudiantes_sin_grupo.length,
     };
   }
 }

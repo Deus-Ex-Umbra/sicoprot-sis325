@@ -1,3 +1,5 @@
+import { EtapaProyecto } from "../enums/etapa-proyecto.enum";
+
 export interface EtapaCronograma {
     nombre: 'propuesta' | 'perfil' | 'proyecto';
     fecha_limite_entrega: Date | null;
@@ -13,5 +15,5 @@ export class CronogramaProyectoDto {
         fecha_fin: Date;
     };
     etapas: EtapaCronograma[];
-    etapa_actual: 'propuesta' | 'perfil' | 'proyecto';
+    etapa_actual: EtapaProyecto;
 }

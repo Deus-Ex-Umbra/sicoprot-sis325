@@ -1,7 +1,3 @@
-/**
- * SERVICIO: Contiene toda la lógica de negocio para gestionar observaciones.
- * Maneja creación, actualización, cambio de estados, verificación y consultas de observaciones.
- */
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Observacion } from './entidades/observacion.entidad';
@@ -32,9 +28,11 @@ export class ObservacionesService {
     private readonly repositorio_estudiante: Repository<Estudiante>,
   ) {}
 
-  // Crear una nueva observación
   async crear(id_documento: number, crear_observacion_dto: CrearObservacionDto, id_usuario: number) {
-    const documento = await this.repositorio_documento.findOneBy({ id: id_documento });
+    const documento = await this.repositorio_documento.findOne({ 
+      where: { id: id_documento },
+      relations: ['proyecto'] 
+    });
     if (!documento) {
       throw new NotFoundException(`Documento con ID '${id_documento}' no encontrado.`);
     }
@@ -52,12 +50,12 @@ export class ObservacionesService {
       documento,
       autor: asesor,
       version_observada: documento.version,
+      etapa_observada: documento.proyecto.etapa_actual,
     });
 
     return this.repositorio_observacion.save(nueva_observacion);
   }
 
-  // Obtener observaciones de un documento
   async obtenerPorDocumento(id_documento: number, incluir_archivadas: boolean = false) {
     const condiciones: any = { documento: { id: id_documento } };
     
@@ -72,7 +70,6 @@ export class ObservacionesService {
     });
   }
 
-  // Actualizar una observación
   async actualizar(id: number, actualizar_observacion_dto: ActualizarObservacionDto, id_usuario: number) {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id },
@@ -95,7 +92,6 @@ export class ObservacionesService {
     return this.repositorio_observacion.save(observacion);
   }
 
-  // Archivar (borrado suave)
   async archivar(id: number, id_usuario: number) {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id },
@@ -118,7 +114,6 @@ export class ObservacionesService {
     return this.repositorio_observacion.save(observacion);
   }
 
-  // Restaurar una observación archivada
   async restaurar(id: number, id_usuario: number) {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id, archivada: true },
@@ -141,7 +136,6 @@ export class ObservacionesService {
     return this.repositorio_observacion.save(observacion);
   }
 
-  // ✅ HISTORIA DE USUARIO: Cambiar estado de observación y notificar al estudiante
   async cambiarEstado(
     id: number, 
     id_usuario: number, 
@@ -156,17 +150,14 @@ export class ObservacionesService {
       throw new NotFoundException(`Observación con ID '${id}' no encontrada.`);
     }
 
-    // ✅ Validar que el nuevo estado venga definido
     if (!cambiarEstadoDto.estado) {
       throw new BadRequestException('El nuevo estado de la observación es obligatorio.');
     }
 
-    // ✅ Asignar estado inicial si no tiene uno
     if (observacion.estado === undefined) {
       observacion.estado = EstadoObservacion.PENDIENTE;
     }
 
-    // ✅ Verificar permisos del asesor
     const asesor = await this.repositorio_asesor.findOne({
       where: { usuario: { id: id_usuario } },
     });
@@ -175,10 +166,8 @@ export class ObservacionesService {
       throw new ForbiddenException('No tienes permisos para modificar esta observación.');
     }
 
-    // ✅ Validar la transición de estado
     this.validarTransicionEstado(observacion.estado, cambiarEstadoDto.estado);
 
-    // ✅ Aplicar los cambios
     observacion.estado = cambiarEstadoDto.estado;
     if (cambiarEstadoDto.comentarios_asesor) {
       observacion.comentarios_asesor = cambiarEstadoDto.comentarios_asesor;
@@ -186,7 +175,6 @@ export class ObservacionesService {
 
     const observacionActualizada = await this.repositorio_observacion.save(observacion);
 
-    // ✅ Notificar a los estudiantes
     const estudiantes = observacion.documento?.proyecto?.estudiantes || [];
     for (const estudiante of estudiantes) {
       console.log(`Notificando a estudiante ${estudiante.id}: Estado cambiado a ${cambiarEstadoDto.estado}`);
@@ -194,7 +182,6 @@ export class ObservacionesService {
 
     return observacionActualizada;
   }
-  // Listar observaciones pendientes de verificación
   async listarPendientes(id_usuario: number): Promise<Observacion[]> {
     const asesor = await this.repositorio_asesor.findOne({
       where: { usuario: { id: id_usuario } },
@@ -214,7 +201,6 @@ export class ObservacionesService {
     });
   }
 
-  // ✅ Verificar o rechazar una observación
 async verificarObservacion(
     id: number,
     dto: VerificarObservacionDto,
@@ -237,20 +223,17 @@ async verificarObservacion(
       throw new ForbiddenException('Solo el asesor que creó la observación puede verificarla.');
     }
 
-    // ✅ VALIDACIÓN CLAVE: ¿El estudiante corrigió en una versión válida?
     if (dto.nuevoEstado === EstadoObservacion.CORREGIDO) {
       if (!obs.version_corregida) {
         throw new BadRequestException('No se ha especificado en qué versión se corrigió la observación.');
       }
       
-      // Verificar que la versión de corrección sea >= versión observada
       if (obs.version_corregida < (obs.version_observada || 1)) {
         throw new BadRequestException(
           `La versión de corrección (${obs.version_corregida}) debe ser mayor o igual a la versión observada (${obs.version_observada || 1}).`
         );
       }
 
-      // Verificar que la versión de corrección no supere la versión actual del documento
       if (obs.version_corregida > obs.documento.version) {
         throw new BadRequestException(
           `La versión de corrección (${obs.version_corregida}) no puede ser mayor que la versión actual del documento (${obs.documento.version}).`
@@ -266,11 +249,10 @@ async verificarObservacion(
 
     return await this.repositorio_observacion.save(obs);
   }
-  // ============ MÉTODOS PARA CORRECCIONES ============
 
   async crearCorreccion(
     observacionId: number,
-    crearCorreccionDto: any, // Importa el DTO correcto
+    crearCorreccionDto: any,
     id_usuario: number
   ) {
     const observacion = await this.repositorio_observacion.findOne({
@@ -282,7 +264,6 @@ async verificarObservacion(
       throw new NotFoundException(`Observación con ID ${observacionId} no encontrada`);
     }
 
-    // Verificar que el usuario es estudiante del proyecto
     const esEstudiante = observacion.documento?.proyecto?.estudiantes?.some(
       est => est.usuario?.id === id_usuario
     );
@@ -291,8 +272,6 @@ async verificarObservacion(
       throw new ForbiddenException('Solo los estudiantes del proyecto pueden crear correcciones');
     }
 
-    // Aquí deberías crear la entidad Correccion en tu sistema
-    // Por ahora retorno un placeholder
     return {
       message: 'Corrección creada exitosamente',
       observacionId,
@@ -321,10 +300,6 @@ async verificarObservacion(
     if (!esEstudiante) {
       throw new ForbiddenException('Solo los estudiantes pueden marcar correcciones como completadas');
     }
-
-    // observacion.version_corregida = marcarCorreccionDto.version_corregida;
-    // observacion.estado = EstadoObservacion.CORREGIDO;
-    
 
     observacion.version_corregida = marcarCorreccionDto.version_corregida || observacion.documento.version;
     observacion.estado = EstadoObservacion.CORREGIDO;
@@ -360,8 +335,6 @@ async verificarObservacion(
     return await this.repositorio_observacion.save(observacion);
   }
 
-  // ============ MÉTODOS DE CONSULTA ============
-  // En observaciones.servicio.ts
   async obtenerObservacionesDelAsesor(id_usuario: number): Promise<Observacion[]> {
     const asesor = await this.repositorio_asesor.findOne({
       where: { usuario: { id: id_usuario } },
@@ -456,7 +429,6 @@ async verificarObservacion(
       throw new NotFoundException(`Observación con ID ${id} no encontrada`);
     }
 
-    // Verificar permisos (solo el autor o un admin puede eliminar)
     const asesor = await this.repositorio_asesor.findOne({
       where: { usuario: { id: id_usuario } }
     });
@@ -469,10 +441,8 @@ async verificarObservacion(
   }
   
   async obtenerPorEstudiante(id_usuario: number) {
-    // 1. Verificar que el usuario sea un estudiante
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario } },
-      // relations: ['usuario'],
       relations: ['proyecto'],
     });
 
@@ -481,7 +451,7 @@ async verificarObservacion(
     }
     
     if (!estudiante.proyecto) {
-      return []; // ✅ Sin proyecto = sin observaciones
+      return [];
     }
 
     return this.repositorio_observacion.find({
@@ -504,7 +474,6 @@ async verificarObservacion(
     });
   }
 
-  // Validar transiciones de estado permitidas
   private validarTransicionEstado(estadoActual: EstadoObservacion, nuevoEstado: EstadoObservacion): void {
     const transicionesValidas: { [key in EstadoObservacion]: EstadoObservacion[] } = {
       [EstadoObservacion.PENDIENTE]

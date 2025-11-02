@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany, ManyToOne, ManyToMany, JoinTable } from 'typeorm';
 import { Usuario } from '../../usuarios/entidades/usuario.entidad';
 import { Proyecto } from '../../proyectos/entidades/proyecto.endidad';
 import { Grupo } from '../../grupos/entidades/grupo.entidad';
@@ -19,13 +19,16 @@ export class Estudiante {
   @JoinColumn({ name: 'id_usuario' })
   usuario: Usuario;
 
-  @ManyToOne(() => Grupo, (grupo) => grupo.estudiantes, { nullable: true })
-  grupo: Grupo;
+  @ManyToMany(() => Grupo, (grupo) => grupo.estudiantes)
+  @JoinTable({
+    name: 'estudiante_grupos',
+    joinColumn: { name: 'estudiante_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'grupo_id', referencedColumnName: 'id' },
+  })
+  grupos: Grupo[];
 
-  // @OneToMany(() => Proyecto, (proyecto) => proyecto.estudiante)
-  // proyectos: Proyecto[];
   @ManyToOne(() => Proyecto, (proyecto) => proyecto.estudiantes)
-  proyecto: Proyecto; // ← singular, porque pertenece a UN proyecto
+  proyecto: Proyecto;
   
 
   @OneToMany(() => Correccion, (correccion) => correccion.estudiante)

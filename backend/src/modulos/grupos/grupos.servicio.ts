@@ -7,6 +7,8 @@ import { Periodo } from '../periodos/entidades/periodo.entidad';
 import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { CrearGrupoDto } from './dto/crear-grupo.dto';
 import { ActualizarGrupoDto } from './dto/actualizar-grupo.dto';
+import { TipoGrupo } from './enums/tipo-grupo.enum';
+import { EtapaProyecto } from '../proyectos/enums/etapa-proyecto.enum';
 
 @Injectable()
 export class GruposService {
@@ -36,6 +38,8 @@ export class GruposService {
       nombre: crear_grupo_dto.nombre,
       descripcion: crear_grupo_dto.descripcion,
       activo: crear_grupo_dto.activo ?? true,
+      tipo: crear_grupo_dto.tipo,
+      carrera: crear_grupo_dto.carrera,
       asesor,
       periodo,
     });
@@ -50,7 +54,7 @@ export class GruposService {
     });
   }
 
-  async obtenerGruposDisponibles() {
+  async obtenerGruposDisponibles(tipo?: TipoGrupo) {
     const periodo_activo = await this.repositorio_periodo.findOne({
       where: { activo: true }
     });
@@ -58,12 +62,18 @@ export class GruposService {
     if (!periodo_activo) {
       return [];
     }
+    
+    const where_query: any = {
+      periodo: { id: periodo_activo.id },
+      activo: true
+    };
+    
+    if (tipo) {
+      where_query.tipo = tipo;
+    }
 
     const grupos = await this.repositorio_grupo.find({
-      where: { 
-        periodo: { id: periodo_activo.id },
-        activo: true
-      },
+      where: where_query,
       relations: ['asesor', 'asesor.usuario', 'periodo', 'estudiantes', 'estudiantes.usuario'],
     });
 
@@ -76,18 +86,19 @@ export class GruposService {
   async obtenerGrupoDelEstudiante(id_usuario: number) {
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario } },
-      relations: ['grupo', 'grupo.asesor', 'grupo.asesor.usuario', 'grupo.periodo', 'grupo.estudiantes', 'grupo.estudiantes.usuario'],
+      relations: ['grupos', 'grupos.asesor', 'grupos.asesor.usuario', 'grupos.periodo', 'grupos.estudiantes', 'grupos.estudiantes.usuario'],
     });
 
     if (!estudiante) {
       throw new NotFoundException('Estudiante no encontrado.');
     }
 
-    if (!estudiante.grupo) {
+    if (!estudiante.grupos || estudiante.grupos.length === 0) {
       return null;
     }
 
-    return estudiante.grupo;
+    const grupo_activo = estudiante.grupos.find(g => g.periodo.activo);
+    return grupo_activo || null;
   }
 
   async obtenerPorPeriodo(id_periodo: number) {
@@ -136,6 +147,8 @@ export class GruposService {
     if (actualizar_grupo_dto.nombre !== undefined) grupo.nombre = actualizar_grupo_dto.nombre;
     if (actualizar_grupo_dto.descripcion !== undefined) grupo.descripcion = actualizar_grupo_dto.descripcion;
     if (actualizar_grupo_dto.activo !== undefined) grupo.activo = actualizar_grupo_dto.activo;
+    if (actualizar_grupo_dto.tipo !== undefined) grupo.tipo = actualizar_grupo_dto.tipo;
+    if (actualizar_grupo_dto.carrera !== undefined) grupo.carrera = actualizar_grupo_dto.carrera;
 
     return this.repositorio_grupo.save(grupo);
   }
@@ -143,7 +156,7 @@ export class GruposService {
   async asignarEstudiante(id_grupo: number, id_estudiante: number) {
     const grupo = await this.repositorio_grupo.findOne({
       where: { id: id_grupo },
-      relations: ['estudiantes'],
+      relations: ['estudiantes', 'periodo'],
     });
 
     if (!grupo) {
@@ -156,19 +169,22 @@ export class GruposService {
 
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { id: id_estudiante },
-      relations: ['grupo'],
+      relations: ['grupos', 'grupos.periodo'],
     });
 
     if (!estudiante) {
       throw new NotFoundException(`Estudiante con ID '${id_estudiante}' no encontrado.`);
     }
 
-    if (estudiante.grupo && estudiante.grupo.id !== id_grupo) {
-      throw new BadRequestException('El estudiante ya pertenece a otro grupo. Debes removerlo primero.');
+    const grupo_activo_existente = estudiante.grupos.find(g => g.periodo.activo);
+    if (grupo_activo_existente && grupo_activo_existente.id !== id_grupo) {
+      throw new BadRequestException('El estudiante ya pertenece a otro grupo activo. Debes removerlo primero.');
     }
 
-    estudiante.grupo = grupo;
-    await this.repositorio_estudiante.save(estudiante);
+    if (!estudiante.grupos.find(g => g.id === id_grupo)) {
+      estudiante.grupos.push(grupo);
+      await this.repositorio_estudiante.save(estudiante);
+    }
 
     return this.obtenerUno(id_grupo);
   }
@@ -176,7 +192,7 @@ export class GruposService {
   async inscribirEstudiante(id_grupo: number, id_usuario: number) {
     const grupo = await this.repositorio_grupo.findOne({
       where: { id: id_grupo },
-      relations: ['estudiantes', 'periodo'],
+      relations: ['estudiantes', 'periodo', 'asesor'],
     });
 
     if (!grupo) {
@@ -224,18 +240,33 @@ export class GruposService {
 
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario } },
-      relations: ['grupo'],
+      relations: ['grupos', 'grupos.periodo', 'proyecto'],
     });
 
     if (!estudiante) {
       throw new NotFoundException('Estudiante no encontrado.');
     }
 
-    if (estudiante.grupo) {
-      throw new BadRequestException('Ya estás inscrito en un grupo. Debes desinscribirte primero.');
+    const grupo_activo_existente = estudiante.grupos.find(g => g.periodo.activo);
+    if (grupo_activo_existente) {
+      throw new BadRequestException('Ya estás inscrito en un grupo activo. Debes desinscribirte primero.');
     }
 
-    estudiante.grupo = grupo;
+    if (grupo.tipo === TipoGrupo.TALLER_GRADO_II && (!estudiante.proyecto || !estudiante.proyecto.perfil_aprobado)) {
+      throw new BadRequestException('Debes tener un perfil de proyecto aprobado para inscribirte a Taller de Grado II.');
+    }
+
+    if (grupo.tipo === TipoGrupo.TALLER_GRADO_I && estudiante.proyecto) {
+        throw new BadRequestException('Ya tienes un proyecto iniciado, no puedes inscribirte a Taller de Grado I.');
+    }
+
+    estudiante.grupos.push(grupo);
+    
+    if (grupo.tipo === TipoGrupo.TALLER_GRADO_II && estudiante.proyecto) {
+        estudiante.proyecto.asesor = grupo.asesor;
+        estudiante.proyecto.etapa_actual = EtapaProyecto.PROYECTO;
+    }
+
     await this.repositorio_estudiante.save(estudiante);
 
     return {
@@ -247,31 +278,33 @@ export class GruposService {
   async desinscribirEstudiante(id_grupo: number, id_usuario: number) {
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario } },
-      relations: ['grupo', 'grupo.periodo'],
+      relations: ['grupos', 'grupos.periodo'],
     });
 
     if (!estudiante) {
       throw new NotFoundException('Estudiante no encontrado.');
     }
 
-    if (!estudiante.grupo || estudiante.grupo.id !== id_grupo) {
+    const grupo_a_eliminar = estudiante.grupos.find(g => g.id === id_grupo);
+
+    if (!grupo_a_eliminar) {
       throw new BadRequestException('No estás inscrito en este grupo.');
     }
 
     const ahora = new Date();
     ahora.setHours(0, 0, 0, 0);
 
-    const fecha_inicio = new Date(estudiante.grupo.periodo.fecha_inicio_inscripciones);
+    const fecha_inicio = new Date(grupo_a_eliminar.periodo.fecha_inicio_inscripciones);
     fecha_inicio.setHours(0, 0, 0, 0);
     
-    const fecha_fin = new Date(estudiante.grupo.periodo.fecha_fin_inscripciones);
+    const fecha_fin = new Date(grupo_a_eliminar.periodo.fecha_fin_inscripciones);
     fecha_fin.setHours(23, 59, 59, 999);
 
     if (ahora < fecha_inicio || ahora > fecha_fin) {
       throw new BadRequestException('No estás dentro del período de inscripciones para desinscribirte.');
     }
 
-    estudiante.grupo = undefined as any;
+    estudiante.grupos = estudiante.grupos.filter(g => g.id !== id_grupo);
     await this.repositorio_estudiante.save(estudiante);
 
     return {
@@ -282,18 +315,19 @@ export class GruposService {
   async removerEstudiante(id_grupo: number, id_estudiante: number) {
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { id: id_estudiante },
-      relations: ['grupo'],
+      relations: ['grupos'],
     });
 
     if (!estudiante) {
       throw new NotFoundException(`Estudiante con ID '${id_estudiante}' no encontrado.`);
     }
 
-    if (!estudiante.grupo || estudiante.grupo.id !== id_grupo) {
+    const grupo_encontrado = estudiante.grupos.some(g => g.id === id_grupo);
+    if (!grupo_encontrado) {
       throw new BadRequestException('El estudiante no pertenece a este grupo.');
     }
 
-    estudiante.grupo = undefined as any;
+    estudiante.grupos = estudiante.grupos.filter(g => g.id !== id_grupo);
     await this.repositorio_estudiante.save(estudiante);
 
     return this.obtenerUno(id_grupo);

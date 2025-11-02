@@ -7,8 +7,8 @@ import { JwtGuard } from '../autenticacion/guards/jwt.guard';
 import { AprobarEtapaDto } from './dto/aprobar-etapa.dto';
 import { AccionTemaDto } from './dto/accion-tema.dto';
 import { BuscarProyectosDto } from './dto/buscar-proyectos.dto';
-import { ApiQuery } from '@nestjs/swagger'; // ← Agrega este
-import { EtapaProyecto } from './enums/etapa-proyecto.enum'; // ← Agrega este
+import { ApiQuery } from '@nestjs/swagger'; 
+import { EtapaProyecto } from './enums/etapa-proyecto.enum'; 
 @ApiTags('proyectos')
 @ApiBearerAuth()
 @UseGuards(JwtGuard)
@@ -93,11 +93,14 @@ export class ProyectosController {
   @ApiQuery({ name: 'periodoId', required: false, type: String })
   @ApiQuery({ name: 'etapa', required: false, enum: EtapaProyecto })
   @ApiQuery({ name: 'soloAprobados', required: false, type: Boolean })
+  @ApiQuery({ name: 'anio', required: false, type: String })
+  @ApiQuery({ name: 'carrera', required: false, type: String })
+  @ApiQuery({ name: 'asesorId', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Resultados de la búsqueda' })
   async buscarProyectos(
     @Query() buscarDto: BuscarProyectosDto,
     @Request() req
   ) {
-    return this.servicio_proyectos.buscarProyectos(buscarDto, req.user.id_usuario);
+    return this.servicio_proyectos.buscarProyectos(buscarDto, req.user.id_usuario, req.user.rol);
   }
 }

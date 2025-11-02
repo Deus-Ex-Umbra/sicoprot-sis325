@@ -13,9 +13,9 @@ export class BuscarProyectosDto {
     termino?: string;
 
     @ApiProperty({
-        description: 'Filtrar por período académico',
+        description: 'Filtrar por ID de período académico',
         required: false,
-        example: 1
+        example: "1"
     })
     @IsOptional()
     @IsString()
@@ -38,6 +38,33 @@ export class BuscarProyectosDto {
     })
     @IsOptional()
     soloAprobados?: boolean;
+
+    @ApiProperty({
+        description: 'Filtrar por año de creación',
+        required: false,
+        example: "2024"
+    })
+    @IsOptional()
+    @IsString()
+    anio?: string;
+
+    @ApiProperty({
+        description: 'Filtrar por carrera (busca coincidencias parciales)',
+        required: false,
+        example: 'software'
+    })
+    @IsOptional()
+    @IsString()
+    carrera?: string;
+
+    @ApiProperty({
+        description: 'Filtrar por ID de asesor',
+        required: false,
+        example: "1"
+    })
+    @IsOptional()
+    @IsString()
+    asesorId?: string;
 }
 
 export class ResultadoBusqueda {
@@ -46,6 +73,7 @@ export class ResultadoBusqueda {
     resumen?: string;
     palabras_clave: string[];
     autor: string;
+    asesor: string;
     fecha_creacion: Date;
     etapa_actual: EtapaProyecto;
     proyecto_aprobado: boolean;

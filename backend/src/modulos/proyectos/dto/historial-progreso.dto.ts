@@ -1,3 +1,5 @@
+import { EtapaProyecto } from "../enums/etapa-proyecto.enum";
+
 export class AvanceHistorial {
     etapa: 'propuesta' | 'perfil' | 'proyecto';
     estado: 'pendiente' | 'aprobado' | 'rechazado';
@@ -9,6 +11,7 @@ export class RevisionHistorial {
     id: number;
     titulo: string;
     estado: 'pendiente' | 'corregido' | 'rechazado';
+    etapa_observada: EtapaProyecto;
     fecha_creacion: Date;
     fecha_verificacion?: Date;
     documento: string;

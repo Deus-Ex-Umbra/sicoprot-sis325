@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Proyecto } from './entidades/proyecto.endidad';
 import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
 import { AsesoresModule } from '../asesores/asesores.modulo';
+import { GruposModule } from '../grupos/grupos.modulo';
+import { PeriodosModule } from '../periodos/periodos.modulo';
 
 
 import { EtapaProyecto } from './enums/etapa-proyecto.enum';
@@ -13,6 +15,8 @@ import { EtapaProyecto } from './enums/etapa-proyecto.enum';
     TypeOrmModule.forFeature([Proyecto]),
     EstudiantesModule,
     AsesoresModule,
+    GruposModule,
+    PeriodosModule,
   ],
   controllers: [ProyectosController],
   providers: [ProyectosService],

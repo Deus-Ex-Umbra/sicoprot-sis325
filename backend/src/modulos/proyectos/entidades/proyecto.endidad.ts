@@ -15,20 +15,14 @@ export class Proyecto {
   @CreateDateColumn({ name: 'fecha_creacion' })
   fecha_creacion: Date;
 
-  // @ManyToOne(() => Estudiante, (estudiante) => estudiante.proyectos, { eager: true })
-  // estudiante: Estudiante;
-  
   @OneToMany(() => Estudiante, (estudiante) => estudiante.proyecto)
-  estudiantes: Estudiante[]; // ← plural, porque tiene MUCHOS estudiantes
+  estudiantes: Estudiante[]; 
 
   @ManyToOne(() => Asesor, (asesor) => asesor.proyectos_asesorados, { eager: true })
   asesor: Asesor;
-
-  // @OneToMany(() => Documento, (documento) => documento.proyecto)
-  // documentos: Documento[];
   
   @OneToMany(() => Documento, (documento) => documento.proyecto)
-  documentos: Documento[]; // Inversa
+  documentos: Documento[];
 
   @Column({ type: 'enum', enum: EtapaProyecto, default: EtapaProyecto.PROPUESTA })
   etapa_actual: EtapaProyecto;
@@ -65,4 +59,16 @@ export class Proyecto {
 
   @Column({ type: 'simple-array', nullable: true })
   palabras_clave: string[] = [];
+
+  @Column({ type: 'boolean', default: false })
+  listo_para_defender: boolean;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  ruta_memorial: string;
+
+  @Column({ type: 'text', nullable: true })
+  comentarios_defensa: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  tribunales: { nombre: string; correo: string }[];
 }
