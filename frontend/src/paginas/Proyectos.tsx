@@ -1,35 +1,56 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Table, Badge, Alert, Modal, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEye, FaFileUpload, FaInfoCircle } from 'react-icons/fa';
+import { Plus, Eye, FileUp, Info, Loader2 } from 'lucide-react';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
-import { obtenerProyectos, crearProyecto } from '../servicios/proyectos.servicio';
+import { proyectosApi } from '../servicios/api';
 import { type Proyecto, Rol } from '../tipos/usuario';
 import Cabecera from '../componentes/Cabecera';
 import BarraLateral from '../componentes/BarraLateral';
 import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
 import { cn } from '../lib/utilidades';
+import { Card, CardContent } from '../componentes/ui/card';
+import { Button } from '../componentes/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../componentes/ui/table';
+import { Badge } from '../componentes/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '../componentes/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '../componentes/ui/dialog';
+import { Input } from '../componentes/ui/input';
+import { Label } from '../componentes/ui/label';
 
 const Proyectos = () => {
-  const [proyectos, setProyectos] = useState<Proyecto[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [nuevoProyecto, setNuevoProyecto] = useState({
+  const [proyectos, set_proyectos] = useState<Proyecto[]>([]);
+  const [cargando, set_cargando] = useState(true);
+  const [error, set_error] = useState('');
+  const [mostrar_modal, set_mostrar_modal] = useState(false);
+  const [nuevo_proyecto, set_nuevo_proyecto] = useState({
     titulo: '',
   });
 
   const { usuario } = useAutenticacion();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebar_open, set_sidebar_open] = useState(true);
 
-  const esEstudiante = usuario?.rol === Rol.Estudiante;
+  const es_estudiante = usuario?.rol === Rol.Estudiante;
   const es_admin = usuario?.rol === Rol.Administrador;
-  const tieneGrupo = !!(esEstudiante && usuario?.perfil?.grupo);
+  const tiene_grupo = !!(es_estudiante && usuario?.perfil?.grupo);
   const grupo = usuario?.perfil?.grupo;
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    set_sidebar_open(!sidebar_open);
   };
 
   useEffect(() => {
@@ -38,203 +59,201 @@ const Proyectos = () => {
 
   const cargarProyectos = async () => {
     try {
-      setCargando(true);
-      const data = await obtenerProyectos();
-      setProyectos(data);
+      set_cargando(true);
+      const data = await proyectosApi.obtenerTodos();
+      set_proyectos(data);
     } catch (err: any) {
-      setError('Error al cargar los proyectos');
+      set_error('Error al cargar los proyectos');
     } finally {
-      setCargando(false);
+      set_cargando(false);
     }
   };
 
   const manejarCrearProyecto = async () => {
-    if (!nuevoProyecto.titulo) {
-      setError('El título del proyecto es obligatorio');
+    if (!nuevo_proyecto.titulo) {
+      set_error('El título del proyecto es obligatorio');
       return;
     }
 
-    if (!tieneGrupo || !grupo?.asesor) {
-        setError('Debes estar inscrito en un grupo con un asesor asignado para crear un proyecto');
-        return;
+    if (!tiene_grupo || !grupo?.asesor) {
+      set_error('Debes estar inscrito en un grupo con un asesor asignado para crear un proyecto');
+      return;
     }
 
-
     try {
-      await crearProyecto(nuevoProyecto);
-      setMostrarModal(false);
+      await proyectosApi.crear(nuevo_proyecto);
+      set_mostrar_modal(false);
       await cargarProyectos();
-      setNuevoProyecto({ titulo: '' });
+      set_nuevo_proyecto({ titulo: '' });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al crear el proyecto');
+      set_error(err.response?.data?.message || 'Error al crear el proyecto');
     }
   };
 
   const abrirModalCrear = () => {
-    if (!tieneGrupo || !grupo?.asesor) {
-      setError('Debes inscribirte a un grupo con un asesor asignado antes de crear un proyecto');
+    if (!tiene_grupo || !grupo?.asesor) {
+      set_error('Debes inscribirte a un grupo con un asesor asignado antes de crear un proyecto');
       return;
     }
-    setError('');
-    setNuevoProyecto({ titulo: '' });
-    setMostrarModal(true);
+    set_error('');
+    set_nuevo_proyecto({ titulo: '' });
+    set_mostrar_modal(true);
   };
 
-  const contenidoPagina = (
-    <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="text-light">
-          {esEstudiante ? 'Mis Proyectos' : 'Proyectos Asignados'}
-        </h2>
-        {esEstudiante && (
-          <Button
-            variant="primary"
-            onClick={abrirModalCrear}
-            disabled={!tieneGrupo || !grupo?.asesor}
-          >
-            <FaPlus className="me-2" />
-            Nuevo Proyecto
-          </Button>
-        )}
+  let contenido_pagina;
+
+  if (cargando) {
+    contenido_pagina = (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
-
-      {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
-
-      {esEstudiante && (!tieneGrupo || !grupo?.asesor) && (
-        <Alert variant="warning">
-          <FaInfoCircle className="me-2" />
-          <strong>Información:</strong> Para crear proyectos, primero debes inscribirte a un grupo de asesoría que tenga un asesor asignado.
-          El asesor de tu grupo será automáticamente asignado a tus proyectos.
-          <div className="mt-2">
+    );
+  } else {
+    contenido_pagina = (
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold tracking-tight">
+            {es_estudiante ? 'Mis Proyectos' : 'Proyectos Asignados'}
+          </h1>
+          {es_estudiante && (
             <Button
-              variant="warning"
-              size="sm"
-              onClick={() => navigate('/panel/inscripcion-grupos')}
+              onClick={abrirModalCrear}
+              disabled={!tiene_grupo || !grupo?.asesor}
             >
-              Ir a Inscripción de Grupos
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Proyecto
             </Button>
-          </div>
-        </Alert>
-      )}
+          )}
+        </div>
 
-      {proyectos.length === 0 ? (
-        <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Card.Body className="text-center py-5">
-            <p className="text-muted mb-3">
-              {esEstudiante ? 'No tienes proyectos registrados' : 'No tienes proyectos asignados'}
-            </p>
-            {esEstudiante && tieneGrupo && grupo?.asesor && (
-              <Button variant="primary" onClick={abrirModalCrear}>
-                <FaPlus className="me-2" />
-                Crear mi primer proyecto
+        {error && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
+
+        {es_estudiante && (!tiene_grupo || !grupo?.asesor) && (
+          <Alert variant="default" className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Información</AlertTitle>
+            <AlertDescription>
+              Para crear proyectos, primero debes inscribirte a un grupo que tenga un asesor asignado.
+              <Button
+                variant="link"
+                className="p-0 h-auto ml-2"
+                onClick={() => navigate('/panel/inscripcion-grupos')}
+              >
+                Ir a Inscripción de Grupos
               </Button>
-            )}
-          </Card.Body>
-        </Card>
-      ) : (
-        <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Card.Body>
-            <Table responsive hover variant="dark">
-              <thead>
-                <tr>
-                  <th>Título</th>
-                  <th>Estudiante</th>
-                  <th>Asesor</th>
-                  <th>Documentos</th>
-                  <th>Fecha de Creación</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {proyectos.map((proyecto) => (
-                  <tr key={proyecto.id}>
-                    <td>{proyecto.titulo}</td>
-                    <td>
-                      {proyecto.estudiante?.nombre} {proyecto.estudiante?.apellido}
-                    </td>
-                    <td>
-                      {proyecto.asesor?.nombre} {proyecto.asesor?.apellido}
-                    </td>
-                    <td>
-                      <Badge bg="info">{proyecto.documentos?.length || 0}</Badge>
-                    </td>
-                    <td>{new Date(proyecto.fecha_creacion).toLocaleDateString()}</td>
-                    <td>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="me-2"
-                        onClick={() => navigate(`/panel/proyecto/${proyecto.id}`)}
-                      >
-                        <FaEye className="me-1" />
-                        Ver
-                      </Button>
-                      {esEstudiante && (
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {proyectos.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-10">
+              <p className="text-muted-foreground mb-4">
+                {es_estudiante ? 'No tienes proyectos registrados' : 'No tienes proyectos asignados'}
+              </p>
+              {es_estudiante && tiene_grupo && grupo?.asesor && (
+                <Button onClick={abrirModalCrear}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Crear mi primer proyecto
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="pt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Título</TableHead>
+                    <TableHead>Estudiante</TableHead>
+                    <TableHead>Asesor</TableHead>
+                    <TableHead>Documentos</TableHead>
+                    <TableHead>Fecha de Creación</TableHead>
+                    <TableHead>Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {proyectos.map((proyecto) => (
+                    <TableRow key={proyecto.id}>
+                      <TableCell className="font-medium">{proyecto.titulo}</TableCell>
+                      <TableCell>
+                        {proyecto.estudiante?.nombre} {proyecto.estudiante?.apellido}
+                      </TableCell>
+                      <TableCell>
+                        {proyecto.asesor?.nombre} {proyecto.asesor?.apellido}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{proyecto.documentos?.length || 0}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(proyecto.fecha_creacion).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="flex gap-2">
                         <Button
-                          variant="outline-success"
+                          variant="outline"
                           size="sm"
                           onClick={() => navigate(`/panel/proyecto/${proyecto.id}`)}
                         >
-                          <FaFileUpload className="me-1" />
-                          Subir Doc
+                          <Eye className="mr-1 h-4 w-4" />
+                          Ver
                         </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Card.Body>
-        </Card>
-      )}
+                        {es_estudiante && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/panel/proyecto/${proyecto.id}`)}
+                          >
+                            <FileUp className="mr-1 h-4 w-4" />
+                            Subir
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
 
-      <Modal show={mostrarModal} onHide={() => setMostrarModal(false)}>
-        <Modal.Header closeButton style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Modal.Title>Crear Nuevo Proyecto</Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          {tieneGrupo && grupo && grupo.asesor && (
-            <Alert variant="info" className="mb-3">
-              <FaInfoCircle className="me-2" />
-              <strong>Asesor asignado:</strong> {grupo.asesor.nombre} {grupo.asesor.apellido}
-              <br />
-              <small className="text-muted">
-                El asesor de tu grupo será automáticamente asignado a este proyecto.
-              </small>
-            </Alert>
-          )}
-
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Título del Proyecto</Form.Label>
-              <Form.Control
-                type="text"
-                value={nuevoProyecto.titulo}
-                onChange={(e) => setNuevoProyecto({ titulo: e.target.value })}
-                placeholder="Ingrese el título del proyecto"
-                autoFocus
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-          <Button variant="secondary" onClick={() => setMostrarModal(false)}>
-            Cancelar
-          </Button>
-          <Button variant="primary" onClick={manejarCrearProyecto}>
-            Crear Proyecto
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
-  );
-
-  if (cargando) {
-    contenidoPagina = (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
+        <Dialog open={mostrar_modal} onOpenChange={set_mostrar_modal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Crear Nuevo Proyecto</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              {tiene_grupo && grupo && grupo.asesor && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Asesor Asignado</AlertTitle>
+                  <AlertDescription>
+                    {grupo.asesor.nombre} {grupo.asesor.apellido} será asignado
+                    automáticamente a este proyecto.
+                  </AlertDescription>
+                </Alert>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="titulo">Título del Proyecto</Label>
+                <Input
+                  id="titulo"
+                  value={nuevo_proyecto.titulo}
+                  onChange={(e) => set_nuevo_proyecto({ titulo: e.target.value })}
+                  placeholder="Ingrese el título del proyecto"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancelar</Button>
+              </DialogClose>
+              <Button onClick={manejarCrearProyecto}>
+                Crear Proyecto
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -243,19 +262,19 @@ const Proyectos = () => {
     <div className="min-h-screen bg-background">
       <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
-        <BarraLateralAdmin isOpen={sidebarOpen} />
+        <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
-        <BarraLateral isOpen={sidebarOpen} />
+        <BarraLateral isOpen={sidebar_open} />
       )}
 
       <main
         className={cn(
           'transition-all duration-300 pt-14',
-          sidebarOpen ? 'ml-64' : 'ml-0'
+          sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >
         <div className="container mx-auto p-6 max-w-7xl">
-          {contenidoPagina}
+          {contenido_pagina}
         </div>
       </main>
     </div>

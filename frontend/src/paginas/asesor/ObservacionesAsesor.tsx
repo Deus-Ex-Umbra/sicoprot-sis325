@@ -1,35 +1,64 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Alert, Form, Badge } from 'react-bootstrap';
-import { 
-  obtenerObservacionesPorRevisor, 
-  actualizarObservacion 
-} from '../../servicios/observaciones.servicio';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+import { observacionesApi } from '../../servicios/api';
 import type { Observacion } from '../../tipos/observacion';
-import { toast } from 'react-toastify';
+import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../componentes/ui/table';
+import { Badge } from '../../componentes/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../componentes/ui/select';
+import Cabecera from '../../componentes/Cabecera';
+import BarraLateral from '../../componentes/BarraLateral';
+import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import { cn } from '../../lib/utilidades';
+import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
+import { Rol } from '../../tipos/usuario';
 
 const ObservacionesAsesor = () => {
-  const [observaciones, setObservaciones] = useState<Observacion[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
+  const [observaciones, set_observaciones] = useState<Observacion[]>([]);
+  const [cargando, set_cargando] = useState(true);
+  const [error, set_error] = useState('');
+  const { usuario } = useAutenticacion();
+  const [sidebar_open, set_sidebar_open] = useState(true);
+
+  const es_admin = usuario?.rol === Rol.Administrador;
+
+  const toggleSidebar = () => {
+    set_sidebar_open(!sidebar_open);
+  };
 
   useEffect(() => {
     const cargar = async () => {
       try {
-        const data = await obtenerObservacionesPorRevisor();
-        setObservaciones(data);
+        const data = await observacionesApi.obtenerMias();
+        set_observaciones(data);
       } catch (err) {
-        setError('Error al cargar observaciones');
+        set_error('Error al cargar observaciones');
       } finally {
-        setCargando(false);
+        set_cargando(false);
       }
     };
     cargar();
   }, []);
 
-  const handleEstadoChange = async (id: number, nuevoEstado: string) => {
+  const manejarCambioEstado = async (id: number, nuevoEstado: string) => {
     try {
-      await actualizarObservacion(id, { estado: nuevoEstado });
-      setObservaciones(prev =>
+      await observacionesApi.actualizar(id, { estado: nuevoEstado });
+      set_observaciones(prev =>
         prev.map(obs => (obs.id === id ? { ...obs, estado: nuevoEstado } : obs))
       );
       toast.success('Estado actualizado correctamente');
@@ -38,106 +67,144 @@ const ObservacionesAsesor = () => {
     }
   };
 
-  // Función para obtener color del badge según estado
-  const obtenerEstiloBadge = (estado: string) => {
+  const obtenerVarianteBadge = (estado: string) => {
     switch (estado) {
-      case 'PENDIENTE': return 'warning';
-      case 'CORREGIDO': return 'success';
-      case 'RECHAZADO': return 'danger';
-      default: return 'secondary';
+      case 'PENDIENTE':
+        return 'secondary';
+      case 'CORREGIDO':
+        return 'default';
+      case 'RECHAZADO':
+        return 'destructive';
+      default:
+        return 'outline';
     }
   };
 
-  if (cargando) return <div className="text-center p-5">Cargando observaciones...</div>;
-  if (error) return <Alert variant="danger">{error}</Alert>;
+  let contenido_pagina;
+
+  if (cargando) {
+    contenido_pagina = (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  } else if (error) {
+    contenido_pagina = (
+      <Alert variant="destructive">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  } else {
+    contenido_pagina = (
+      <Card>
+        <CardHeader>
+          <CardTitle>Mis Observaciones a Estudiantes</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Observaciones realizadas: {observaciones.length}
+          </p>
+        </CardHeader>
+        <CardContent>
+          {observaciones.length === 0 ? (
+            <Alert>
+              <AlertDescription>
+                No has creado observaciones todavía.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>#</TableHead>
+                  <TableHead>Proyecto</TableHead>
+                  <TableHead>Estudiante</TableHead>
+                  <TableHead>Documento</TableHead>
+                  <TableHead>Observación</TableHead>
+                  <TableHead>Página</TableHead>
+                  <TableHead>Estado Actual</TableHead>
+                  <TableHead>Cambiar Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {observaciones.map((obs) => {
+                  const proyecto = obs.documento?.proyecto;
+                  const estudiante = proyecto?.estudiantes?.[0];
+                  const nombre_estudiante = estudiante
+                    ? `${estudiante.nombre} ${estudiante.apellido}`
+                    : '—';
+                  const titulo_proyecto = proyecto?.titulo || 'Sin proyecto';
+                  const nombre_documento = obs.documento?.nombre_archivo || 'Sin documento';
+
+                  return (
+                    <TableRow key={obs.id}>
+                      <TableCell>{obs.id}</TableCell>
+                      <TableCell className="font-medium">{titulo_proyecto}</TableCell>
+                      <TableCell>{nombre_estudiante}</TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground">{nombre_documento}</span>
+                        <br />
+                        <Badge variant="outline" className="mt-1">
+                          v{obs.documento?.version || 1}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium">{obs.titulo || 'Sin título'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {obs.descripcion_corta || obs.contenido_detallado?.substring(0, 50) + '...'}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-center">{obs.pagina_inicio}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={obtenerVarianteBadge(obs.estado)}>
+                          {obs.estado}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={obs.estado}
+                          onValueChange={(value) => manejarCambioEstado(obs.id, value)}
+                        >
+                          <SelectTrigger className="w-[160px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PENDIENTE">⏳ Pendiente</SelectItem>
+                            <SelectItem value="CORREGIDO">✅ Corregido</SelectItem>
+                            <SelectItem value="RECHAZADO">❌ Rechazado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card style={{ backgroundColor: '#1e1e2d', color: 'white' }}>
-      <Card.Header>
-        <h4>📝 Mis Observaciones a Estudiantes</h4>
-        <small className="text-muted">
-          Observaciones realizadas: {observaciones.length}
-        </small>
-      </Card.Header>
-      <Card.Body>
-        {observaciones.length === 0 ? (
-          <Alert variant="info">
-            No has creado observaciones todavía.
-          </Alert>
-        ) : (
-          <Table variant="dark" striped bordered hover responsive>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Proyecto</th>
-                <th>Estudiante</th>
-                <th>Documento</th>
-                <th>Observación</th>
-                <th>Página</th>
-                <th>Estado Actual</th>
-                <th>Cambiar Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {observaciones.map((obs) => {
-                // ✅ Acceso seguro a datos relacionados
-                const proyecto = obs.documento?.proyecto;
-                const estudiante = proyecto?.estudiantes?.[0];
-                const nombreEstudiante = estudiante 
-                  ? `${estudiante.nombre} ${estudiante.apellido}`
-                  : '—';
-                const tituloProyecto = proyecto?.titulo || 'Sin proyecto';
-                const nombreDocumento = obs.documento?.nombre_archivo || 'Sin documento';
+    <div className="min-h-screen bg-background">
+      <Cabecera toggleSidebar={toggleSidebar} />
+      {es_admin ? (
+        <BarraLateralAdmin isOpen={sidebar_open} />
+      ) : (
+        <BarraLateral isOpen={sidebar_open} />
+      )}
 
-                return (
-                  <tr key={obs.id}>
-                    <td>#{obs.id}</td>
-                    <td>
-                      <strong>{tituloProyecto}</strong>
-                    </td>
-                    <td>{nombreEstudiante}</td>
-                    <td>
-                      <small className="text-muted">{nombreDocumento}</small>
-                      <br />
-                      <Badge bg="secondary" className="mt-1">
-                        v{obs.documento?.version || 1}
-                      </Badge>
-                    </td>
-                    <td>
-                      <strong>{obs.titulo || 'Sin título'}</strong>
-                      <br />
-                      <small className="text-muted">
-                        {obs.descripcion_corta || obs.contenido_detallado?.substring(0, 50) + '...'}
-                      </small>
-                    </td>
-                    <td className="text-center">
-                      {obs.pagina_inicio}
-                    </td>
-                    <td className="text-center">
-                      <Badge bg={obtenerEstiloBadge(obs.estado)}>
-                        {obs.estado}
-                      </Badge>
-                    </td>
-                    <td>
-                      <Form.Select
-                        value={obs.estado}
-                        onChange={(e) => handleEstadoChange(obs.id, e.target.value)}
-                        size="sm"
-                        style={{ minWidth: '140px' }}
-                      >
-                        <option value="PENDIENTE">⏳ Pendiente</option>
-                        <option value="CORREGIDO">✅ Corregido</option>
-                        <option value="RECHAZADO">❌ Rechazado</option>
-                      </Form.Select>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
+      <main
+        className={cn(
+          'transition-all duration-300 pt-14',
+          sidebar_open ? 'ml-64' : 'ml-0'
         )}
-      </Card.Body>
-    </Card>
+      >
+        <div className="container mx-auto p-6 max-w-7xl">
+          {contenido_pagina}
+        </div>
+      </main>
+    </div>
   );
 };
 
