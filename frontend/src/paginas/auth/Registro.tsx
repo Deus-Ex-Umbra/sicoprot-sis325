@@ -13,51 +13,51 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const Registro = () => {
   const navigate = useNavigate();
   
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [correo, setCorreo] = useState('');
-  const [rol, setRol] = useState<Rol>(Rol.Estudiante);
-  const [contrasena, setContrasena] = useState('');
-  const [confirmarContrasena, setConfirmarContrasena] = useState('');
-  const [error, setError] = useState('');
-  const [cargando, setCargando] = useState(false);
-  const [exito, setExito] = useState(false);
+  const [nombre, set_nombre] = useState('');
+  const [apellido, set_apellido] = useState('');
+  const [correo, set_correo] = useState('');
+  const [rol, set_rol] = useState<Rol>(Rol.Estudiante);
+  const [contrasena, set_contrasena] = useState('');
+  const [confirmar_contrasena, set_confirmar_contrasena] = useState('');
+  const [error, set_error] = useState('');
+  const [cargando, set_cargando] = useState(false);
+  const [exito, set_exito] = useState(false);
 
   const manejarSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    set_error('');
 
-    if (!nombre || !apellido || !correo || !contrasena || !confirmarContrasena) {
-      setError('Todos los campos son obligatorios.');
+    if (!nombre || !apellido || !correo || !contrasena || !confirmar_contrasena) {
+      set_error('Todos los campos son obligatorios.');
       return;
     }
 
     if (contrasena.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.');
+      set_error('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
 
-    if (contrasena !== confirmarContrasena) {
-      setError('Las contraseñas no coinciden.');
+    if (contrasena !== confirmar_contrasena) {
+      set_error('Las contraseñas no coinciden.');
       return;
     }
 
-    setCargando(true);
+    set_cargando(true);
 
     try {
       await solicitudesRegistroApi.crear({ nombre, apellido, correo, contrasena, rol });
-      setExito(true);
+      set_exito(true);
       setTimeout(() => {
         navigate('/iniciar-sesion');
       }, 3000);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al procesar la solicitud.');
+      set_error(err.response?.data?.message || 'Error al procesar la solicitud.');
     } finally {
-      setCargando(false);
+      set_cargando(false);
     }
   };
 
-  const contenidoExito = (
+  const contenido_exito = (
     <Card>
       <CardHeader>
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
@@ -84,7 +84,7 @@ const Registro = () => {
     </Card>
   );
 
-  const contenidoFormulario = (
+  const contenido_formulario = (
     <Card>
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">Solicitar Acceso</CardTitle>
@@ -110,7 +110,7 @@ const Registro = () => {
                   type="text"
                   placeholder="Juan"
                   value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
+                  onChange={(e) => set_nombre(e.target.value)}
                   disabled={cargando}
                   className="pl-10"
                 />
@@ -126,7 +126,7 @@ const Registro = () => {
                   type="text"
                   placeholder="Pérez"
                   value={apellido}
-                  onChange={(e) => setApellido(e.target.value)}
+                  onChange={(e) => set_apellido(e.target.value)}
                   disabled={cargando}
                   className="pl-10"
                 />
@@ -143,7 +143,7 @@ const Registro = () => {
                 type="email"
                 placeholder="tu@correo.com"
                 value={correo}
-                onChange={(e) => setCorreo(e.target.value)}
+                onChange={(e) => set_correo(e.target.value)}
                 disabled={cargando}
                 className="pl-10"
               />
@@ -152,7 +152,7 @@ const Registro = () => {
           
           <div className="space-y-2">
             <Label htmlFor="rol">Rol</Label>
-            <Select value={rol} onValueChange={(value) => setRol(value as Rol)} disabled={cargando}>
+            <Select value={rol} onValueChange={(value) => set_rol(value as Rol)} disabled={cargando}>
               <SelectTrigger id="rol">
                 <SelectValue placeholder="Selecciona tu rol" />
               </SelectTrigger>
@@ -173,7 +173,7 @@ const Registro = () => {
                   type="password"
                   placeholder="Mínimo 8 caracteres"
                   value={contrasena}
-                  onChange={(e) => setContrasena(e.target.value)}
+                  onChange={(e) => set_contrasena(e.target.value)}
                   disabled={cargando}
                   className="pl-10"
                 />
@@ -188,8 +188,8 @@ const Registro = () => {
                   id="confirmar"
                   type="password"
                   placeholder="Repetir contraseña"
-                  value={confirmarContrasena}
-                  onChange={(e) => setConfirmarContrasena(e.target.value)}
+                  value={confirmar_contrasena}
+                  onChange={(e) => set_confirmar_contrasena(e.target.value)}
                   disabled={cargando}
                   className="pl-10"
                 />
@@ -295,7 +295,7 @@ const Registro = () => {
             </p>
           </div>
           
-          {exito ? contenidoExito : contenidoFormulario}
+          {exito ? contenido_exito : contenido_formulario}
         </div>
       </div>
     </div>
