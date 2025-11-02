@@ -27,11 +27,8 @@ const NavItem = ({ to, icon, label, end = false }: NavItemProps) => {
       end={end}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
-          'hover:bg-accent hover:text-accent-foreground',
-          isActive
-            ? 'bg-accent text-accent-foreground'
-            : 'text-muted-foreground'
+          'sidebar-nav-item',
+          isActive && 'active'
         )
       }
     >
@@ -45,41 +42,39 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] w-64 border-r bg-background transition-transform duration-300',
+        'fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] w-64 sidebar-desktop smooth-transition',
         isOpen ? 'translate-x-0' : '-translate-x-full'
       )}
     >
       <ScrollArea className="h-full py-4">
         <div className="space-y-4 px-3">
           <div className="space-y-1">
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Administración
-            </p>
+            <p className="sidebar-section-title">Administración</p>
             <nav className="space-y-1">
               <NavItem
                 to="/panel/admin"
                 end
-                icon={<LayoutDashboard className="h-4 w-4" />}
+                icon={<LayoutDashboard />}
                 label="Panel"
               />
               <NavItem
                 to="/panel/admin/usuarios"
-                icon={<Users className="h-4 w-4" />}
+                icon={<Users />}
                 label="Usuarios"
               />
               <NavItem
                 to="/panel/admin/solicitudes"
-                icon={<UserCog className="h-4 w-4" />}
+                icon={<UserCog />}
                 label="Solicitudes"
               />
               <NavItem
                 to="/panel/admin/periodos"
-                icon={<Calendar className="h-4 w-4" />}
+                icon={<Calendar />}
                 label="Períodos"
               />
               <NavItem
                 to="/panel/admin/grupos"
-                icon={<LayersIcon className="h-4 w-4" />}
+                icon={<LayersIcon />}
                 label="Grupos"
               />
             </nav>

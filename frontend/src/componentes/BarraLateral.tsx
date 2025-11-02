@@ -33,11 +33,8 @@ const NavItem = ({ to, icon, label, end = false }: NavItemProps) => {
       end={end}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
-          'hover:bg-accent hover:text-accent-foreground',
-          isActive
-            ? 'bg-accent text-accent-foreground'
-            : 'text-muted-foreground'
+          'sidebar-nav-item',
+          isActive && 'active'
         )
       }
     >
@@ -56,26 +53,24 @@ const BarraLateral = ({ isOpen }: BarraLateralProps) => {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] w-64 border-r bg-background transition-transform duration-300',
+        'fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] w-64 sidebar-desktop smooth-transition',
         isOpen ? 'translate-x-0' : '-translate-x-full'
       )}
     >
       <ScrollArea className="h-full py-4">
         <div className="space-y-4 px-3">
           <div className="space-y-1">
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Principal
-            </p>
+            <p className="sidebar-section-title">Principal</p>
             <nav className="space-y-1">
               <NavItem
                 to="/panel"
                 end
-                icon={<Home className="h-4 w-4" />}
+                icon={<Home />}
                 label="Inicio"
               />
               <NavItem
                 to="/panel/proyectos"
-                icon={<FolderKanban className="h-4 w-4" />}
+                icon={<FolderKanban />}
                 label="Proyectos"
               />
             </nav>
@@ -85,23 +80,21 @@ const BarraLateral = ({ isOpen }: BarraLateralProps) => {
             <>
               <Separator />
               <div className="space-y-1">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Estudiante
-                </p>
+                <p className="sidebar-section-title">Estudiante</p>
                 <nav className="space-y-1">
                   <NavItem
                     to="/panel/inscripcion-grupos"
-                    icon={<Users className="h-4 w-4" />}
+                    icon={<Users />}
                     label="Grupos"
                   />
                   <NavItem
                     to="/panel/mis-documentos"
-                    icon={<FileText className="h-4 w-4" />}
+                    icon={<FileText />}
                     label="Mis Documentos"
                   />
                   <NavItem
                     to="/panel/observaciones"
-                    icon={<MessageSquare className="h-4 w-4" />}
+                    icon={<MessageSquare />}
                     label="Observaciones"
                   />
                 </nav>
@@ -113,23 +106,21 @@ const BarraLateral = ({ isOpen }: BarraLateralProps) => {
             <>
               <Separator />
               <div className="space-y-1">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Asesor
-                </p>
+                <p className="sidebar-section-title">Asesor</p>
                 <nav className="space-y-1">
                   <NavItem
                     to="/panel/estudiantes"
-                    icon={<GraduationCap className="h-4 w-4" />}
+                    icon={<GraduationCap />}
                     label="Mis Estudiantes"
                   />
                   <NavItem
                     to="/panel/gestion-observaciones"
-                    icon={<ClipboardList className="h-4 w-4" />}
+                    icon={<ClipboardList />}
                     label="Observaciones"
                   />
                   <NavItem
                     to="/panel/revisar"
-                    icon={<BookOpen className="h-4 w-4" />}
+                    icon={<BookOpen />}
                     label="Revisar Documentos"
                   />
                 </nav>
