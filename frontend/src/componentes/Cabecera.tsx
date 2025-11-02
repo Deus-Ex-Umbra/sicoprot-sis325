@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Menu, User, Settings, LogOut, Users, ChevronDown } from 'lucide-react';
+import { Menu, Settings, LogOut, Users, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
