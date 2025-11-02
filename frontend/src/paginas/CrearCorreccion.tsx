@@ -1,16 +1,31 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Button, Form, Alert, Row, Col, Badge } from 'react-bootstrap';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { FaArrowLeft, FaArrowRight, FaPlus, FaMinus, FaSave } from 'react-icons/fa';
-import { crearCorreccion } from '../servicios/correcciones.servicio';
-import { obtenerProyectoPorId } from '../servicios/proyectos.servicio';
-import { obtenerObservacionesPorProyecto } from '../servicios/observaciones.servicio';
-import { type Proyecto, type Documento, type Observacion } from '../tipos/usuario';
-import api from '../servicios/api';
-import { toast } from 'react-toastify';
+import { ArrowLeft, ArrowRight, Plus, Minus, Save, Loader2 } from 'lucide-react';
+import { correccionesApi, proyectosApi, observacionesApi, api } from '../servicios/api';
+import { type Proyecto, type Documento, type Observacion, Rol } from '../tipos/usuario';
+import { toast } from 'sonner';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import Cabecera from '../componentes/Cabecera';
+import BarraLateral from '../componentes/BarraLateral';
+import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
+import { cn } from '../lib/utilidades';
+import { useAutenticacion } from '../contextos/ContextoAutenticacion';
+import { Card, CardContent, CardHeader, CardTitle } from '../componentes/ui/card';
+import { Button } from '../componentes/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '../componentes/ui/alert';
+import { Badge } from '../componentes/ui/badge';
+import { Label } from '../componentes/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../componentes/ui/select';
+import { Textarea } from '../componentes/ui/textarea';
+import { Input } from '../componentes/ui/input';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -20,47 +35,43 @@ interface Punto {
   pagina: number;
 }
 
-interface Observacion {
-  id: number;
-  pagina_inicio: number;
-  x_inicio: number;  // %
-  y_inicio: number;  // %
-  x_fin: number;     // %
-  y_fin: number;     // %
-  color: string;
-  texto?: string;    // Para tooltip
-}
-
-
 const CrearCorreccion = () => {
   const { proyectoId } = useParams<{ proyectoId: string }>();
   const navigate = useNavigate();
-  
-  const [proyecto, setProyecto] = useState<Proyecto | null>(null);
-  const [documentoSeleccionado, setDocumentoSeleccionado] = useState<Documento | null>(null);
-  const [observaciones, setObservaciones] = useState<Observacion[]>([]);
-  const [numPaginas, setNumPaginas] = useState<number | null>(null);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [escala, setEscala] = useState(1.5);
-  const [dimensionesPagina, setDimensionesPagina] = useState<{ width: number; height: number } | null>(null);
-  
-  const [puntoInicio, setPuntoInicio] = useState<Punto | null>(null);
-  const [puntoFin, setPuntoFin] = useState<Punto | null>(null);
-  const [idObservacionSeleccionada, setIdObservacionSeleccionada] = useState<number | null>(null);
-  const [descripcion, setDescripcion] = useState('');
-  const [color, setColor] = useState('#28a745');
-  
-  const [error, setError] = useState('');
-  const [cargando, setCargando] = useState(true);
-  const [guardando, setGuardando] = useState(false);
-  
-  const pageRef = useRef<HTMLDivElement>(null);
+  const { usuario } = useAutenticacion();
+  const [sidebar_open, set_sidebar_open] = useState(true);
 
-  const observacionesPendientes = observaciones.filter(obs => 
-    obs.estado === 'pendiente' && !obs.correccion
+  const [proyecto, set_proyecto] = useState<Proyecto | null>(null);
+  const [documento_seleccionado, set_documento_seleccionado] = useState<Documento | null>(null);
+  const [observaciones, set_observaciones] = useState<Observacion[]>([]);
+  const [num_paginas, set_num_paginas] = useState<number | null>(null);
+  const [pagina_actual, set_pagina_actual] = useState(1);
+  const [escala, set_escala] = useState(1.5);
+  const [dimensiones_pagina, set_dimensiones_pagina] = useState<{ width: number; height: number } | null>(null);
+
+  const [punto_inicio, set_punto_inicio] = useState<Punto | null>(null);
+  const [punto_fin, set_punto_fin] = useState<Punto | null>(null);
+  const [id_observacion_seleccionada, set_id_observacion_seleccionada] = useState<number | null>(null);
+  const [descripcion, set_descripcion] = useState('');
+  const [color, set_color] = useState('#28a745');
+
+  const [error, set_error] = useState('');
+  const [cargando, set_cargando] = useState(true);
+  const [guardando, set_guardando] = useState(false);
+
+  const page_ref = useRef<HTMLDivElement>(null);
+
+  const es_admin = usuario?.rol === Rol.Administrador;
+
+  const toggleSidebar = () => {
+    set_sidebar_open(!sidebar_open);
+  };
+
+  const observaciones_pendientes = observaciones.filter(obs =>
+    (obs as any).estado === 'pendiente' && !(obs as any).correccion
   );
 
-  const observacionSeleccionada = observaciones.find(obs => obs.id === idObservacionSeleccionada);
+  const observacion_seleccionada = observaciones.find(obs => obs.id === id_observacion_seleccionada);
 
   useEffect(() => {
     if (proyectoId) {
@@ -70,120 +81,118 @@ const CrearCorreccion = () => {
 
   const cargarDatos = async () => {
     try {
-      const [proyectoData, obsData] = await Promise.all([
-        obtenerProyectoPorId(parseInt(proyectoId!)),
-        obtenerObservacionesPorProyecto(parseInt(proyectoId!))
+      const [proyecto_data, obs_data] = await Promise.all([
+        proyectosApi.obtenerUno(parseInt(proyectoId!)),
+        observacionesApi.obtenerObservacionesPorProyecto(parseInt(proyectoId!))
       ]);
-      
-      setProyecto(proyectoData);
-      setObservaciones(obsData);
-      
-      const documentos = proyectoData.documentos?.sort((a, b) => b.version - a.version) || [];
+
+      set_proyecto(proyecto_data);
+      set_observaciones(obs_data);
+
+      const documentos = proyecto_data.documentos?.sort((a: Documento, b: Documento) => b.version - a.version) || [];
       if (documentos.length > 0) {
-        setDocumentoSeleccionado(documentos[0]);
+        set_documento_seleccionado(documentos[0]);
       }
     } catch (err) {
-      setError('Error al cargar el proyecto');
+      set_error('Error al cargar el proyecto');
     } finally {
-      setCargando(false);
+      set_cargando(false);
     }
   };
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPaginas(numPages);
+    set_num_paginas(numPages);
   };
 
   const onPageLoadSuccess = (page: any) => {
     const viewport = page.getViewport({ scale: 1 });
-    setDimensionesPagina({
+    set_dimensiones_pagina({
       width: viewport.width,
       height: viewport.height
     });
   };
 
   const manejarClickPagina = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!dimensionesPagina) return;
+    if (!dimensiones_pagina) return;
 
-    const contenedor = pageRef.current?.querySelector('.react-pdf__Page__canvas');
+    const contenedor = page_ref.current?.querySelector('.react-pdf__Page__canvas');
     if (!contenedor) return;
 
     const rect = contenedor.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    const pagina = paginaActual;
+    const pagina = pagina_actual;
 
-    if (!puntoInicio) {
-      setPuntoInicio({ x, y, pagina });
+    if (!punto_inicio) {
+      set_punto_inicio({ x, y, pagina });
     } else {
-      setPuntoFin({ x, y, pagina });
+      set_punto_fin({ x, y, pagina });
     }
   };
 
   const manejarGuardar = async () => {
-    if (!puntoInicio || !puntoFin || !descripcion || !idObservacionSeleccionada || !documentoSeleccionado) {
-      setError('Todos los campos son obligatorios y debe marcar dos puntos en el documento.');
+    if (!punto_inicio || !punto_fin || !descripcion || !id_observacion_seleccionada || !documento_seleccionado) {
+      set_error('Todos los campos son obligatorios y debe marcar dos puntos en el documento.');
       return;
     }
 
-    setGuardando(true);
-    setError('');
+    set_guardando(true);
+    set_error('');
 
     try {
-      await crearCorreccion({
-        titulo: observacionSeleccionada?.titulo,
+      await correccionesApi.crear({
+        titulo: (observacion_seleccionada as any)?.titulo,
         descripcion,
-        x_inicio: puntoInicio.x,
-        y_inicio: puntoInicio.y,
-        pagina_inicio: puntoInicio.pagina,
-        x_fin: puntoFin.x,
-        y_fin: puntoFin.y,
-        pagina_fin: puntoFin.pagina,
-        id_observacion: idObservacionSeleccionada,
-        id_documento: documentoSeleccionado.id,
+        x_inicio: punto_inicio.x,
+        y_inicio: punto_inicio.y,
+        pagina_inicio: punto_inicio.pagina,
+        x_fin: punto_fin.x,
+        y_fin: punto_fin.y,
+        pagina_fin: punto_fin.pagina,
+        id_observacion: id_observacion_seleccionada,
+        id_documento: documento_seleccionado.id,
+        version_corregida: documento_seleccionado.version,
         color
       });
 
       toast.success('Corrección creada exitosamente');
       navigate(`/panel/proyecto/${proyectoId}`);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al crear la corrección');
+      set_error(err.response?.data?.message || 'Error al crear la corrección');
       toast.error('Error al crear la corrección');
     } finally {
-      setGuardando(false);
+      set_guardando(false);
     }
   };
 
   const limpiarMarcadores = () => {
-    setPuntoInicio(null);
-    setPuntoFin(null);
+    set_punto_inicio(null);
+    set_punto_fin(null);
   };
 
   const manejarSeleccionObservacion = (obsId: number) => {
-    setIdObservacionSeleccionada(obsId);
+    set_id_observacion_seleccionada(obsId);
     const obs = observaciones.find(o => o.id === obsId);
     if (obs) {
-      setPaginaActual(obs.pagina_inicio);
+      set_pagina_actual(obs.pagina_inicio);
     }
   };
-  
-
 
   const renderizarMarcadores = () => {
-    if (!pageRef.current || !dimensionesPagina) return null;
+    if (!page_ref.current || !dimensiones_pagina) return null;
 
-    const contenedor = pageRef.current.querySelector('.react-pdf__Page__canvas');
+    const contenedor = page_ref.current.querySelector('.react-pdf__Page__canvas');
     if (!contenedor) return null;
 
     const rect = contenedor.getBoundingClientRect();
-    const elementos: React.ReactElement[] = []; // Usa React.ReactElement en lugar de JSX.Element
+    const elementos: React.ReactElement[] = [];
 
-    // Mostrar la observación seleccionada
-    if (observacionSeleccionada && 
-        observacionSeleccionada.pagina_inicio === paginaActual) {
-      const x1 = (observacionSeleccionada.x_inicio / 100) * rect.width;
-      const y1 = (observacionSeleccionada.y_inicio / 100) * rect.height;
-      const x2 = (observacionSeleccionada.x_fin / 100) * rect.width;
-      const y2 = (observacionSeleccionada.y_fin / 100) * rect.height;
+    if (observacion_seleccionada &&
+      observacion_seleccionada.pagina_inicio === pagina_actual) {
+      const x1 = (observacion_seleccionada.x_inicio / 100) * rect.width;
+      const y1 = (observacion_seleccionada.y_inicio / 100) * rect.height;
+      const x2 = (observacion_seleccionada.x_fin / 100) * rect.width;
+      const y2 = (observacion_seleccionada.y_fin / 100) * rect.height;
 
       const minX = Math.min(x1, x2);
       const maxX = Math.max(x1, x2);
@@ -193,24 +202,16 @@ const CrearCorreccion = () => {
       elementos.push(
         <svg
           key="observacion-referencia"
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-            zIndex: 5,
-          }}
+          className="absolute left-0 top-0 w-full h-full pointer-events-none z-[5]"
         >
           <rect
             x={minX}
             y={minY}
             width={maxX - minX}
             height={maxY - minY}
-            fill={observacionSeleccionada.color}
+            fill={(observacion_seleccionada as any).color}
             opacity={0.2}
-            stroke={observacionSeleccionada.color}
+            stroke={(observacion_seleccionada as any).color}
             strokeWidth={2}
             strokeDasharray="5 5"
           />
@@ -218,50 +219,38 @@ const CrearCorreccion = () => {
       );
     }
 
-    if (puntoInicio && puntoInicio.pagina === paginaActual) {
-      const x = (puntoInicio.x / 100) * rect.width;
-      const y = (puntoInicio.y / 100) * rect.height;
-      
+    if (punto_inicio && punto_inicio.pagina === pagina_actual) {
+      const x = (punto_inicio.x / 100) * rect.width;
+      const y = (punto_inicio.y / 100) * rect.height;
+
       elementos.push(
-        <div 
-          key="start-marker" 
-          style={{ 
-            position: 'absolute', 
-            left: `${x}px`, 
-            top: `${y}px`, 
-            width: '16px', 
-            height: '16px', 
-            backgroundColor: color, 
-            borderRadius: '50%', 
-            border: '3px solid white',
+        <div
+          key="start-marker"
+          className="absolute w-4 h-4 rounded-full border-2 border-white shadow-lg z-[100]"
+          style={{
+            left: `${x}px`,
+            top: `${y}px`,
+            backgroundColor: color,
             transform: 'translate(-50%, -50%)',
-            boxShadow: '0 0 10px rgba(0,0,0,0.5)',
-            zIndex: 100
-          }} 
+          }}
         />
       );
     }
 
-    if (puntoFin && puntoFin.pagina === paginaActual) {
-      const x = (puntoFin.x / 100) * rect.width;
-      const y = (puntoFin.y / 100) * rect.height;
-      
+    if (punto_fin && punto_fin.pagina === pagina_actual) {
+      const x = (punto_fin.x / 100) * rect.width;
+      const y = (punto_fin.y / 100) * rect.height;
+
       elementos.push(
-        <div 
-          key="end-marker" 
-          style={{ 
-            position: 'absolute', 
-            left: `${x}px`, 
-            top: `${y}px`, 
-            width: '16px', 
-            height: '16px', 
-            backgroundColor: color, 
-            borderRadius: '50%', 
-            border: '3px solid white',
+        <div
+          key="end-marker"
+          className="absolute w-4 h-4 rounded-full border-2 border-white shadow-lg z-[100]"
+          style={{
+            left: `${x}px`,
+            top: `${y}px`,
+            backgroundColor: color,
             transform: 'translate(-50%, -50%)',
-            boxShadow: '0 0 10px rgba(0,0,0,0.5)',
-            zIndex: 100
-          }} 
+          }}
         />
       );
     }
@@ -269,261 +258,252 @@ const CrearCorreccion = () => {
     return elementos;
   };
 
-  
+  let contenido_pagina;
+
   if (cargando) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
+    contenido_pagina = (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (!proyecto || !documentoSeleccionado) {
-    return (
-      <Alert variant="danger">
-        No se pudo cargar el proyecto o no tiene documentos
+  } else if (!proyecto || !documento_seleccionado) {
+    contenido_pagina = (
+      <Alert variant="destructive">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          No se pudo cargar el proyecto o no tiene documentos
+        </AlertDescription>
       </Alert>
     );
-  }
-
-  if (observacionesPendientes.length === 0) {
-    return (
-      <div>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div className="d-flex align-items-center">
-            <Button 
-              variant="outline-secondary" 
-              className="me-3"
-              onClick={() => navigate(`/panel/proyecto/${proyectoId}`)}
-            >
-              <FaArrowLeft className="me-2" />
-              Volver
-            </Button>
-            <h2 className="text-light mb-0">Crear Corrección</h2>
-          </div>
-        </div>
-        <Alert variant="info">
+  } else if (observaciones_pendientes.length === 0) {
+    contenido_pagina = (
+      <Alert>
+        <AlertTitle>Información</AlertTitle>
+        <AlertDescription>
           No hay observaciones pendientes de corrección en este proyecto.
-        </Alert>
-      </div>
+        </AlertDescription>
+      </Alert>
     );
-  }
-
-  return (
-    <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div className="d-flex align-items-center">
-          <Button 
-            variant="outline-secondary" 
-            className="me-3"
-            onClick={() => navigate(`/panel/proyecto/${proyectoId}`)}
-          >
-            <FaArrowLeft className="me-2" />
-            Volver
-          </Button>
-          <h2 className="text-light mb-0">Crear Corrección</h2>
-        </div>
-      </div>
-
-      {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
-
-      <Row>
-        <Col md={8}>
-          <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-            <Card.Header>
-              <div className="d-flex justify-content-between align-items-center">
-                <div className="d-flex align-items-center gap-2">
-                  <Badge bg="info">
-                    Página {paginaActual} de {numPaginas || '...'}
+  } else {
+    contenido_pagina = (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="secondary">
+                    Página {pagina_actual} de {num_paginas || '...'}
                   </Badge>
-                  <Badge bg="secondary">
+                  <Badge variant="outline">
                     Zoom: {Math.round(escala * 100)}%
                   </Badge>
-                  {puntoInicio && <Badge bg="success">Punto inicio marcado</Badge>}
-                  {puntoFin && <Badge bg="success">Punto fin marcado</Badge>}
-                  {observacionSeleccionada && (
-                    <Badge 
-                      bg="warning" 
-                      text="dark"
-                      style={{ backgroundColor: observacionSeleccionada.color }}
-                    >
-                      Observación: {observacionSeleccionada.titulo}
+                  {punto_inicio && <Badge variant="default">Punto inicio marcado</Badge>}
+                  {punto_fin && <Badge variant="default">Punto fin marcado</Badge>}
+                  {observacion_seleccionada && (
+                    <Badge style={{ backgroundColor: (observacion_seleccionada as any).color }}>
+                      Observación: {(observacion_seleccionada as any).titulo}
                     </Badge>
                   )}
                 </div>
-                <div className="d-flex gap-2">
-                  <Button variant="outline-secondary" size="sm" onClick={limpiarMarcadores}>
-                    Limpiar Marcadores
-                  </Button>
-                </div>
+                <Button variant="outline" size="sm" onClick={limpiarMarcadores}>
+                  Limpiar Marcadores
+                </Button>
               </div>
-            </Card.Header>
-            <Card.Body>
-              <div className="pdf-controls mb-3">
-                <div className="d-flex gap-2">
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => setPaginaActual(p => Math.max(1, p - 1))} 
-                    disabled={paginaActual <= 1}
-                  >
-                    <FaArrowLeft />
-                  </Button>
-                  <Button variant="secondary" disabled>
-                    {paginaActual} / {numPaginas}
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => setPaginaActual(p => Math.min(numPaginas!, p + 1))} 
-                    disabled={paginaActual >= (numPaginas || 1)}
-                  >
-                    <FaArrowRight />
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => setEscala(s => Math.max(0.5, s - 0.25))}
-                    className="ms-3"
-                  >
-                    <FaMinus />
-                  </Button>
-                  <Button variant="secondary" disabled>
-                    {Math.round(escala * 100)}%
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => setEscala(s => Math.min(3, s + 0.25))}
-                  >
-                    <FaPlus />
-                  </Button>
-                </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 mb-3">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => set_pagina_actual(p => Math.max(1, p - 1))}
+                  disabled={pagina_actual <= 1}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="secondary" disabled>
+                  {pagina_actual} / {num_paginas}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => set_pagina_actual(p => Math.min(num_paginas!, p + 1))}
+                  disabled={pagina_actual >= (num_paginas || 1)}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => set_escala(s => Math.max(0.5, s - 0.25))}
+                  className="ml-auto"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Button variant="secondary" disabled>
+                  {Math.round(escala * 100)}%
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => set_escala(s => Math.min(3, s + 0.25))}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
 
-              <div 
-                ref={pageRef}
-                style={{ 
-                  position: 'relative', 
-                  display: 'inline-block',
-                  cursor: 'crosshair'
-                }}
+              <div
+                ref={page_ref}
+                className="relative inline-block cursor-crosshair"
                 onClick={manejarClickPagina}
               >
-                <Document 
-                  file={`${api.defaults.baseURL}/documentos/${documentoSeleccionado.id}/archivo`}
+                <Document
+                  file={`${api.defaults.baseURL}/documentos/${documento_seleccionado.id}/archivo`}
                   onLoadSuccess={onDocumentLoadSuccess}
                   loading={
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="visually-hidden">Cargando PDF...</span>
+                    <div className="flex justify-center items-center h-96">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   }
                 >
-                  <Page 
-                    pageNumber={paginaActual} 
-                    scale={escala} 
-                    renderTextLayer={false} 
+                  <Page
+                    pageNumber={pagina_actual}
+                    scale={escala}
+                    renderTextLayer={false}
                     renderAnnotationLayer={false}
                     onLoadSuccess={onPageLoadSuccess}
                   />
                 </Document>
-                <div 
-                  className="annotation-layer"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none'
-                  }}
-                >
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                   {renderizarMarcadores()}
                 </div>
               </div>
-            </Card.Body>
+            </CardContent>
           </Card>
-        </Col>
+        </div>
 
-        <Col md={4}>
-          <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-            <Card.Header>
-              <h5 className="mb-0">Datos de la Corrección</h5>
-            </Card.Header>
-            <Card.Body>
-              <Form>
-                <Form.Group className="mb-3">
-                  <Form.Label>Observación a Corregir</Form.Label>
-                  <Form.Select
-                    value={idObservacionSeleccionada || ''}
-                    onChange={(e) => manejarSeleccionObservacion(parseInt(e.target.value))}
-                  >
-                    <option value="">Seleccione una observación...</option>
-                    {observacionesPendientes.map(obs => (
-                      <option key={obs.id} value={obs.id}>
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Datos de la Corrección</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+
+              <div className="space-y-2">
+                <Label htmlFor="observacion">Observación a Corregir</Label>
+                <Select
+                  value={id_observacion_seleccionada ? String(id_observacion_seleccionada) : ''}
+                  onValueChange={(value) => manejarSeleccionObservacion(parseInt(value))}
+                >
+                  <SelectTrigger id="observacion">
+                    <SelectValue placeholder="Seleccione una observación..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Seleccione una observación...</SelectItem>
+                    {observaciones_pendientes.map((obs: any) => (
+                      <SelectItem key={obs.id} value={String(obs.id)}>
                         Pág. {obs.pagina_inicio}: {obs.titulo}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </Form.Select>
-                  {observacionSeleccionada && (
-                    <Form.Text className="text-muted">
-                      <strong>Título (automático):</strong> {observacionSeleccionada.titulo}
-                      <br />
-                      <strong>Contenido:</strong> {observacionSeleccionada.contenido}
-                    </Form.Text>
-                  )}
-                </Form.Group>
+                  </SelectContent>
+                </Select>
+                {observacion_seleccionada && (
+                  <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                    <p><strong>Título:</strong> {(observacion_seleccionada as any).titulo}</p>
+                    <p><strong>Contenido:</strong> {(observacion_seleccionada as any).contenido}</p>
+                  </div>
+                )}
+              </div>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Descripción de la Corrección</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={5}
-                    value={descripcion}
-                    onChange={(e) => setDescripcion(e.target.value)}
-                    placeholder="Describa qué corrección realizó..."
-                  />
-                </Form.Group>
+              <div className="space-y-2">
+                <Label htmlFor="descripcion">Descripción de la Corrección</Label>
+                <Textarea
+                  id="descripcion"
+                  value={descripcion}
+                  onChange={(e) => set_descripcion(e.target.value)}
+                  placeholder="Describa qué corrección realizó..."
+                  rows={5}
+                />
+              </div>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Color</Form.Label>
-                  <Form.Control
-                    type="color"
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                  />
-                </Form.Group>
+              <div className="space-y-2">
+                <Label htmlFor="color">Color</Label>
+                <Input
+                  id="color"
+                  type="color"
+                  value={color}
+                  onChange={(e) => set_color(e.target.value)}
+                  className="w-full"
+                />
+              </div>
 
-                <Alert variant="info" className="small">
-                  <strong>Instrucciones:</strong>
-                  <ol className="mb-0 mt-2">
+              <Alert>
+                <AlertTitle>Instrucciones</AlertTitle>
+                <AlertDescription>
+                  <ol className="list-decimal list-inside space-y-1">
                     <li>Seleccione la observación que está corrigiendo</li>
                     <li>Haga clic en el documento para marcar el inicio de su corrección</li>
                     <li>Haga clic nuevamente para marcar el final</li>
                     <li>Describa la corrección realizada</li>
                     <li>Guarde la corrección</li>
                   </ol>
-                </Alert>
+                </AlertDescription>
+              </Alert>
 
-                <div className="d-grid gap-2">
-                  <Button
-                    variant="success"
-                    onClick={manejarGuardar}
-                    disabled={guardando || !puntoInicio || !puntoFin || !descripcion || !idObservacionSeleccionada}
-                  >
-                    <FaSave className="me-2" />
-                    {guardando ? 'Guardando...' : 'Guardar Corrección'}
-                  </Button>
-                  <Button
-                    variant="outline-secondary"
-                    onClick={() => navigate(`/panel/proyecto/${proyectoId}`)}
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </Form>
-            </Card.Body>
+              <div className="space-y-2">
+                <Button
+                  className="w-full"
+                  onClick={manejarGuardar}
+                  disabled={guardando || !punto_inicio || !punto_fin || !descripcion || !id_observacion_seleccionada}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {guardando ? 'Guardando...' : 'Guardar Corrección'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate(`/panel/proyecto/${proyectoId}`)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
           </Card>
-        </Col>
-      </Row>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Cabecera toggleSidebar={toggleSidebar} />
+      {es_admin ? (
+        <BarraLateralAdmin isOpen={sidebar_open} />
+      ) : (
+        <BarraLateral isOpen={sidebar_open} />
+      )}
+
+      <main
+        className={cn(
+          'transition-all duration-300 pt-14',
+          sidebar_open ? 'ml-64' : 'ml-0'
+        )}
+      >
+        <div className="container mx-auto p-6 max-w-7xl">
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(`/panel/proyecto/${proyectoId}`)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-3xl font-bold tracking-tight">Crear Corrección</h1>
+          </div>
+          {contenido_pagina}
+        </div>
+      </main>
     </div>
   );
 };

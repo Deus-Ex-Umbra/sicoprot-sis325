@@ -1,71 +1,143 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { obtenerProyectos } from '../servicios/proyectos.servicio';
-import { type Proyecto } from '../tipos/usuario';
+import { Loader2 } from 'lucide-react';
+import { proyectosApi } from '../../servicios/api';
+import { type Proyecto, Rol } from '../../tipos/usuario';
+import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../componentes/ui/table';
+import { Badge } from '../../componentes/ui/badge';
+import { Button } from '../../componentes/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
+import Cabecera from '../../componentes/Cabecera';
+import BarraLateral from '../../componentes/BarraLateral';
+import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import { cn } from '../../lib/utilidades';
+import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
 
 const RevisarDocumentos = () => {
-  const [proyectos, setProyectos] = useState<Proyecto[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
+  const [proyectos, set_proyectos] = useState<Proyecto[]>([]);
+  const [cargando, set_cargando] = useState(true);
+  const [error, set_error] = useState('');
   const navigate = useNavigate();
+  const { usuario } = useAutenticacion();
+  const [sidebar_open, set_sidebar_open] = useState(true);
+
+  const es_admin = usuario?.rol === Rol.Administrador;
+
+  const toggleSidebar = () => {
+    set_sidebar_open(!sidebar_open);
+  };
 
   useEffect(() => {
     const cargarProyectos = async () => {
       try {
-        const data = await obtenerProyectos();
-        setProyectos(data.filter(p => p.documentos && p.documentos.length > 0));
+        const data = await proyectosApi.obtenerTodos();
+        set_proyectos(data.filter((p: Proyecto) => p.documentos && p.documentos.length > 0));
       } catch (err) {
-        setError('No se pudo cargar la lista de documentos a revisar.');
+        set_error('No se pudo cargar la lista de documentos a revisar.');
       } finally {
-        setCargando(false);
+        set_cargando(false);
       }
     };
     cargarProyectos();
   }, []);
 
-  if (cargando) return <p>Cargando documentos...</p>;
-  if (error) return <Alert variant="danger">{error}</Alert>;
+  let contenido_pagina;
+
+  if (cargando) {
+    contenido_pagina = (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  } else if (error) {
+    contenido_pagina = (
+      <Alert variant="destructive">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  } else {
+    contenido_pagina = (
+      <Card>
+        <CardHeader>
+          <CardTitle>Revisar Documentos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Proyecto</TableHead>
+                <TableHead>Estudiante</TableHead>
+                <TableHead>Última Versión</TableHead>
+                <TableHead>Fecha de Subida</TableHead>
+                <TableHead>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {proyectos.map((proyecto) => {
+                const ultimo_documento = proyecto.documentos?.[0];
+                return (
+                  <TableRow key={proyecto.id}>
+                    <TableCell className="font-medium">{proyecto.titulo}</TableCell>
+                    <TableCell>{proyecto.estudiante?.nombre} {proyecto.estudiante?.apellido}</TableCell>
+                    <TableCell>
+                      <Badge variant="default">Versión {ultimo_documento?.version}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {ultimo_documento ? new Date(ultimo_documento.fecha_subida).toLocaleDateString() : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => navigate(`/panel/proyecto/${proyecto.id}`)}
+                      >
+                        Revisar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          {proyectos.length === 0 && (
+            <p className="text-muted-foreground text-center py-10">
+              No hay documentos pendientes de revisión.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-      <Card.Header>
-        <h2 className="text-light">Revisar Documentos</h2>
-      </Card.Header>
-      <Card.Body>
-        <Table responsive hover variant="dark">
-          <thead>
-            <tr>
-              <th>Proyecto</th>
-              <th>Estudiante</th>
-              <th>Última Versión</th>
-              <th>Fecha de Subida</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {proyectos.map((proyecto) => {
-              const ultimoDocumento = proyecto.documentos?.[0];
-              return (
-                <tr key={proyecto.id}>
-                  <td>{proyecto.titulo}</td>
-                  <td>{proyecto.estudiante?.nombre} {proyecto.estudiante?.apellido}</td>
-                  <td>
-                    <Badge bg="primary">Versión {ultimoDocumento?.version}</Badge>
-                  </td>
-                  <td>{ultimoDocumento ? new Date(ultimoDocumento.fecha_subida).toLocaleDateString() : 'N/A'}</td>
-                  <td>
-                    <Button variant="primary" size="sm" onClick={() => navigate(`/panel/proyecto/${proyecto.id}`)}>
-                      Revisar
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </Table>
-      </Card.Body>
-    </Card>
+    <div className="min-h-screen bg-background">
+      <Cabecera toggleSidebar={toggleSidebar} />
+      {es_admin ? (
+        <BarraLateralAdmin isOpen={sidebar_open} />
+      ) : (
+        <BarraLateral isOpen={sidebar_open} />
+      )}
+
+      <main
+        className={cn(
+          'transition-all duration-300 pt-14',
+          sidebar_open ? 'ml-64' : 'ml-0'
+        )}
+      >
+        <div className="container mx-auto p-6 max-w-7xl">
+          {contenido_pagina}
+        </div>
+      </main>
+    </div>
   );
 };
 

@@ -1,19 +1,23 @@
 import { useState } from 'react';
-import { Card, Form, Button, Alert, Row, Col } from 'react-bootstrap';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
-import { actualizarPerfil } from '../servicios/perfil.servicio';
-import { toast } from 'react-toastify';
-import { FaUser, FaEnvelope, FaLock, FaSave } from 'react-icons/fa';
+import { usuariosApi } from '../servicios/api';
+import { toast } from 'sonner';
+import { User, Mail, Lock, Save, Loader2 } from 'lucide-react';
 import Cabecera from '../componentes/Cabecera';
 import BarraLateral from '../componentes/BarraLateral';
 import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
 import { cn } from '../lib/utilidades';
 import { Rol } from '../tipos/usuario';
+import { Card, CardContent, CardHeader, CardTitle } from '../componentes/ui/card';
+import { Button } from '../componentes/ui/button';
+import { Alert, AlertDescription } from '../componentes/ui/alert';
+import { Input } from '../componentes/ui/input';
+import { Label } from '../componentes/ui/label';
 
 const Perfil = () => {
   const { usuario, actualizarUsuario } = useAutenticacion();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [formData, setFormData] = useState({
+  const [sidebar_open, set_sidebar_open] = useState(true);
+  const [form_data, set_form_data] = useState({
     nombre: usuario?.perfil?.nombre || '',
     apellido: usuario?.perfil?.apellido || '',
     correo: usuario?.correo || '',
@@ -21,75 +25,75 @@ const Perfil = () => {
     contrasena_nueva: '',
     confirmar_contrasena: '',
   });
-  const [error, setError] = useState('');
-  const [guardando, setGuardando] = useState(false);
+  const [error, set_error] = useState('');
+  const [guardando, set_guardando] = useState(false);
 
   const es_admin = usuario?.rol === Rol.Administrador;
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    set_sidebar_open(!sidebar_open);
   };
 
   const manejarSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    set_error('');
 
-    if (formData.contrasena_nueva && formData.contrasena_nueva !== formData.confirmar_contrasena) {
-      setError('Las contraseñas nuevas no coinciden.');
+    if (form_data.contrasena_nueva && form_data.contrasena_nueva !== form_data.confirmar_contrasena) {
+      set_error('Las contraseñas nuevas no coinciden.');
       return;
     }
 
-    if (formData.contrasena_nueva && formData.contrasena_nueva.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.');
+    if (form_data.contrasena_nueva && form_data.contrasena_nueva.length < 8) {
+      set_error('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
 
-    setGuardando(true);
+    set_guardando(true);
 
     try {
       const datos_actualizacion: any = {};
 
-      if (formData.correo !== usuario?.correo) {
-        datos_actualizacion.correo = formData.correo;
+      if (form_data.correo !== usuario?.correo) {
+        datos_actualizacion.correo = form_data.correo;
       }
 
-      if (formData.nombre !== usuario?.perfil?.nombre) {
-        datos_actualizacion.nombre = formData.nombre;
+      if (form_data.nombre !== usuario?.perfil?.nombre) {
+        datos_actualizacion.nombre = form_data.nombre;
       }
 
-      if (formData.apellido !== usuario?.perfil?.apellido) {
-        datos_actualizacion.apellido = formData.apellido;
+      if (form_data.apellido !== usuario?.perfil?.apellido) {
+        datos_actualizacion.apellido = form_data.apellido;
       }
 
-      if (formData.contrasena_nueva) {
-        datos_actualizacion.contrasena_actual = formData.contrasena_actual;
-        datos_actualizacion.contrasena_nueva = formData.contrasena_nueva;
+      if (form_data.contrasena_nueva) {
+        datos_actualizacion.contrasena_actual = form_data.contrasena_actual;
+        datos_actualizacion.contrasena_nueva = form_data.contrasena_nueva;
       }
 
       if (Object.keys(datos_actualizacion).length === 0) {
-        setError('No hay cambios para guardar.');
-        setGuardando(false);
+        set_error('No hay cambios para guardar.');
+        set_guardando(false);
         return;
       }
 
-      const usuario_actualizado = await actualizarPerfil(datos_actualizacion);
-      
+      const usuario_actualizado = await usuariosApi.actualizarPerfil(datos_actualizacion);
+
       actualizarUsuario(usuario_actualizado);
-      
+
       toast.success('Perfil actualizado exitosamente');
-      
-      setFormData({
-        ...formData,
+
+      set_form_data({
+        ...form_data,
         contrasena_actual: '',
         contrasena_nueva: '',
         confirmar_contrasena: '',
       });
-      
+
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al actualizar el perfil');
+      set_error(err.response?.data?.message || 'Error al actualizar el perfil');
       toast.error('Error al actualizar el perfil');
     } finally {
-      setGuardando(false);
+      set_guardando(false);
     }
   };
 
@@ -97,156 +101,153 @@ const Perfil = () => {
     <div className="min-h-screen bg-background">
       <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
-        <BarraLateralAdmin isOpen={sidebarOpen} />
+        <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
-        <BarraLateral isOpen={sidebarOpen} />
+        <BarraLateral isOpen={sidebar_open} />
       )}
 
       <main
         className={cn(
           'transition-all duration-300 pt-14',
-          sidebarOpen ? 'ml-64' : 'ml-0'
+          sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >
         <div className="container mx-auto p-6 max-w-7xl">
-          <div>
-            <h2 className="text-light mb-4">Mi Perfil</h2>
+          <h1 className="text-3xl font-bold tracking-tight mb-6">Mi Perfil</h1>
 
-            <Row>
-              <Col lg={8}>
-                <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-                  <Card.Body>
-                    {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Card>
+                <CardContent className="pt-6">
+                  {error && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
 
-                    <Form onSubmit={manejarSubmit}>
-                      <h5 className="text-light mb-3">
-                        <FaUser className="me-2" />
+                  <form onSubmit={manejarSubmit} className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium flex items-center gap-2">
+                        <User className="h-5 w-5" />
                         Información Personal
-                      </h5>
-
-                      {usuario?.perfil && (
-                        <Row>
-                          <Col md={6}>
-                            <Form.Group className="mb-3">
-                              <Form.Label className="text-light">Nombre</Form.Label>
-                              <Form.Control
-                                type="text"
-                                value={formData.nombre}
-                                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                                style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                              />
-                            </Form.Group>
-                          </Col>
-                          <Col md={6}>
-                            <Form.Group className="mb-3">
-                              <Form.Label className="text-light">Apellido</Form.Label>
-                              <Form.Control
-                                type="text"
-                                value={formData.apellido}
-                                onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
-                                style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                              />
-                            </Form.Group>
-                          </Col>
-                        </Row>
-                      )}
-
-                      <h5 className="text-light mb-3 mt-4">
-                        <FaEnvelope className="me-2" />
-                        Credenciales de Acceso
-                      </h5>
-
-                      <Form.Group className="mb-3">
-                        <Form.Label className="text-light">Correo Electrónico</Form.Label>
-                        <Form.Control
-                          type="email"
-                          value={formData.correo}
-                          onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
-                          style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                        />
-                      </Form.Group>
-
-                      <h5 className="text-light mb-3 mt-4">
-                        <FaLock className="me-2" />
-                        Cambiar Contraseña
-                      </h5>
-
-                      <Form.Group className="mb-3">
-                        <Form.Label className="text-light">Contraseña Actual</Form.Label>
-                        <Form.Control
-                          type="password"
-                          value={formData.contrasena_actual}
-                          onChange={(e) => setFormData({ ...formData, contrasena_actual: e.target.value })}
-                          placeholder="Dejar vacío para no cambiar contraseña"
-                          style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                        />
-                      </Form.Group>
-
-                      <Row>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label className="text-light">Nueva Contraseña</Form.Label>
-                            <Form.Control
-                              type="password"
-                              value={formData.contrasena_nueva}
-                              onChange={(e) => setFormData({ ...formData, contrasena_nueva: e.target.value })}
-                              placeholder="Mínimo 8 caracteres"
-                              style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                            />
-                          </Form.Group>
-                        </Col>
-                        <Col md={6}>
-                          <Form.Group className="mb-3">
-                            <Form.Label className="text-light">Confirmar Nueva Contraseña</Form.Label>
-                            <Form.Control
-                              type="password"
-                              value={formData.confirmar_contrasena}
-                              onChange={(e) => setFormData({ ...formData, confirmar_contrasena: e.target.value })}
-                              placeholder="Repetir nueva contraseña"
-                              style={{ backgroundColor: 'var(--color-fondo-secundario)', color: 'var(--color-texto-principal)' }}
-                            />
-                          </Form.Group>
-                        </Col>
-                      </Row>
-
-                      <div className="d-grid gap-2 mt-4">
-                        <Button
-                          variant="primary"
-                          type="submit"
-                          disabled={guardando}
-                          size="lg"
-                        >
-                          <FaSave className="me-2" />
-                          {guardando ? 'Guardando...' : 'Guardar Cambios'}
-                        </Button>
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="nombre">Nombre</Label>
+                          <Input
+                            id="nombre"
+                            type="text"
+                            value={form_data.nombre}
+                            onChange={(e) => set_form_data({ ...form_data, nombre: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="apellido">Apellido</Label>
+                          <Input
+                            id="apellido"
+                            type="text"
+                            value={form_data.apellido}
+                            onChange={(e) => set_form_data({ ...form_data, apellido: e.target.value })}
+                          />
+                        </div>
                       </div>
-                    </Form>
-                  </Card.Body>
-                </Card>
-              </Col>
+                    </div>
 
-              <Col lg={4}>
-                <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }}>
-                  <Card.Body>
-                    <h5 className="text-light mb-3">Información de la Cuenta</h5>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Rol</small>
-                      <strong className="text-light">{usuario?.rol}</strong>
+                    <div>
+                      <h3 className="text-lg font-medium flex items-center gap-2">
+                        <Mail className="h-5 w-5" />
+                        Credenciales de Acceso
+                      </h3>
+                      <div className="mt-4 space-y-2">
+                        <Label htmlFor="correo">Correo Electrónico</Label>
+                        <Input
+                          id="correo"
+                          type="email"
+                          value={form_data.correo}
+                          onChange={(e) => set_form_data({ ...form_data, correo: e.target.value })}
+                        />
+                      </div>
                     </div>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Estado</small>
-                      <strong className="text-light">{usuario?.estado}</strong>
+
+                    <div>
+                      <h3 className="text-lg font-medium flex items-center gap-2">
+                        <Lock className="h-5 w-5" />
+                        Cambiar Contraseña
+                      </h3>
+                      <div className="mt-4 space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="contrasena_actual">Contraseña Actual</Label>
+                          <Input
+                            id="contrasena_actual"
+                            type="password"
+                            value={form_data.contrasena_actual}
+                            onChange={(e) => set_form_data({ ...form_data, contrasena_actual: e.target.value })}
+                            placeholder="Dejar vacío para no cambiar"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="contrasena_nueva">Nueva Contraseña</Label>
+                            <Input
+                              id="contrasena_nueva"
+                              type="password"
+                              value={form_data.contrasena_nueva}
+                              onChange={(e) => set_form_data({ ...form_data, contrasena_nueva: e.target.value })}
+                              placeholder="Mínimo 8 caracteres"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="confirmar_contrasena">Confirmar Nueva Contraseña</Label>
+                            <Input
+                              id="confirmar_contrasena"
+                              type="password"
+                              value={form_data.confirmar_contrasena}
+                              onChange={(e) => set_form_data({ ...form_data, confirmar_contrasena: e.target.value })}
+                              placeholder="Repetir nueva contraseña"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="mb-3">
-                      <small className="text-muted d-block">Fecha de Registro</small>
-                      <strong className="text-light">
-                        {usuario?.creado_en && new Date(usuario.creado_en).toLocaleDateString()}
-                      </strong>
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        disabled={guardando}
+                        size="lg"
+                      >
+                        {guardando ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="mr-2 h-4 w-4" />
+                        )}
+                        {guardando ? 'Guardando...' : 'Guardar Cambios'}
+                      </Button>
                     </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Información de la Cuenta</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Rol</Label>
+                    <p className="font-medium">{usuario?.rol}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Estado</Label>
+                    <p className="font-medium">{usuario?.estado}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Fecha de Registro</Label>
+                    <p className="font-medium">
+                      {usuario?.creado_en && new Date(usuario.creado_en).toLocaleDateString()}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </main>

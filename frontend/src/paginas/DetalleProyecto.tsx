@@ -1,48 +1,49 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Row, Col, Card, Button, ListGroup, Badge, Alert, Form } from 'react-bootstrap';
-import { FaArrowLeft, FaFileUpload, FaPlus } from 'react-icons/fa';
+import { ArrowLeft, FileUp, Plus, Loader2 } from 'lucide-react';
 import VisualizadorDocumento from '../componentes/visualizador-documento';
-import { obtenerProyectoPorId } from '../servicios/proyectos.servicio';
-import { subirDocumento } from '../servicios/documentos.servicio';
-import { obtenerObservacionesPorProyecto } from '../servicios/observaciones.servicio';
-import { obtenerCorreccionesPorProyecto } from '../servicios/correcciones.servicio';
+import { proyectosApi, documentosApi, observacionesApi, correccionesApi } from '../servicios/api';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { type Proyecto, type Documento, type Observacion, type Correccion, Rol } from '../tipos/usuario';
-import api from '../servicios/api';
+import { api } from '../servicios/api';
 import Cabecera from '../componentes/Cabecera';
 import BarraLateral from '../componentes/BarraLateral';
 import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
 import { cn } from '../lib/utilidades';
+import { Button } from '../componentes/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../componentes/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '../componentes/ui/alert';
+import { Input } from '../componentes/ui/input';
+import { Label } from '../componentes/ui/label';
 
 const DetalleProyecto = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { usuario } = useAutenticacion();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  
-  const [proyecto, setProyecto] = useState<Proyecto | null>(null);
-  const [documentos, setDocumentos] = useState<Documento[]>([]);
-  const [documentoSeleccionado, setDocumentoSeleccionado] = useState<Documento | null>(null);
-  const [observaciones, setObservaciones] = useState<Observacion[]>([]);
-  const [correcciones, setCorrecciones] = useState<Correccion[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
-  const [archivo, setArchivo] = useState<File | null>(null);
-  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
-  const [observacionSeleccionada, setObservacionSeleccionada] = useState<number | null>(null);
-  const [correccionSeleccionada, setCorreccionSeleccionada] = useState<number | null>(null);
-  
-  const esEstudiante = usuario?.rol === Rol.Estudiante;
-  const esAsesor = usuario?.rol === Rol.Asesor;
+  const [sidebar_open, set_sidebar_open] = useState(true);
+
+  const [proyecto, set_proyecto] = useState<Proyecto | null>(null);
+  const [documentos, set_documentos] = useState<Documento[]>([]);
+  const [documento_seleccionado, set_documento_seleccionado] = useState<Documento | null>(null);
+  const [observaciones, set_observaciones] = useState<Observacion[]>([]);
+  const [correcciones, set_correcciones] = useState<Correccion[]>([]);
+  const [cargando, set_cargando] = useState(true);
+  const [error, set_error] = useState('');
+  const [archivo, set_archivo] = useState<File | null>(null);
+  const [subiendo_archivo, set_subiendo_archivo] = useState(false);
+  const [observacion_seleccionada, set_observacion_seleccionada] = useState<number | null>(null);
+  const [correccion_seleccionada, set_correccion_seleccionada] = useState<number | null>(null);
+
+  const es_estudiante = usuario?.rol === Rol.Estudiante;
+  const es_asesor = usuario?.rol === Rol.Asesor;
   const es_admin = usuario?.rol === Rol.Administrador;
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    set_sidebar_open(!sidebar_open);
   };
 
-  const observacionesPendientes = observaciones.filter(obs => 
-    obs.estado === 'pendiente' && !obs.correccion
+  const observaciones_pendientes = observaciones.filter(obs =>
+    (obs as any).estado === 'pendiente' && !(obs as any).correccion
   );
 
   useEffect(() => {
@@ -53,214 +54,211 @@ const DetalleProyecto = () => {
 
   const cargarDatos = async () => {
     try {
-      setCargando(true);
-      const proyectoData = await obtenerProyectoPorId(parseInt(id!));
-      setProyecto(proyectoData);
-      
-      const documentosData = proyectoData.documentos?.sort((a, b) => b.version - a.version) || [];
-      setDocumentos(documentosData);
-      
-      if (documentosData.length > 0) {
-        setDocumentoSeleccionado(documentosData[0]);
+      set_cargando(true);
+      const proyecto_data = await proyectosApi.obtenerUno(parseInt(id!));
+      set_proyecto(proyecto_data);
+
+      const documentos_data = proyecto_data.documentos?.sort((a: Documento, b: Documento) => b.version - a.version) || [];
+      set_documentos(documentos_data);
+
+      if (documentos_data.length > 0) {
+        set_documento_seleccionado(documentos_data[0]);
       }
 
-      const [obsData, corrData] = await Promise.all([
-        obtenerObservacionesPorProyecto(parseInt(id!)),
-        obtenerCorreccionesPorProyecto(parseInt(id!)),
+      const [obs_data, corr_data] = await Promise.all([
+        observacionesApi.obtenerObservacionesPorProyecto(parseInt(id!)),
+        correccionesApi.obtenerPorProyecto(parseInt(id!)),
       ]);
-      setObservaciones(obsData);
-      setCorrecciones(corrData);
+      set_observaciones(obs_data);
+      set_correcciones(corr_data);
     } catch (err: any) {
       console.error('Error al cargar datos:', err);
-      setError('Error al cargar el proyecto');
+      set_error('Error al cargar el proyecto');
     } finally {
-      setCargando(false);
+      set_cargando(false);
     }
   };
 
   const manejarSubidaArchivo = async () => {
     if (!archivo || !proyecto) return;
 
-    setSubiendoArchivo(true);
-    setError('');
+    set_subiendo_archivo(true);
+    set_error('');
 
     try {
-      const formData = new FormData();
-      formData.append('archivo', archivo);
-      
-      await subirDocumento(proyecto.id, formData);
-      
+      const form_data = new FormData();
+      form_data.append('archivo', archivo);
+
+      await documentosApi.subirDocumento(proyecto.id, form_data);
+
       await cargarDatos();
-      setArchivo(null);
+      set_archivo(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al subir el documento');
+      set_error(err.response?.data?.message || 'Error al subir el documento');
     } finally {
-      setSubiendoArchivo(false);
+      set_subiendo_archivo(false);
     }
   };
 
-  const observacionesDelDocumento = documentoSeleccionado
-    ? observaciones.filter(obs => (obs as any).documento.id === documentoSeleccionado.id)
+  const observaciones_del_documento = documento_seleccionado
+    ? observaciones.filter(obs => (obs as any).documento.id === documento_seleccionado.id)
     : [];
 
-  const correccionesDelDocumento = documentoSeleccionado
-    ? correcciones.filter(corr => (corr as any).documento.id === documentoSeleccionado.id)
+  const correcciones_del_documento = documento_seleccionado
+    ? correcciones.filter(corr => (corr as any).documento.id === documento_seleccionado.id)
     : [];
 
-  let contenidoPagina;
+  let contenido_pagina;
 
   if (cargando) {
-    contenidoPagina = (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
+    contenido_pagina = (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   } else if (!proyecto) {
-    contenidoPagina = (
-      <Alert variant="danger">
-        Proyecto no encontrado
-        <Button variant="link" onClick={() => navigate('/panel/proyectos')}>
-          Volver a proyectos
-        </Button>
+    contenido_pagina = (
+      <Alert variant="destructive">
+        <AlertTitle>Proyecto no encontrado</AlertTitle>
+        <AlertDescription>
+          <Button variant="link" onClick={() => navigate('/panel/proyectos')}>
+            Volver a proyectos
+          </Button>
+        </AlertDescription>
       </Alert>
     );
   } else {
-    contenidoPagina = (
+    contenido_pagina = (
       <div>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div className="d-flex align-items-center">
-            <Button 
-              variant="outline-secondary" 
-              className="me-3"
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => navigate('/panel/proyectos')}
             >
-              <FaArrowLeft className="me-2" />
-              Volver
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h2 className="text-light mb-0">{proyecto.titulo}</h2>
+            <h1 className="text-3xl font-bold tracking-tight">{proyecto.titulo}</h1>
           </div>
-          <div className="d-flex gap-2">
-            {esAsesor && documentos.length > 0 && (
+          <div className="flex gap-2">
+            {es_asesor && documentos.length > 0 && (
               <Button
-                variant="warning"
+                variant="default"
                 onClick={() => navigate(`/panel/proyecto/${id}/crear-observacion`)}
               >
-                <FaPlus className="me-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 Nueva Observación
               </Button>
             )}
-            {esEstudiante && observacionesPendientes.length > 0 && (
+            {es_estudiante && observaciones_pendientes.length > 0 && (
               <Button
-                variant="success"
+                variant="default"
                 onClick={() => navigate(`/panel/proyecto/${id}/crear-correccion`)}
               >
-                <FaPlus className="me-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 Nueva Corrección
               </Button>
             )}
           </div>
         </div>
 
-        {error && <Alert variant="danger" onClose={() => setError('')} dismissible>{error}</Alert>}
+        {error && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
 
-        <Row>
-          <Col md={3}>
-            <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)' }} className="mb-3">
-              <Card.Header>
-                <h5 className="mb-0">Documentos</h5>
-              </Card.Header>
-              <Card.Body>
-                {esEstudiante && (
-                  <div className="mb-3">
-                    <Form.Group className="mb-2">
-                      <Form.Label htmlFor="file-upload" className="btn btn-outline-primary w-100">
-                        Seleccionar Archivo
-                      </Form.Label>
-                      <Form.Control
-                        id="file-upload"
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e: any) => setArchivo(e.target.files[0])}
-                        disabled={subiendoArchivo}
-                        style={{ display: 'none' }}
-                      />
-                      {archivo && <p className="text-light mt-2 small">{archivo.name}</p>}
-                    </Form.Group>
-                    <Button 
-                      variant="success" 
-                      className="w-100"
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Documentos</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {es_estudiante && (
+                  <div className="space-y-2">
+                    <Label htmlFor="file-upload" className="cursor-pointer">
+                      Seleccionar Archivo PDF
+                    </Label>
+                    <Input
+                      id="file-upload"
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e: any) => set_archivo(e.target.files[0])}
+                      disabled={subiendo_archivo}
+                    />
+                    {archivo && <p className="text-sm text-muted-foreground">{archivo.name}</p>}
+                    <Button
+                      variant="default"
+                      className="w-full"
                       onClick={manejarSubidaArchivo}
-                      disabled={!archivo || subiendoArchivo}
+                      disabled={!archivo || subiendo_archivo}
                     >
-                      <FaFileUpload className="me-2" />
-                      {subiendoArchivo ? 'Subiendo...' : 'Subir Documento'}
+                      {subiendo_archivo ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <FileUp className="mr-2 h-4 w-4" />
+                      )}
+                      {subiendo_archivo ? 'Subiendo...' : 'Subir Documento'}
                     </Button>
                   </div>
                 )}
 
-                <ListGroup variant="flush">
+                <div className="space-y-2">
                   {documentos.map((doc) => (
-                    <ListGroup.Item
+                    <div
                       key={doc.id}
-                      active={documentoSeleccionado?.id === doc.id}
-                      action
+                      className={cn(
+                        'p-3 rounded-md border cursor-pointer transition-colors',
+                        documento_seleccionado?.id === doc.id
+                          ? 'bg-primary/10 border-primary'
+                          : 'hover:bg-accent'
+                      )}
                       onClick={() => {
-                        setDocumentoSeleccionado(doc);
-                        setObservacionSeleccionada(null);
-                        setCorreccionSeleccionada(null);
-                      }}
-                      style={{ 
-                        backgroundColor: documentoSeleccionado?.id === doc.id 
-                          ? 'var(--color-acento)' 
-                          : 'var(--color-fondo-secundario)',
-                        cursor: 'pointer'
+                        set_documento_seleccionado(doc);
+                        set_observacion_seleccionada(null);
+                        set_correccion_seleccionada(null);
                       }}
                     >
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <strong>Versión {doc.version}</strong>
-                          <br />
-                          <small>{new Date(doc.fecha_subida).toLocaleDateString()}</small>
-                        </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Versión {doc.version}</span>
                       </div>
-                    </ListGroup.Item>
+                      <small className="text-muted-foreground">
+                        {new Date(doc.fecha_subida).toLocaleDateString()}
+                      </small>
+                    </div>
                   ))}
-                </ListGroup>
+                </div>
 
                 {documentos.length === 0 && (
-                  <p className="text-muted text-center mt-3">
+                  <p className="text-muted-foreground text-center pt-4">
                     No hay documentos cargados
                   </p>
                 )}
-              </Card.Body>
+              </CardContent>
             </Card>
-          </Col>
+          </div>
 
-          <Col md={9}>
-            {documentoSeleccionado ? (
+          <div className="lg:col-span-3">
+            {documento_seleccionado ? (
               <VisualizadorDocumento
-                key={documentoSeleccionado.id}
-                url_documento={`${api.defaults.baseURL}/documentos/${documentoSeleccionado.id}/archivo`}
-                observaciones={observacionesDelDocumento}
-                correcciones={correccionesDelDocumento}
-                observacion_seleccionada={observacionSeleccionada}
-                correccion_seleccionada={correccionSeleccionada}
+                key={documento_seleccionado.id}
+                url_documento={`${api.defaults.baseURL}/documentos/${documento_seleccionado.id}/archivo`}
+                observaciones={observaciones_del_documento}
+                correcciones={correcciones_del_documento}
+                observacion_seleccionada={observacion_seleccionada}
+                correccion_seleccionada={correccion_seleccionada}
               />
             ) : (
-              <Card style={{ backgroundColor: 'var(--color-fondo-tarjeta)', height: '80vh' }}>
-                <Card.Body className="d-flex justify-content-center align-items-center">
-                  <p className="text-muted">
-                    {documentos.length === 0 
+              <Card className="h-[80vh]">
+                <CardContent className="flex justify-center items-center h-full">
+                  <p className="text-muted-foreground">
+                    {documentos.length === 0
                       ? 'No hay documentos cargados en este proyecto.'
                       : 'Seleccione un documento para visualizar.'}
                   </p>
-                </Card.Body>
+                </CardContent>
               </Card>
             )}
-          </Col>
-        </Row>
+          </div>
+        </div>
       </div>
     );
   }
@@ -269,19 +267,19 @@ const DetalleProyecto = () => {
     <div className="min-h-screen bg-background">
       <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
-        <BarraLateralAdmin isOpen={sidebarOpen} />
+        <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
-        <BarraLateral isOpen={sidebarOpen} />
+        <BarraLateral isOpen={sidebar_open} />
       )}
 
       <main
         className={cn(
           'transition-all duration-300 pt-14',
-          sidebarOpen ? 'ml-64' : 'ml-0'
+          sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >
         <div className="container mx-auto p-6 max-w-7xl">
-          {contenidoPagina}
+          {contenido_pagina}
         </div>
       </main>
     </div>

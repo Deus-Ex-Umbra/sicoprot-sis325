@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Alert, Badge, ProgressBar } from 'react-bootstrap';
-import { obtenerObservacionesPorEstudiante } from '../../servicios/observaciones.servicio';
+import { Loader2 } from 'lucide-react';
+import { observacionesApi } from '../../servicios/api';
 import type { Observacion } from '../../tipos/observacion';
 import Cabecera from '../../componentes/Cabecera';
 import BarraLateral from '../../componentes/BarraLateral';
@@ -8,48 +8,64 @@ import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
 import { cn } from '../../lib/utilidades';
 import { useAutenticacion } from '../../contextos/ContextoAutenticacion';
 import { Rol } from '../../tipos/usuario';
+import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
+import { Badge } from '../../componentes/ui/badge';
+import { Progress } from '../../componentes/ui/progress';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../componentes/ui/table';
 
 const Observaciones = () => {
-  const [observaciones, setObservaciones] = useState<Observacion[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState('');
+  const [observaciones, set_observaciones] = useState<Observacion[]>([]);
+  const [cargando, set_cargando] = useState(true);
+  const [error, set_error] = useState('');
   const { usuario } = useAutenticacion();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebar_open, set_sidebar_open] = useState(true);
 
   const es_admin = usuario?.rol === Rol.Administrador;
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    set_sidebar_open(!sidebar_open);
   };
 
   useEffect(() => {
     const cargar = async () => {
       try {
-        const data = await obtenerObservacionesPorEstudiante();
-        setObservaciones(data);
+        const data = await observacionesApi.obtenerPorEstudiante();
+        set_observaciones(data);
       } catch (err) {
-        setError('Error al cargar observaciones');
+        set_error('Error al cargar observaciones');
       } finally {
-        setCargando(false);
+        set_cargando(false);
       }
     };
     cargar();
   }, []);
 
-  const totalObservaciones = observaciones.length;
+  const total_observaciones = observaciones.length;
   const corregidas = observaciones.filter(o => o.estado === 'CORREGIDO').length;
   const pendientes = observaciones.filter(o => o.estado === 'PENDIENTE').length;
   const rechazadas = observaciones.filter(o => o.estado === 'RECHAZADO').length;
-  const porcentajeCompletado = totalObservaciones > 0 
-    ? Math.round((corregidas / totalObservaciones) * 100) 
+  const porcentaje_completado = total_observaciones > 0
+    ? Math.round((corregidas / total_observaciones) * 100)
     : 0;
 
-  const obtenerEstiloBadge = (estado: string) => {
+  const obtenerVarianteBadge = (estado: string) => {
     switch (estado) {
-      case 'PENDIENTE': return 'warning';
-      case 'CORREGIDO': return 'success';
-      case 'RECHAZADO': return 'danger';
-      default: return 'secondary';
+      case 'PENDIENTE':
+        return 'secondary';
+      case 'CORREGIDO':
+        return 'default';
+      case 'RECHAZADO':
+        return 'destructive';
+      default:
+        return 'outline';
     }
   };
 
@@ -62,118 +78,123 @@ const Observaciones = () => {
     }
   };
 
-  let contenidoPagina;
+  let contenido_pagina;
   if (cargando) {
-    contenidoPagina = <div className="text-center p-5">Cargando observaciones...</div>;
+    contenido_pagina = (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
   } else if (error) {
-    contenidoPagina = <Alert variant="danger">{error}</Alert>;
+    contenido_pagina = (
+      <Alert variant="destructive">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
   } else {
-    contenidoPagina = (
-      <div>
-        <Card style={{ backgroundColor: '#1e1e2d', color: 'white' }} className="mb-4">
-          <Card.Body>
-            <h5 className="mb-3">📊 Resumen de Observaciones</h5>
-            <div className="row text-center">
-              <div className="col-md-3">
-                <h2 className="text-warning">{pendientes}</h2>
-                <small className="text-muted">Pendientes</small>
+    contenido_pagina = (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Resumen de Observaciones</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-6">
+              <div>
+                <p className="text-3xl font-bold text-yellow-500">{pendientes}</p>
+                <p className="text-sm text-muted-foreground">Pendientes</p>
               </div>
-              <div className="col-md-3">
-                <h2 className="text-success">{corregidas}</h2>
-                <small className="text-muted">Corregidas</small>
+              <div>
+                <p className="text-3xl font-bold text-green-500">{corregidas}</p>
+                <p className="text-sm text-muted-foreground">Corregidas</p>
               </div>
-              <div className="col-md-3">
-                <h2 className="text-danger">{rechazadas}</h2>
-                <small className="text-muted">Rechazadas</small>
+              <div>
+                <p className="text-3xl font-bold text-red-500">{rechazadas}</p>
+                <p className="text-sm text-muted-foreground">Rechazadas</p>
               </div>
-              <div className="col-md-3">
-                <h2>{totalObservaciones}</h2>
-                <small className="text-muted">Total</small>
+              <div>
+                <p className="text-3xl font-bold">{total_observaciones}</p>
+                <p className="text-sm text-muted-foreground">Total</p>
               </div>
             </div>
-            
-            <div className="mt-4">
-              <div className="d-flex justify-content-between mb-2">
-                <span>Progreso de correcciones</span>
-                <span className="fw-bold">{porcentajeCompletado}%</span>
+
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">Progreso de correcciones</span>
+                <span className="text-sm font-bold">{porcentaje_completado}%</span>
               </div>
-              <ProgressBar 
-                now={porcentajeCompletado} 
-                variant={porcentajeCompletado === 100 ? 'success' : 'info'}
-                style={{ height: '20px' }}
-              />
+              <Progress value={porcentaje_completado} />
             </div>
-          </Card.Body>
+          </CardContent>
         </Card>
 
-        <Card style={{ backgroundColor: '#1e1e2d', color: 'white' }}>
-          <Card.Header>
-            <h4>📝 Mis Observaciones Recibidas</h4>
-          </Card.Header>
-          <Card.Body>
+        <Card>
+          <CardHeader>
+            <CardTitle>Mis Observaciones Recibidas</CardTitle>
+          </CardHeader>
+          <CardContent>
             {observaciones.length === 0 ? (
-              <Alert variant="info">
-                ¡Excelente! No tienes observaciones pendientes.
+              <Alert>
+                <AlertTitle>¡Excelente!</AlertTitle>
+                <AlertDescription>
+                  No tienes observaciones pendientes.
+                </AlertDescription>
               </Alert>
             ) : (
-              <Table variant="dark" striped bordered hover responsive>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Proyecto</th>
-                    <th>Asesor</th>
-                    <th>Documento</th>
-                    <th>Observación</th>
-                    <th>Página</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Proyecto</TableHead>
+                    <TableHead>Asesor</TableHead>
+                    <TableHead>Documento</TableHead>
+                    <TableHead>Observación</TableHead>
+                    <TableHead>Página</TableHead>
+                    <TableHead>Estado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {observaciones.map((obs) => {
                     const proyecto = obs.documento?.proyecto;
                     const asesor = obs.autor;
-                    const nombreAsesor = asesor 
+                    const nombre_asesor = asesor
                       ? `${asesor.nombre} ${asesor.apellido}`
                       : '—';
-                    const tituloProyecto = proyecto?.titulo || 'Sin proyecto';
-                    const nombreDocumento = obs.documento?.nombre_archivo || 'Sin documento';
+                    const titulo_proyecto = proyecto?.titulo || 'Sin proyecto';
+                    const nombre_documento = obs.documento?.nombre_archivo || 'Sin documento';
 
                     return (
-                      <tr key={obs.id}>
-                        <td>#{obs.id}</td>
-                        <td>
-                          <strong>{tituloProyecto}</strong>
-                        </td>
-                        <td>{nombreAsesor}</td>
-                        <td>
-                          <small className="text-muted">{nombreDocumento}</small>
+                      <TableRow key={obs.id}>
+                        <TableCell>{obs.id}</TableCell>
+                        <TableCell className="font-medium">{titulo_proyecto}</TableCell>
+                        <TableCell>{nombre_asesor}</TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground">{nombre_documento}</span>
                           <br />
-                          <Badge bg="secondary" className="mt-1">
+                          <Badge variant="outline" className="mt-1">
                             v{obs.documento?.version || 1}
                           </Badge>
-                        </td>
-                        <td>
-                          <strong>{obs.titulo || 'Sin título'}</strong>
-                          <br />
-                          <small className="text-muted">
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium">{obs.titulo || 'Sin título'}</p>
+                          <p className="text-xs text-muted-foreground">
                             {obs.descripcion_corta || obs.contenido_detallado?.substring(0, 50) + '...'}
-                          </small>
-                        </td>
-                        <td className="text-center">
-                          {obs.pagina_inicio}
-                        </td>
-                        <td className="text-center">
-                          <Badge bg={obtenerEstiloBadge(obs.estado)}>
+                          </p>
+                        </TableCell>
+                        <TableCell className="text-center">{obs.pagina_inicio}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={obtenerVarianteBadge(obs.estado)}>
                             {obtenerIcono(obs.estado)} {obs.estado}
                           </Badge>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
+                </TableBody>
               </Table>
             )}
-          </Card.Body>
+          </CardContent>
         </Card>
       </div>
     );
@@ -183,19 +204,19 @@ const Observaciones = () => {
     <div className="min-h-screen bg-background">
       <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
-        <BarraLateralAdmin isOpen={sidebarOpen} />
+        <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
-        <BarraLateral isOpen={sidebarOpen} />
+        <BarraLateral isOpen={sidebar_open} />
       )}
 
       <main
         className={cn(
           'transition-all duration-300 pt-14',
-          sidebarOpen ? 'ml-64' : 'ml-0'
+          sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >
         <div className="container mx-auto p-6 max-w-7xl">
-          {contenidoPagina}
+          {contenido_pagina}
         </div>
       </main>
     </div>
