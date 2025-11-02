@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { cn } from '../lib/utilidades';
 import Cabecera from '../componentes/Cabecera';
 import BarraLateral from '../componentes/BarraLateral';
 import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
@@ -7,37 +8,35 @@ import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { Rol } from '../tipos/usuario';
 
 const LayoutPanel = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebar_open, set_sidebar_open] = useState(true);
   const { usuario } = useAutenticacion();
 
-  const esAdmin = usuario?.rol === Rol.Administrador;
+  const es_admin = usuario?.rol === Rol.Administrador;
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    set_sidebar_open(!sidebar_open);
   };
 
   return (
-    <div className="wrapper">
+    <div className="min-h-screen bg-background">
       <Cabecera toggleSidebar={toggleSidebar} />
-      {esAdmin ? (
-        <BarraLateralAdmin isOpen={sidebarOpen} />
+
+      {es_admin ? (
+        <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
-        <BarraLateral isOpen={sidebarOpen} />
+        <BarraLateral isOpen={sidebar_open} />
       )}
 
-      <div 
-        className="content-wrapper" 
-        style={{ 
-          marginLeft: sidebarOpen ? '250px' : '0', 
-          transition: 'margin-left 0.3s ease' 
-        }}
+      <main
+        className={cn(
+          'transition-all duration-300 pt-14',
+          sidebar_open ? 'ml-64' : 'ml-0'
+        )}
       >
-        <section className="content">
-          <div className="container-fluid pt-3">
-            <Outlet />
-          </div>
-        </section>
-      </div>
+        <div className="container mx-auto p-6 max-w-7xl">
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 };

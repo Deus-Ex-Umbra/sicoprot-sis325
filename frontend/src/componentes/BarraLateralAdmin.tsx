@@ -1,95 +1,92 @@
-import { Nav } from 'react-bootstrap';
 import { NavLink } from 'react-router-dom';
-import { 
-  FaHome, 
-  FaUsers, 
-  FaUserClock, 
-  FaCalendarAlt,
-  FaLayerGroup
-} from 'react-icons/fa';
+import {
+  LayoutDashboard,
+  Users,
+  UserCog,
+  Calendar,
+  LayersIcon,
+} from 'lucide-react';
+import { cn } from '../lib/utilidades';
+import { ScrollArea } from './ui/scroll-area';
 
-interface Props {
+interface BarraLateralAdminProps {
   isOpen: boolean;
 }
 
-const BarraLateralAdmin: React.FC<Props> = ({ isOpen }) => {
+interface NavItemProps {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  end?: boolean;
+}
+
+const NavItem = ({ to, icon, label, end = false }: NavItemProps) => {
   return (
-    <div className={`sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`} 
-         style={{
-           position: 'fixed',
-           top: '56px',
-           left: isOpen ? 0 : '-250px',
-           width: '250px',
-           height: 'calc(100vh - 56px)',
-           backgroundColor: 'var(--color-fondo-secundario)',
-           borderRight: '1px solid var(--color-borde)',
-           transition: 'left 0.3s ease',
-           zIndex: 1000,
-           overflowY: 'auto'
-         }}>
-      <Nav className="flex-column p-3">
-        <Nav.Item className="mb-2">
-          <NavLink 
-            to="/panel/admin" 
-            end
-            className={({ isActive }) => 
-              `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-            }
-          >
-            <FaHome className="me-2" />
-            Panel de Administración
-          </NavLink>
-        </Nav.Item>
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+          'hover:bg-accent hover:text-accent-foreground',
+          isActive
+            ? 'bg-accent text-accent-foreground'
+            : 'text-muted-foreground'
+        )
+      }
+    >
+      {icon}
+      <span>{label}</span>
+    </NavLink>
+  );
+};
 
-        <Nav.Item className="mb-2">
-          <NavLink 
-            to="/panel/admin/usuarios" 
-            className={({ isActive }) => 
-              `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-            }
-          >
-            <FaUsers className="me-2" />
-            Gestión de Usuarios
-          </NavLink>
-        </Nav.Item>
-
-        <Nav.Item className="mb-2">
-          <NavLink 
-            to="/panel/admin/solicitudes" 
-            className={({ isActive }) => 
-              `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-            }
-          >
-            <FaUserClock className="me-2" />
-            Solicitudes de Registro
-          </NavLink>
-        </Nav.Item>
-
-        <Nav.Item className="mb-2">
-          <NavLink 
-            to="/panel/admin/periodos" 
-            className={({ isActive }) => 
-              `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-            }
-          >
-            <FaCalendarAlt className="me-2" />
-            Gestión de Períodos
-          </NavLink>
-        </Nav.Item>
-
-        <Nav.Item className="mb-2">
-          <NavLink 
-            to="/panel/admin/grupos" 
-            className={({ isActive }) => 
-              `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-            }
-          >
-            <FaLayerGroup className="me-2" />
-            Gestión de Grupos
-          </NavLink>
-        </Nav.Item>
-      </Nav>
-    </div>
+const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
+  return (
+    <aside
+      className={cn(
+        'fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] w-64 border-r bg-background transition-transform duration-300',
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      )}
+    >
+      <ScrollArea className="h-full py-4">
+        <div className="space-y-4 px-3">
+          <div className="space-y-1">
+            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Administración
+            </p>
+            <nav className="space-y-1">
+              <NavItem
+                to="/panel/admin"
+                end
+                icon={<LayoutDashboard className="h-4 w-4" />}
+                label="Panel"
+              />
+              <NavItem
+                to="/panel/admin/usuarios"
+                icon={<Users className="h-4 w-4" />}
+                label="Usuarios"
+              />
+              <NavItem
+                to="/panel/admin/solicitudes"
+                icon={<UserCog className="h-4 w-4" />}
+                label="Solicitudes"
+              />
+              <NavItem
+                to="/panel/admin/periodos"
+                icon={<Calendar className="h-4 w-4" />}
+                label="Períodos"
+              />
+              <NavItem
+                to="/panel/admin/grupos"
+                icon={<LayersIcon className="h-4 w-4" />}
+                label="Grupos"
+              />
+            </nav>
+          </div>
+        </div>
+      </ScrollArea>
+    </aside>
   );
 };
 

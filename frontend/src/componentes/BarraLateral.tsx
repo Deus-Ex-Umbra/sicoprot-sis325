@@ -1,163 +1,144 @@
-import { Nav } from 'react-bootstrap';
 import { NavLink } from 'react-router-dom';
+import {
+  Home,
+  FolderKanban,
+  FileText,
+  MessageSquare,
+  Users,
+  GraduationCap,
+  ClipboardList,
+  BookOpen,
+} from 'lucide-react';
+import { cn } from '../lib/utilidades';
+import { ScrollArea } from './ui/scroll-area';
+import { Separator } from './ui/separator';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { Rol } from '../tipos/usuario';
-import { 
-  FaHome, 
-  FaProjectDiagram, 
-  FaFileAlt, 
-  FaComments,
-  FaUserGraduate,
-  FaChalkboardTeacher,
-  FaClipboardList,
-  FaUsers
-} from 'react-icons/fa';
 
-interface Props {
+interface BarraLateralProps {
   isOpen: boolean;
 }
 
-const BarraLateral: React.FC<Props> = ({ isOpen }) => {
+interface NavItemProps {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  end?: boolean;
+}
+
+const NavItem = ({ to, icon, label, end = false }: NavItemProps) => {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+          'hover:bg-accent hover:text-accent-foreground',
+          isActive
+            ? 'bg-accent text-accent-foreground'
+            : 'text-muted-foreground'
+        )
+      }
+    >
+      {icon}
+      <span>{label}</span>
+    </NavLink>
+  );
+};
+
+const BarraLateral = ({ isOpen }: BarraLateralProps) => {
   const { usuario } = useAutenticacion();
 
-  const esEstudiante = usuario?.rol === Rol.Estudiante;
-  const esAsesor = usuario?.rol === Rol.Asesor;
-  const esAdmin = usuario?.rol === Rol.Administrador;
+  const es_estudiante = usuario?.rol === Rol.Estudiante;
+  const es_asesor = usuario?.rol === Rol.Asesor;
 
   return (
-    <div className={`sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`} 
-         style={{
-           position: 'fixed',
-           top: '56px',
-           left: isOpen ? 0 : '-250px',
-           width: '250px',
-           height: 'calc(100vh - 56px)',
-           backgroundColor: 'var(--color-fondo-secundario)',
-           borderRight: '1px solid var(--color-borde)',
-           transition: 'left 0.3s ease',
-           zIndex: 1000,
-           overflowY: 'auto'
-         }}>
-      <Nav className="flex-column p-3">
-        <Nav.Item className="mb-2">
-          <NavLink 
-            to="/panel" 
-            className={({ isActive }) => 
-              `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-            }
-          >
-            <FaHome className="me-2" />
-            Inicio
-          </NavLink>
-        </Nav.Item>
+    <aside
+      className={cn(
+        'fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] w-64 border-r bg-background transition-transform duration-300',
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      )}
+    >
+      <ScrollArea className="h-full py-4">
+        <div className="space-y-4 px-3">
+          <div className="space-y-1">
+            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Principal
+            </p>
+            <nav className="space-y-1">
+              <NavItem
+                to="/panel"
+                end
+                icon={<Home className="h-4 w-4" />}
+                label="Inicio"
+              />
+              <NavItem
+                to="/panel/proyectos"
+                icon={<FolderKanban className="h-4 w-4" />}
+                label="Proyectos"
+              />
+            </nav>
+          </div>
 
-        <Nav.Item className="mb-2">
-          <NavLink 
-            to="/panel/proyectos" 
-            className={({ isActive }) => 
-              `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-            }
-          >
-            <FaProjectDiagram className="me-2" />
-            Proyectos
-          </NavLink>
-        </Nav.Item>
+          {es_estudiante && (
+            <>
+              <Separator />
+              <div className="space-y-1">
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Estudiante
+                </p>
+                <nav className="space-y-1">
+                  <NavItem
+                    to="/panel/inscripcion-grupos"
+                    icon={<Users className="h-4 w-4" />}
+                    label="Grupos"
+                  />
+                  <NavItem
+                    to="/panel/mis-documentos"
+                    icon={<FileText className="h-4 w-4" />}
+                    label="Mis Documentos"
+                  />
+                  <NavItem
+                    to="/panel/observaciones"
+                    icon={<MessageSquare className="h-4 w-4" />}
+                    label="Observaciones"
+                  />
+                </nav>
+              </div>
+            </>
+          )}
 
-        {esEstudiante && (
-          <>
-            <Nav.Item className="mb-2">
-              <NavLink 
-                to="/panel/inscripcion-grupos" 
-                className={({ isActive }) => 
-                  `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-                }
-              >
-                <FaUsers className="me-2" />
-                Grupos
-              </NavLink>
-            </Nav.Item>
-
-            <Nav.Item className="mb-2">
-              <NavLink 
-                to="/panel/mis-documentos" 
-                className={({ isActive }) => 
-                  `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-                }
-              >
-                <FaFileAlt className="me-2" />
-                Mis Documentos
-              </NavLink>
-            </Nav.Item>
-
-            <Nav.Item className="mb-2">
-              <NavLink 
-                to="/panel/observaciones" 
-                className={({ isActive }) => 
-                  `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-                }
-              >
-                <FaComments className="me-2" />
-                Observaciones
-              </NavLink>
-            </Nav.Item>
-          </>
-        )}
-
-        {esAsesor && (
-          <>
-            <Nav.Item className="mb-2">
-              <NavLink 
-                to="/panel/estudiantes" 
-                className={({ isActive }) => 
-                  `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-                }
-              >
-                <FaUserGraduate className="me-2" />
-                Mis Estudiantes
-              </NavLink>
-            </Nav.Item>
-
-            <Nav.Item className="mb-2">
-              <NavLink 
-                to="/panel/gestion-observaciones" 
-                className={({ isActive }) => 
-                  `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-                }
-              >
-                <FaClipboardList className="me-2" />
-                Observaciones
-              </NavLink>
-            </Nav.Item>
-
-            <Nav.Item className="mb-2">
-              <NavLink 
-                to="/panel/revisar" 
-                className={({ isActive }) => 
-                  `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-                }
-              >
-                <FaChalkboardTeacher className="me-2" />
-                Revisar Documentos
-              </NavLink>
-            </Nav.Item>
-          </>
-        )}
-
-        {esAdmin && (
-          <Nav.Item className="mb-2">
-            <NavLink 
-              to="/panel/administracion" 
-              className={({ isActive }) => 
-                `nav-link d-flex align-items-center ${isActive ? 'active text-primary' : 'text-light'}`
-              }
-            >
-              <FaChalkboardTeacher className="me-2" />
-              Administración
-            </NavLink>
-          </Nav.Item>
-        )}
-      </Nav>
-    </div>
+          {es_asesor && (
+            <>
+              <Separator />
+              <div className="space-y-1">
+                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Asesor
+                </p>
+                <nav className="space-y-1">
+                  <NavItem
+                    to="/panel/estudiantes"
+                    icon={<GraduationCap className="h-4 w-4" />}
+                    label="Mis Estudiantes"
+                  />
+                  <NavItem
+                    to="/panel/gestion-observaciones"
+                    icon={<ClipboardList className="h-4 w-4" />}
+                    label="Observaciones"
+                  />
+                  <NavItem
+                    to="/panel/revisar"
+                    icon={<BookOpen className="h-4 w-4" />}
+                    label="Revisar Documentos"
+                  />
+                </nav>
+              </div>
+            </>
+          )}
+        </div>
+      </ScrollArea>
+    </aside>
   );
 };
 
