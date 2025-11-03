@@ -14,7 +14,6 @@ import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { ActualizarObservacionDto } from './dto/actualizar-observacion.dto';
 import { VerificarObservacionDto } from './dto/verificar-observacion.dto';
 import { EstadoObservacion } from './enums/estado-observacion.enum';
-import { CorreccionesService } from '../correcciones/correcciones.servicio';
 import { EtapaProyecto } from '../proyectos/enums/etapa-proyecto.enum';
 
 @Injectable()
@@ -57,6 +56,7 @@ export class ObservacionesService {
 
     const nueva_observacion = this.repositorio_observacion.create({
       ...crear_observacion_dto,
+      contenido_html: crear_observacion_dto.contenido_html,
       descripcion_corta:
         crear_observacion_dto.descripcion_corta ||
         crear_observacion_dto.titulo,
@@ -64,6 +64,7 @@ export class ObservacionesService {
       autor: asesor,
       version_observada: documento.version,
       etapa_observada: documento.proyecto.etapa_actual,
+      estado: EstadoObservacion.PENDIENTE,
     });
 
     return this.repositorio_observacion.save(nueva_observacion);
@@ -81,7 +82,7 @@ export class ObservacionesService {
 
     return this.repositorio_observacion.find({
       where: condiciones,
-      relations: ['correccion', 'correccion.estudiante'],
+      relations: ['correcciones', 'correcciones.estudiante'],
       order: { fecha_creacion: 'DESC' },
     });
   }
@@ -108,6 +109,10 @@ export class ObservacionesService {
       throw new ForbiddenException(
         'Solo el asesor que creó la observación puede actualizarla.',
       );
+    }
+    
+    if (actualizar_observacion_dto.contenido_html) {
+        observacion.contenido_html = actualizar_observacion_dto.contenido_html;
     }
 
     Object.assign(observacion, actualizar_observacion_dto);
@@ -212,6 +217,7 @@ export class ObservacionesService {
 
     return observacionActualizada;
   }
+
   async listarPendientes(id_usuario: number): Promise<Observacion[]> {
     const asesor = await this.repositorio_asesor.findOne({
       where: { usuario: { id: id_usuario } },
@@ -240,7 +246,7 @@ export class ObservacionesService {
   ): Promise<Observacion> {
     const obs = await this.repositorio_observacion.findOne({
       where: { id },
-      relations: ['autor', 'documento'],
+      relations: ['autor', 'documento', 'correcciones'],
     });
 
     if (!obs) {
@@ -255,28 +261,6 @@ export class ObservacionesService {
       throw new ForbiddenException(
         'Solo el asesor que creó la observación puede verificarla.',
       );
-    }
-
-    if (dto.nuevoEstado === EstadoObservacion.CORREGIDA) {
-      if (!obs.version_corregida) {
-        throw new BadRequestException(
-          'No se ha especificado en qué versión se corrigió la observación.',
-        );
-      }
-
-      if (obs.version_corregida < (obs.version_observada || 1)) {
-        throw new BadRequestException(
-          `La versión de corrección (${obs.version_corregida}) debe ser mayor o igual a la versión observada (${
-            obs.version_observada || 1
-          }).`,
-        );
-      }
-
-      if (obs.version_corregida > obs.documento.version) {
-        throw new BadRequestException(
-          `La versión de corrección (${obs.version_corregida}) no puede ser mayor que la versión actual del documento (${obs.documento.version}).`,
-        );
-      }
     }
 
     obs.estado = dto.nuevoEstado;
@@ -321,7 +305,7 @@ export class ObservacionesService {
       .createQueryBuilder('observacion')
       .innerJoinAndSelect('observacion.documento', 'documento')
       .innerJoinAndSelect('observacion.autor', 'autor')
-      .leftJoinAndSelect('observacion.correccion', 'correccion')
+      .leftJoinAndSelect('observacion.correcciones', 'correccion')
       .where('documento.proyecto.id = :proyectoId', { proyectoId })
       .orderBy('observacion.fecha_creacion', 'DESC')
       .getMany();
@@ -337,13 +321,16 @@ export class ObservacionesService {
 
     const estadisticas = {
       total: observaciones.length,
-      pendientes: observaciones.filter(
+      pendiente: observaciones.filter(
         (o) => o.estado === EstadoObservacion.PENDIENTE,
       ).length,
-      corregidas: observaciones.filter(
+      en_revision: observaciones.filter(
+        (o) => o.estado === EstadoObservacion.EN_REVISION,
+      ).length,
+      corregida: observaciones.filter(
         (o) => o.estado === EstadoObservacion.CORREGIDA,
       ).length,
-      rechazadas: observaciones.filter(
+      rechazado: observaciones.filter(
         (o) => o.estado === EstadoObservacion.RECHAZADO,
       ).length,
     };
@@ -353,7 +340,7 @@ export class ObservacionesService {
       estadisticas,
       porcentaje_completado:
         estadisticas.total > 0
-          ? Math.round((estadisticas.corregidas / estadisticas.total) * 100)
+          ? Math.round((estadisticas.corregida / estadisticas.total) * 100)
           : 0,
     };
   }
@@ -377,7 +364,7 @@ export class ObservacionesService {
   async obtenerObservacionPorId(id: number, id_usuario: number) {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id },
-      relations: ['autor', 'documento', 'documento.proyecto', 'correccion'],
+      relations: ['autor', 'documento', 'documento.proyecto', 'correcciones'],
     });
 
     if (!observacion) {
@@ -394,7 +381,7 @@ export class ObservacionesService {
     });
 
     if (!observacion) {
-      throw new NotFoundException(`Observación con ID ${id} no encontrada`);
+      throw new NotFoundException(`Observación con ID ${id}' no encontrada`);
     }
 
     const asesor = await this.repositorio_asesor.findOne({
@@ -441,7 +428,7 @@ export class ObservacionesService {
         'documento.proyecto.estudiantes',
         'documento.proyecto.estudiantes.usuario',
         'documento.proyecto.asesor',
-        'correccion',
+        'correcciones',
       ],
       order: { fecha_creacion: 'DESC' },
     });
@@ -452,14 +439,18 @@ export class ObservacionesService {
     nuevoEstado: EstadoObservacion,
   ): void {
     const transicionesValidas: {
-      [key in EstadoObservacion]: EstadoObservacion[];
+      [key in EstadoObservacion]?: EstadoObservacion[];
     } = {
       [EstadoObservacion.PENDIENTE]: [
+        EstadoObservacion.EN_REVISION,
+      ],
+      [EstadoObservacion.EN_REVISION]: [
         EstadoObservacion.CORREGIDA,
         EstadoObservacion.RECHAZADO,
       ],
-      [EstadoObservacion.CORREGIDA]: [],
-      [EstadoObservacion.RECHAZADO]: [EstadoObservacion.PENDIENTE],
+      [EstadoObservacion.RECHAZADO]: [
+          EstadoObservacion.EN_REVISION
+      ],
     };
 
     const transicionesPermitidas = transicionesValidas[estadoActual] || [];
@@ -479,7 +470,7 @@ export class ObservacionesService {
       where: {
         documento: { proyecto: { id: id_proyecto } },
         etapa_observada: etapa,
-        estado: In([EstadoObservacion.PENDIENTE, EstadoObservacion.RECHAZADO]),
+        estado: In([EstadoObservacion.PENDIENTE, EstadoObservacion.RECHAZADO, EstadoObservacion.EN_REVISION]),
         archivada: false,
       },
     });

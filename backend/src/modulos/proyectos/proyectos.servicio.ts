@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Proyecto } from './entidades/proyecto.endidad';
 import { CrearProyectoDto } from './dto/crear-proyecto.dto';
 import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
@@ -8,14 +8,21 @@ import { Asesor } from '../asesores/entidades/asesor.entidad';
 import { Rol } from '../usuarios/enums/rol.enum';
 import { Grupo } from '../grupos/entidades/grupo.entidad';
 import { Periodo } from '../periodos/entidades/periodo.entidad';
-
 import { EtapaProyecto } from './enums/etapa-proyecto.enum';
 import { AprobarEtapaDto } from './dto/aprobar-etapa.dto';
 import { AccionTema, AccionTemaDto } from './dto/accion-tema.dto';
 import { AvanceHistorial, HistorialProgresoDto, RevisionHistorial } from './dto/historial-progreso.dto';
 import { CronogramaProyectoDto, EtapaCronograma } from './dto/cronograma-proyecto.dto';
 import { BuscarProyectosDto, ResultadoBusqueda } from './dto/buscar-proyectos.dto';
-
+import { PropuestaTema } from '../propuestas-tema/entidades/propuesta-tema.entidad';
+import { Reunion } from '../reuniones/entidades/reunion.entidad';
+import { Documento } from '../documentos/entidades/documento.entidad';
+import { Observacion } from '../observaciones/entidades/observacion.entidad';
+import { Correccion } from '../correcciones/entidades/correccion.entidad';
+import { TimelineCompletoDto } from './dto/timeline-completo.dto';
+import { SolicitarDefensaDto } from './dto/solicitar-defensa.dto';
+import { ResponderSolicitudDefensaDto } from './dto/responder-solicitud-defensa.dto';
+import { Usuario } from '../usuarios/entidades/usuario.entidad';
 
 @Injectable()
 export class ProyectosService {
@@ -26,6 +33,18 @@ export class ProyectosService {
     private readonly repositorio_estudiante: Repository<Estudiante>,
     @InjectRepository(Asesor)
     private readonly repositorio_asesor: Repository<Asesor>,
+    @InjectRepository(Periodo)
+    private readonly repositorio_periodo: Repository<Periodo>,
+    @InjectRepository(PropuestaTema)
+    private readonly repositorio_propuesta: Repository<PropuestaTema>,
+    @InjectRepository(Reunion)
+    private readonly repositorio_reunion: Repository<Reunion>,
+    @InjectRepository(Documento)
+    private readonly repositorio_documento: Repository<Documento>,
+    @InjectRepository(Observacion)
+    private readonly repositorio_observacion: Repository<Observacion>,
+    @InjectRepository(Usuario)
+    private readonly repositorio_usuario: Repository<Usuario>,
   ) {}
 
   async crear(crear_proyecto_dto: CrearProyectoDto, id_usuario_estudiante: number) {
@@ -107,7 +126,7 @@ export class ProyectosService {
   async obtenerUno(id: number, id_usuario: number, rol: string) {
     const proyecto = await this.repositorio_proyecto.findOne({
       where: { id },
-      relations: ['estudiantes', 'estudiantes.usuario', 'asesor', 'asesor.usuario'],
+      relations: ['estudiantes', 'estudiantes.usuario', 'asesor', 'asesor.usuario', 'documentos'],
     });
 
     if (!proyecto) {
@@ -126,6 +145,10 @@ export class ProyectosService {
       if (!proyecto.asesor || proyecto.asesor.usuario?.id !== id_usuario) {
         throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
       }
+    }
+
+    if (proyecto.documentos) {
+      proyecto.documentos.sort((a, b) => b.version - a.version);
     }
 
     return proyecto;
@@ -184,6 +207,7 @@ export class ProyectosService {
         proyecto.fecha_aprobacion_proyecto = ahora;
         proyecto.comentario_aprobacion_proyecto = comentarios;
         proyecto.etapa_actual = EtapaProyecto.LISTO_DEFENSA;
+        proyecto.listo_para_defender = true;
         break;
 
       default:
@@ -260,36 +284,25 @@ export class ProyectosService {
       }
     ];
 
-    const observaciones_docs = await this.repositorio_proyecto
-      .createQueryBuilder('proyecto')
-      .leftJoinAndSelect('proyecto.documentos', 'documento')
-      .leftJoinAndSelect('documento.observaciones', 'observacion')
-      .leftJoinAndSelect('observacion.autor', 'autor')
-      .where('proyecto.id = :proyectoId', { proyectoId: proyecto.id })
-      .orderBy('documento.version', 'ASC')
-      .addOrderBy('observacion.fecha_creacion', 'ASC')
-      .getOne();
+    const observaciones = await this.repositorio_observacion.find({
+      where: { documento: { proyecto: { id: proyecto.id } } },
+      relations: ['documento', 'autor', 'correcciones'],
+      order: { fecha_creacion: 'ASC' }
+    });
 
-    const revisiones: RevisionHistorial[] = [];
-    if (observaciones_docs) {
-      for (const doc of observaciones_docs.documentos || []) {
-        for (const obs of doc.observaciones || []) {
-          revisiones.push({
-            id: obs.id,
-            titulo: obs.titulo || 'Observación sin título',
-            estado: obs.estado as any,
-            etapa_observada: obs.etapa_observada,
-            fecha_creacion: obs.fecha_creacion,
-            fecha_verificacion: obs.fecha_verificacion,
-            documento: doc.nombre_archivo,
-            version_observada: obs.version_observada,
-            version_corregida: obs.version_corregida,
-            comentarios_asesor: obs.comentarios_asesor,
-            comentario_verificacion: obs.comentario_verificacion
-          });
-        }
-      }
-    }
+    const revisiones: RevisionHistorial[] = observaciones.map(obs => ({
+      id: obs.id,
+      titulo: obs.titulo || 'Observación sin título',
+      estado: obs.estado as any,
+      etapa_observada: obs.etapa_observada,
+      fecha_creacion: obs.fecha_creacion,
+      fecha_verificacion: obs.fecha_verificacion,
+      documento: obs.documento.nombre_archivo,
+      version_observada: obs.version_observada,
+      version_corregida: obs.version_corregida,
+      comentarios_asesor: obs.comentarios_asesor_html,
+      comentario_verificacion: obs.comentario_verificacion_html
+    }));
 
     const defensa = {
       completada: proyecto.etapa_actual === EtapaProyecto.TERMINADO,
@@ -307,8 +320,12 @@ export class ProyectosService {
       relations: ['proyecto', 'proyecto.asesor', 'grupos', 'grupos.periodo']
     });
 
-    if (!estudiante || !estudiante.proyecto) {
-      throw new NotFoundException('No tienes un proyecto asignado');
+    if (!estudiante) {
+        throw new NotFoundException('Estudiante no encontrado');
+    }
+
+    if (!estudiante.proyecto) {
+        throw new NotFoundException('No tienes un proyecto asignado');
     }
     
     const periodo_activo = estudiante.grupos.find(g => g.periodo.activo)?.periodo;
@@ -323,7 +340,9 @@ export class ProyectosService {
 
     const calcularDiasRestantes = (fechaLimite: Date | null): number | null => {
       if (!fechaLimite) return null;
-      const diffTime = fechaLimite.getTime() - hoy.getTime();
+      const fecha_lim = new Date(fechaLimite);
+      fecha_lim.setHours(23, 59, 59, 999);
+      const diffTime = fecha_lim.getTime() - hoy.getTime();
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
@@ -333,7 +352,7 @@ export class ProyectosService {
         fecha_limite_entrega: periodo.fecha_limite_propuesta || null,
         estado: proyecto.propuesta_aprobada 
           ? 'aprobado' 
-          : (periodo.fecha_limite_propuesta && hoy > periodo.fecha_limite_propuesta) 
+          : (periodo.fecha_limite_propuesta && hoy > new Date(periodo.fecha_limite_propuesta)) 
             ? 'vencido' 
             : 'pendiente',
         dias_restantes: calcularDiasRestantes(periodo.fecha_limite_propuesta || null),
@@ -344,7 +363,7 @@ export class ProyectosService {
         fecha_limite_entrega: periodo.fecha_limite_perfil || null,
         estado: proyecto.perfil_aprobado 
           ? 'aprobado' 
-          : (periodo.fecha_limite_perfil && hoy > periodo.fecha_limite_perfil) 
+          : (periodo.fecha_limite_perfil && hoy > new Date(periodo.fecha_limite_perfil)) 
             ? 'vencido' 
             : 'pendiente',
         dias_restantes: calcularDiasRestantes(periodo.fecha_limite_perfil || null),
@@ -355,7 +374,7 @@ export class ProyectosService {
         fecha_limite_entrega: periodo.fecha_limite_proyecto || null,
         estado: proyecto.proyecto_aprobado 
           ? 'aprobado' 
-          : (periodo.fecha_limite_proyecto && hoy > periodo.fecha_limite_proyecto) 
+          : (periodo.fecha_limite_proyecto && hoy > new Date(periodo.fecha_limite_proyecto)) 
             ? 'vencido' 
             : 'pendiente',
         dias_restantes: calcularDiasRestantes(periodo.fecha_limite_proyecto || null),
@@ -398,7 +417,6 @@ export class ProyectosService {
       etapa_actual: etapaActual
     };
   }
-  
 
   async buscarProyectos(
     buscarDto: BuscarProyectosDto,
@@ -415,9 +433,9 @@ export class ProyectosService {
       .leftJoin('estudiante.grupos', 'grupo')
       .leftJoin('grupo.periodo', 'periodo');
 
-    if (buscarDto.soloAprobados !== undefined) {
-      query.andWhere('proyecto.proyecto_aprobado = :soloAprobados', { 
-        soloAprobados: buscarDto.soloAprobados 
+    if (buscarDto.soloAprobados === 'true' || buscarDto.soloAprobados === true) {
+      query.andWhere('proyecto.etapa_actual = :etapaTerminado', { 
+        etapaTerminado: EtapaProyecto.TERMINADO
       });
     }
 
@@ -446,15 +464,15 @@ export class ProyectosService {
       query.andWhere(
         `(LOWER(proyecto.titulo) LIKE :termino OR 
           LOWER(proyecto.resumen) LIKE :termino OR 
-          proyecto.palabras_clave && ARRAY[:palabra]::text[])`,
-        { 
-          termino, 
-          palabra: buscarDto.termino.toLowerCase() 
-        }
+          EXISTS (
+            SELECT 1 FROM unnest(proyecto.palabras_clave) AS palabra 
+            WHERE LOWER(palabra) LIKE :termino
+          ))`,
+        { termino }
       );
     }
 
-    query.orderBy('proyecto.proyecto_aprobado', 'DESC')
+    query.orderBy('proyecto.etapa_actual', 'DESC')
         .addOrderBy('proyecto.fecha_creacion', 'DESC');
 
     const proyectos = await query.getMany();
@@ -463,7 +481,7 @@ export class ProyectosService {
       id: proyecto.id,
       titulo: proyecto.titulo,
       resumen: proyecto.resumen,
-      palabras_clave: proyecto.palabras_clave,
+      palabras_clave: proyecto.palabras_clave || [],
       autor: proyecto.estudiantes?.[0]?.nombre 
       ? `${proyecto.estudiantes[0].nombre} ${proyecto.estudiantes[0].apellido}`
       : 'Autor desconocido',
@@ -474,5 +492,259 @@ export class ProyectosService {
       etapa_actual: proyecto.etapa_actual,
       proyecto_aprobado: proyecto.proyecto_aprobado
     }));
+  }
+
+  async solicitarDefensa(id_proyecto: number, dto: SolicitarDefensaDto, id_usuario_estudiante: number) {
+    const proyecto = await this.repositorio_proyecto.findOne({
+      where: { id: id_proyecto },
+      relations: ['estudiantes', 'estudiantes.usuario']
+    });
+
+    if (!proyecto) {
+      throw new NotFoundException(`Proyecto con ID ${id_proyecto} no encontrado`);
+    }
+
+    const esEstudianteDelProyecto = proyecto.estudiantes.some(e => e.usuario.id === id_usuario_estudiante);
+    if (!esEstudianteDelProyecto) {
+      throw new ForbiddenException('No tienes permiso para solicitar la defensa de este proyecto.');
+    }
+
+    if (proyecto.etapa_actual !== EtapaProyecto.LISTO_DEFENSA) {
+      throw new BadRequestException('El proyecto no está marcado como "Listo para Defender" por tu asesor.');
+    }
+
+    proyecto.etapa_actual = EtapaProyecto.SOLICITUD_DEFENSA;
+    proyecto.ruta_memorial = dto.ruta_memorial;
+    
+    await this.repositorio_proyecto.save(proyecto);
+    
+    return { message: 'Solicitud de defensa enviada exitosamente.' };
+  }
+  
+  async responderSolicitudDefensa(id_proyecto: number, dto: ResponderSolicitudDefensaDto, id_usuario_admin: number) {
+    const admin = await this.repositorio_usuario.findOneBy({ id: id_usuario_admin, rol: Rol.Administrador });
+    if (!admin) {
+      throw new ForbiddenException('Acción permitida solo para administradores.');
+    }
+
+    const proyecto = await this.repositorio_proyecto.findOneBy({ id: id_proyecto });
+    if (!proyecto) {
+      throw new NotFoundException(`Proyecto con ID ${id_proyecto} no encontrado`);
+    }
+
+    if (proyecto.etapa_actual !== EtapaProyecto.SOLICITUD_DEFENSA) {
+      throw new BadRequestException('Este proyecto no tiene una solicitud de defensa activa.');
+    }
+
+    if (dto.aprobada) {
+      if (!dto.tribunales || dto.tribunales.length < 3 || dto.tribunales.length > 5) {
+        throw new BadRequestException('Se deben asignar entre 3 y 5 tribunales para aprobar la defensa.');
+      }
+      proyecto.tribunales = dto.tribunales;
+      proyecto.comentarios_defensa = dto.comentarios || 'Solicitud de defensa aprobada.';
+      proyecto.etapa_actual = EtapaProyecto.TERMINADO;
+      
+      await this.repositorio_proyecto.save(proyecto);
+      return { message: 'Defensa aprobada y proyecto marcado como terminado.' };
+
+    } else {
+      proyecto.etapa_actual = EtapaProyecto.LISTO_DEFENSA;
+      proyecto.comentarios_defensa = dto.comentarios || 'Solicitud de defensa rechazada. Contacte al estudiante.';
+      
+      await this.repositorio_proyecto.save(proyecto);
+      return { message: 'Solicitud de defensa rechazada. Se ha notificado al estudiante.' };
+    }
+  }
+
+  async obtenerTimelineCompleto(id_usuario_estudiante: number): Promise<TimelineCompletoDto> {
+    const estudiante = await this.repositorio_estudiante.findOne({
+      where: { usuario: { id: id_usuario_estudiante } },
+      relations: ['proyecto']
+    });
+
+    if (!estudiante || !estudiante.proyecto) {
+      throw new NotFoundException('No tienes un proyecto asignado');
+    }
+
+    const id_proyecto = estudiante.proyecto.id;
+
+    const [proyecto, propuestas, reuniones, documentos, observaciones] = await Promise.all([
+      this.repositorio_proyecto.findOneBy({ id: id_proyecto }),
+      this.repositorio_propuesta.find({ where: { proyecto: { id: id_proyecto } }, order: { fecha_creacion: 'ASC' } }),
+      this.repositorio_reunion.find({ where: { proyecto: { id: id_proyecto } }, order: { fecha_programada: 'ASC' } }),
+      this.repositorio_documento.find({ where: { proyecto: { id: id_proyecto } }, order: { version: 'ASC' } }),
+      this.repositorio_observacion.find({ 
+        where: { documento: { proyecto: { id: id_proyecto } } }, 
+        relations: ['correcciones', 'documento'], 
+        order: { fecha_creacion: 'ASC' } 
+      })
+    ]);
+
+    if (!proyecto) {
+      throw new NotFoundException('Proyecto no encontrado');
+    }
+
+    const linea_tiempo: any[] = [];
+
+    const propuestas_timeline = propuestas.map((p, i) => {
+      const item = {
+        id: p.id,
+        numero_propuesta: i + 1,
+        titulo: p.titulo,
+        estado: p.estado,
+        fecha_creacion: p.fecha_creacion,
+        fecha_revision: p.estado !== 'pendiente' ? p.fecha_actualizacion : undefined,
+        comentario_asesor: p.comentarios_asesor_html,
+      };
+      
+      linea_tiempo.push({
+        tipo: 'propuesta',
+        fecha: p.fecha_creacion,
+        titulo: `Propuesta de Tema #${i + 1}: ${p.titulo}`,
+        descripcion: `Estado: ${p.estado}. ${p.comentarios_asesor_html || ''}`,
+        icono: 'file-text'
+      });
+      return item;
+    });
+
+    const versiones_perfil: any[] = [];
+    const observaciones_perfil: any[] = [];
+    const versiones_proyecto: any[] = [];
+    const observaciones_proyecto: any[] = [];
+
+    for (const doc of documentos) {
+      const obs_doc = observaciones.filter(o => o.documento.id === doc.id);
+      
+      const version_item = {
+        id: doc.id,
+        nombre_archivo: doc.nombre_archivo,
+        version: doc.version,
+        fecha_subida: doc.fecha_subida,
+        observaciones_count: obs_doc.length,
+      };
+      
+      linea_tiempo.push({
+        tipo: 'version_documento',
+        fecha: doc.fecha_subida,
+        titulo: `Versión ${doc.version} subida`,
+        descripcion: doc.nombre_archivo,
+        icono: 'file-up'
+      });
+
+      const obs_timeline = obs_doc.map(o => {
+        const correcciones_timeline = o.correcciones.map(c => {
+          linea_tiempo.push({
+            tipo: 'correccion',
+            fecha: c.fecha_creacion,
+            titulo: `Corrección para Obs. #${o.id}`,
+            descripcion: `Estado: ${c.estado}. ${c.comentario_verificacion_html || ''}`,
+            icono: 'tool'
+          });
+          return {
+            id: c.id,
+            estado: c.estado,
+            fecha_creacion: c.fecha_creacion,
+            fecha_verificacion: c.fecha_verificacion,
+            comentario_verificacion: c.comentario_verificacion_html,
+          };
+        });
+        
+        linea_tiempo.push({
+          tipo: 'observacion',
+          fecha: o.fecha_creacion,
+          titulo: `Observación (v${doc.version}): ${o.titulo}`,
+          descripcion: `Estado: ${o.estado}. ${o.comentarios_asesor_html || ''}`,
+          icono: 'search'
+        });
+
+        return {
+          id: o.id,
+          titulo: o.titulo,
+          estado: o.estado,
+          fecha_creacion: o.fecha_creacion,
+          fecha_verificacion: o.fecha_verificacion,
+          documento: doc.nombre_archivo,
+          version_observada: o.version_observada,
+          tiene_correccion: o.correcciones.length > 0,
+          correcciones: correcciones_timeline,
+        };
+      });
+
+      if (obs_doc.some(o => o.etapa_observada === EtapaProyecto.PERFIL || o.etapa_observada === EtapaProyecto.PROPUESTA)) {
+        versiones_perfil.push(version_item);
+        observaciones_perfil.push(...obs_timeline);
+      } else {
+        versiones_proyecto.push(version_item);
+        observaciones_proyecto.push(...obs_timeline);
+      }
+    }
+
+    const reuniones_timeline = reuniones.map(r => {
+      linea_tiempo.push({
+        tipo: 'reunion',
+        fecha: r.fecha_programada,
+        titulo: `Reunión: ${r.titulo}`,
+        descripcion: `Estado: ${r.estado}. ${r.notas_reunion_html || ''}`,
+        icono: 'users'
+      });
+      return {
+        id: r.id,
+        titulo: r.titulo,
+        fecha_programada: r.fecha_programada,
+        fecha_realizada: r.fecha_realizada,
+        estado: r.estado,
+        notas_reunion_html: r.notas_reunion_html,
+      };
+    });
+    
+    if (proyecto.fecha_aprobacion_propuesta) {
+      linea_tiempo.push({ tipo: 'perfil_inicio', fecha: proyecto.fecha_aprobacion_propuesta, titulo: 'Propuesta Aprobada', descripcion: 'Inicio de etapa de Perfil.', icono: 'check-circle' });
+    }
+    if (proyecto.fecha_aprobacion_perfil) {
+      linea_tiempo.push({ tipo: 'perfil_aprobado', fecha: proyecto.fecha_aprobacion_perfil, titulo: 'Perfil Aprobado', descripcion: 'Inicio de etapa de Proyecto.', icono: 'check-circle' });
+    }
+    if (proyecto.fecha_aprobacion_proyecto) {
+      linea_tiempo.push({ tipo: 'proyecto_listo', fecha: proyecto.fecha_aprobacion_proyecto, titulo: 'Proyecto Listo para Defensa', descripcion: 'Asesor aprobó el proyecto.', icono: 'check-circle' });
+    }
+    if (proyecto.etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA) {
+      linea_tiempo.push({ tipo: 'defensa_solicitada', fecha: new Date(), titulo: 'Defensa Solicitada', descripcion: 'Esperando respuesta de administración.', icono: 'send' });
+    }
+    if (proyecto.etapa_actual === EtapaProyecto.TERMINADO) {
+      linea_tiempo.push({ tipo: 'defensa_aprobada', fecha: new Date(), titulo: 'Defensa Aprobada', descripcion: 'Proyecto Terminado.', icono: 'award' });
+    }
+    
+    linea_tiempo.sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+
+    return {
+      proyecto: {
+        id: proyecto.id,
+        titulo: proyecto.titulo,
+        etapa_actual: proyecto.etapa_actual,
+        fecha_creacion: proyecto.fecha_creacion,
+      },
+      propuestas: propuestas_timeline,
+      perfil: {
+        aprobado: proyecto.perfil_aprobado,
+        fecha_aprobacion: proyecto.fecha_aprobacion_perfil,
+        comentarios: proyecto.comentario_aprobacion_perfil,
+        versiones: versiones_perfil,
+        observaciones: observaciones_perfil,
+      },
+      proyecto_desarrollo: {
+        aprobado: proyecto.proyecto_aprobado,
+        fecha_aprobacion: proyecto.fecha_aprobacion_proyecto,
+        comentarios: proyecto.comentario_aprobacion_proyecto,
+        reuniones: reuniones_timeline,
+        versiones: versiones_proyecto,
+        observaciones: observaciones_proyecto,
+      },
+      defensa: {
+        solicitada: proyecto.etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA || proyecto.etapa_actual === EtapaProyecto.TERMINADO,
+        aprobada: proyecto.etapa_actual === EtapaProyecto.TERMINADO,
+        tribunales: proyecto.tribunales,
+        comentarios: proyecto.comentarios_defensa,
+      },
+      linea_tiempo: linea_tiempo,
+    };
   }
 }

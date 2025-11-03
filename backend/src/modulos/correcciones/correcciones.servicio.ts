@@ -46,6 +46,7 @@ export class CorreccionesService {
 
     const nueva_correccion = this.repositorio_correccion.create({
       ...crear_correccion_dto,
+      descripcion_html: crear_correccion_dto.descripcion_html,
       estudiante,
     });
 
@@ -66,7 +67,6 @@ export class CorreccionesService {
         'documento',
         'documento.proyecto',
         'documento.proyecto.estudiantes',
-        'correccion',
       ],
     });
 
@@ -82,12 +82,6 @@ export class CorreccionesService {
     ) {
       throw new BadRequestException(
         `No se puede crear una corrección para una observación en estado ${observacion.estado}`,
-      );
-    }
-
-    if (observacion.correccion) {
-      throw new BadRequestException(
-        'Esta observación ya tiene una corrección asociada. Use el endpoint de actualización.',
       );
     }
 
@@ -111,11 +105,25 @@ export class CorreccionesService {
       );
     }
 
+    const documento_correccion = await this.repositorio_documento.findOneBy({
+        proyecto: { id: observacion.documento.proyecto.id },
+        version: crear_correccion_dto.version_corregida,
+    });
+
+    if (!documento_correccion) {
+        throw new NotFoundException(`No se encontró el documento versión ${crear_correccion_dto.version_corregida} en el proyecto.`);
+    }
+
+    if (documento_correccion.version <= (observacion.version_observada || 0)) {
+        throw new BadRequestException(`La corrección debe estar en una versión posterior (v${documento_correccion.version}) a la observación (v${observacion.version_observada}).`);
+    }
+
     const nuevaCorreccion = this.repositorio_correccion.create({
       ...crear_correccion_dto,
+      descripcion_html: crear_correccion_dto.descripcion_html,
       observacion,
       estudiante,
-      documento: observacion.documento,
+      documento: documento_correccion,
       estado: EstadoCorreccion.PENDIENTE_REVISION,
     });
 
@@ -123,6 +131,7 @@ export class CorreccionesService {
       await this.repositorio_correccion.save(nuevaCorreccion);
 
     observacion.version_corregida = crear_correccion_dto.version_corregida;
+    observacion.estado = EstadoObservacion.EN_REVISION;
     await this.repositorio_observacion.save(observacion);
 
     return correccionGuardada;
@@ -135,7 +144,7 @@ export class CorreccionesService {
   ): Promise<Correccion> {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id: observacionId },
-      relations: ['correccion', 'correccion.estudiante'],
+      relations: ['correcciones', 'correcciones.estudiante'],
     });
 
     if (!observacion) {
@@ -144,9 +153,13 @@ export class CorreccionesService {
       );
     }
 
-    if (!observacion.correccion) {
+    const correccion_previa = observacion.correcciones.find(
+      c => c.estado === EstadoCorreccion.RECHAZADA
+    );
+
+    if (!correccion_previa) {
       throw new NotFoundException(
-        'Esta observación no tiene una corrección asociada. Cree una primero.',
+        'Esta observación no tiene una corrección rechazada para marcar. Debe crear una nueva corrección.',
       );
     }
 
@@ -154,23 +167,24 @@ export class CorreccionesService {
       where: { usuario: { id: id_usuario } },
     });
 
-    if (!estudiante || estudiante.id !== observacion.correccion.estudiante.id) {
+    if (!estudiante || estudiante.id !== correccion_previa.estudiante.id) {
       throw new ForbiddenException(
         'Solo el estudiante que creó la corrección puede marcarla como completada',
       );
     }
 
-    observacion.correccion.version_corregida = dto.version_corregida;
+    correccion_previa.version_corregida = dto.version_corregida;
     if (dto.comentario_html) {
-      observacion.correccion.descripcion_html = dto.comentario_html;
+      correccion_previa.descripcion_html = dto.comentario_html;
     }
-    observacion.correccion.estado = EstadoCorreccion.PENDIENTE_REVISION;
+    correccion_previa.estado = EstadoCorreccion.PENDIENTE_REVISION;
 
     const correccionActualizada = await this.repositorio_correccion.save(
-      observacion.correccion,
+      correccion_previa,
     );
 
     observacion.version_corregida = dto.version_corregida;
+    observacion.estado = EstadoObservacion.EN_REVISION;
     await this.repositorio_observacion.save(observacion);
 
     return correccionActualizada;
@@ -183,7 +197,7 @@ export class CorreccionesService {
   ): Promise<any> {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id: observacionId },
-      relations: ['correccion', 'correccion.estudiante', 'autor'],
+      relations: ['correcciones', 'autor'],
     });
 
     if (!observacion) {
@@ -192,9 +206,17 @@ export class CorreccionesService {
       );
     }
 
-    if (!observacion.correccion) {
+    const correccion_a_verificar = await this.repositorio_correccion.findOne({
+      where: { 
+        observacion: { id: observacionId }, 
+        estado: EstadoCorreccion.PENDIENTE_REVISION 
+      },
+      order: { fecha_creacion: 'DESC' },
+    });
+    
+    if (!correccion_a_verificar) {
       throw new NotFoundException(
-        'Esta observación no tiene una corrección para verificar',
+        'Esta observación no tiene una corrección pendiente de revisión',
       );
     }
 
@@ -208,30 +230,22 @@ export class CorreccionesService {
       );
     }
 
-    const correccion_a_gestionar = observacion.correccion;
-
     observacion.estado = dto.resultado;
     observacion.fecha_verificacion = new Date();
     observacion.comentario_verificacion_html = dto.comentario_verificacion_html;
 
     if (dto.resultado === EstadoObservacion.CORREGIDA) {
-      correccion_a_gestionar.estado = EstadoCorreccion.ACEPTADA;
-      correccion_a_gestionar.estado_verificacion = 'APROBADA';
-      correccion_a_gestionar.comentario_verificacion_html =
-        dto.comentario_verificacion_html;
-      correccion_a_gestionar.fecha_verificacion = new Date();
-      await this.repositorio_correccion.save(correccion_a_gestionar);
+      correccion_a_verificar.estado = EstadoCorreccion.ACEPTADA;
+      correccion_a_verificar.estado_verificacion = 'APROBADA';
     } else if (dto.resultado === EstadoObservacion.RECHAZADO) {
-      correccion_a_gestionar.estado = EstadoCorreccion.RECHAZADA;
-      correccion_a_gestionar.estado_verificacion = 'RECHAZADA';
-      correccion_a_gestionar.comentario_verificacion_html =
-        dto.comentario_verificacion_html;
-      correccion_a_gestionar.fecha_verificacion = new Date();
-
-      await this.repositorio_correccion.remove(correccion_a_gestionar);
-      observacion.correccion = null;
+      correccion_a_verificar.estado = EstadoCorreccion.RECHAZADA;
+      correccion_a_verificar.estado_verificacion = 'RECHAZADA';
     }
+    
+    correccion_a_verificar.comentario_verificacion_html = dto.comentario_verificacion_html;
+    correccion_a_verificar.fecha_verificacion = new Date();
 
+    await this.repositorio_correccion.save(correccion_a_verificar);
     await this.repositorio_observacion.save(observacion);
 
     return {
@@ -263,7 +277,7 @@ export class CorreccionesService {
   async obtenerPorEstudiante(id_usuario: number) {
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario } },
-      relations: ['usuario'],
+      relations: ['usuario', 'proyecto'],
     });
 
     if (!estudiante) {
@@ -271,14 +285,18 @@ export class CorreccionesService {
         'Solo los estudiantes pueden acceder a sus observaciones.',
       );
     }
+    
+    if (!estudiante.proyecto) {
+        return [];
+    }
 
     return await this.repositorio_observacion
       .createQueryBuilder('observacion')
       .innerJoin('observacion.documento', 'documento')
       .innerJoin('documento.proyecto', 'proyecto')
-      .innerJoin('proyecto.estudiantes', 'est')
-      .where('est.id = :estudianteId', { estudianteId: estudiante.id })
+      .where('proyecto.id = :proyectoId', { proyectoId: estudiante.proyecto.id })
       .andWhere('observacion.archivada = false')
+      .leftJoinAndSelect('observacion.correcciones', 'correcciones')
       .orderBy('observacion.fecha_creacion', 'DESC')
       .getMany();
   }
@@ -286,10 +304,10 @@ export class CorreccionesService {
   async obtenerPorObservacion(
     observacionId: number,
     id_usuario: number,
-  ): Promise<Correccion> {
+  ): Promise<Correccion[]> {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id: observacionId },
-      relations: ['correccion', 'correccion.estudiante'],
+      relations: ['correcciones', 'correcciones.estudiante'],
     });
 
     if (!observacion) {
@@ -298,13 +316,13 @@ export class CorreccionesService {
       );
     }
 
-    if (!observacion.correccion) {
+    if (!observacion.correcciones || observacion.correcciones.length === 0) {
       throw new NotFoundException(
-        'Esta observación no tiene una corrección asociada',
+        'Esta observación no tiene correcciones asociadas',
       );
     }
 
-    return observacion.correccion;
+    return observacion.correcciones;
   }
 
   async listarPorEstudiante(id_usuario: number): Promise<Correccion[]> {
@@ -347,6 +365,14 @@ export class CorreccionesService {
       );
     }
 
+    if (correccion.estado !== EstadoCorreccion.PENDIENTE_REVISION) {
+        throw new BadRequestException('No se puede actualizar una corrección que ya ha sido Aceptada o Rechazada.');
+    }
+    
+    if (actualizar_correccion_dto.descripcion_html) {
+        correccion.descripcion_html = actualizar_correccion_dto.descripcion_html;
+    }
+
     Object.assign(correccion, actualizar_correccion_dto);
     return this.repositorio_correccion.save(correccion);
   }
@@ -369,6 +395,10 @@ export class CorreccionesService {
       throw new ForbiddenException(
         'Solo el estudiante que creó la corrección puede eliminarla.',
       );
+    }
+    
+    if (correccion.estado !== EstadoCorreccion.PENDIENTE_REVISION) {
+        throw new BadRequestException('No se puede eliminar una corrección que ya ha sido revisada.');
     }
 
     if (correccion.observacion) {
