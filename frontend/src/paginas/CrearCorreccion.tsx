@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../componentes/ui/select';
-import { Textarea } from '../componentes/ui/textarea';
+import { EditorHtmlSimple } from '../componentes/ui/editor-html-simple';
 import { Input } from '../componentes/ui/input';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -51,7 +51,7 @@ const CrearCorreccion = () => {
   const [punto_inicio, set_punto_inicio] = useState<Punto | null>(null);
   const [punto_fin, set_punto_fin] = useState<Punto | null>(null);
   const [id_observacion_seleccionada, set_id_observacion_seleccionada] = useState<number | null>(null);
-  const [descripcion, set_descripcion] = useState('');
+  const [descripcion_html, set_descripcion_html] = useState('');
   const [color, set_color] = useState('#28a745');
 
   const [error, set_error] = useState('');
@@ -67,7 +67,7 @@ const CrearCorreccion = () => {
   };
 
   const observaciones_pendientes = observaciones.filter(obs =>
-    (obs as any).estado === 'pendiente' && !(obs as any).correccion
+    (obs as any).estado === 'pendiente' || (obs as any).estado === 'rechazado'
   );
 
   const observacion_seleccionada = observaciones.find(obs => obs.id === id_observacion_seleccionada);
@@ -130,7 +130,7 @@ const CrearCorreccion = () => {
   };
 
   const manejarGuardar = async () => {
-    if (!punto_inicio || !punto_fin || !descripcion || !id_observacion_seleccionada || !documento_seleccionado) {
+    if (!punto_inicio || !punto_fin || !descripcion_html || !id_observacion_seleccionada || !documento_seleccionado) {
       set_error('Todos los campos son obligatorios y debe marcar dos puntos en el documento.');
       return;
     }
@@ -141,7 +141,7 @@ const CrearCorreccion = () => {
     try {
       await correccionesApi.crear({
         titulo: (observacion_seleccionada as any)?.titulo,
-        descripcion,
+        descripcion_html,
         x_inicio: punto_inicio.x,
         y_inicio: punto_inicio.y,
         pagina_inicio: punto_inicio.pagina,
@@ -408,21 +408,22 @@ const CrearCorreccion = () => {
                   </SelectContent>
                 </Select>
                 {observacion_seleccionada && (
-                  <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                  <div className="text-xs text-muted-foreground space-y-1 mt-2 border p-2 rounded-md">
                     <p><strong>Título:</strong> {(observacion_seleccionada as any).titulo}</p>
-                    <p><strong>Contenido:</strong> {(observacion_seleccionada as any).contenido}</p>
+                    <div
+                      className="prose prose-sm max-h-20 overflow-y-auto"
+                      dangerouslySetInnerHTML={{ __html: (observacion_seleccionada as any).contenido_html }}
+                    />
                   </div>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="descripcion">Descripción de la Corrección</Label>
-                <Textarea
-                  id="descripcion"
-                  value={descripcion}
-                  onChange={(e) => set_descripcion(e.target.value)}
+                <Label htmlFor="descripcion_html">Descripción de la Corrección</Label>
+                <EditorHtmlSimple
+                  value={descripcion_html}
+                  onChange={set_descripcion_html}
                   placeholder="Describa qué corrección realizó..."
-                  rows={5}
                 />
               </div>
 
@@ -454,7 +455,7 @@ const CrearCorreccion = () => {
                 <Button
                   className="w-full"
                   onClick={manejarGuardar}
-                  disabled={guardando || !punto_inicio || !punto_fin || !descripcion || !id_observacion_seleccionada}
+                  disabled={guardando || !punto_inicio || !punto_fin || !descripcion_html || !id_observacion_seleccionada}
                 >
                   <Save className="mr-2 h-4 w-4" />
                   {guardando ? 'Guardando...' : 'Guardar Corrección'}

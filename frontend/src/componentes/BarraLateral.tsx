@@ -12,6 +12,9 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Timeline,
+  CalendarClock,
+  Archive,
 } from 'lucide-react';
 import { cn } from '../lib/utilidades';
 import { ScrollArea } from './ui/scroll-area';
@@ -145,6 +148,11 @@ const BarraLateral = ({ isOpen }: BarraLateralProps) => {
                     icon={<FolderKanban />}
                     label={colapsado ? '' : 'Proyectos'}
                   />
+                  <NavItem
+                    to="/panel/repositorio"
+                    icon={<Archive />}
+                    label={colapsado ? '' : 'Repositorio'}
+                  />
                 </nav>
               </div>
 
@@ -158,6 +166,16 @@ const BarraLateral = ({ isOpen }: BarraLateralProps) => {
                         to="/panel/inscripcion-grupos"
                         icon={<Users />}
                         label={colapsado ? '' : 'Grupos'}
+                      />
+                      <NavItem
+                        to="/panel/mi-progreso"
+                        icon={<Timeline />}
+                        label={colapsado ? '' : 'Mi Progreso'}
+                      />
+                      <NavItem
+                        to="/panel/mi-cronograma"
+                        icon={<CalendarClock />}
+                        label={colapsado ? '' : 'Cronograma'}
                       />
                       <NavItem
                         to="/panel/mis-documentos"

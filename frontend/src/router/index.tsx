@@ -20,6 +20,9 @@ import GestionUsuarios from '../paginas/admin/GestionUsuarios';
 import SolicitudesRegistro from '../paginas/admin/SolicitudesRegistro';
 import GestionPeriodos from '../paginas/admin/GestionPeriodos';
 import GestionGrupos from '../paginas/admin/GestionGrupos';
+import Repositorio from '../paginas/Repositorio';
+import MiProgreso from '../paginas/estudiante/MiProgreso';
+import MiCronograma from '../paginas/estudiante/MiCronograma';
 import { Rol } from '../tipos/usuario';
 
 const router = createBrowserRouter([
@@ -60,6 +63,14 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/panel/repositorio',
+    element: (
+      <RutaProtegida>
+        <Repositorio />
+      </RutaProtegida>
+    ),
+  },
+  {
     path: '/panel/proyectos',
     element: (
       <RutaProtegida>
@@ -96,6 +107,22 @@ const router = createBrowserRouter([
     element: (
       <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
         <InscripcionGrupos />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/mi-progreso',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
+        <MiProgreso />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/mi-cronograma',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Estudiante]}>
+        <MiCronograma />
       </RutaProtegida>
     ),
   },

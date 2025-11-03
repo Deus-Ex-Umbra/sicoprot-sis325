@@ -16,7 +16,7 @@ import { Button } from '../componentes/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '../componentes/ui/alert';
 import { Badge } from '../componentes/ui/badge';
 import { Label } from '../componentes/ui/label';
-import { Textarea } from '../componentes/ui/textarea';
+import { EditorHtmlSimple } from '../componentes/ui/editor-html-simple';
 import { Input } from '../componentes/ui/input';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -43,7 +43,7 @@ const CrearObservacion = () => {
   const [punto_inicio, set_punto_inicio] = useState<Punto | null>(null);
   const [punto_fin, set_punto_fin] = useState<Punto | null>(null);
   const [titulo, set_titulo] = useState('');
-  const [contenido, set_contenido] = useState('');
+  const [contenido_html, set_contenido_html] = useState('');
   const [color, set_color] = useState('#FFD700');
 
   const [error, set_error] = useState('');
@@ -111,7 +111,7 @@ const CrearObservacion = () => {
   };
 
   const manejarGuardar = async () => {
-    if (!punto_inicio || !punto_fin || !titulo || !contenido || !documento_seleccionado) {
+    if (!punto_inicio || !punto_fin || !titulo || !contenido_html || !documento_seleccionado) {
       set_error('Todos los campos son obligatorios y debe marcar dos puntos en el documento.');
       return;
     }
@@ -122,7 +122,7 @@ const CrearObservacion = () => {
     try {
       await observacionesApi.crear(documento_seleccionado.id, {
         titulo,
-        contenido,
+        contenido_html,
         x_inicio: punto_inicio.x,
         y_inicio: punto_inicio.y,
         pagina_inicio: punto_inicio.pagina,
@@ -325,12 +325,10 @@ const CrearObservacion = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contenido">Contenido</Label>
-                <Textarea
-                  id="contenido"
-                  rows={5}
-                  value={contenido}
-                  onChange={(e) => set_contenido(e.target.value)}
+                <Label htmlFor="contenido_html">Contenido</Label>
+                <EditorHtmlSimple
+                  value={contenido_html}
+                  onChange={set_contenido_html}
                   placeholder="Describa la observación..."
                 />
               </div>
@@ -361,7 +359,7 @@ const CrearObservacion = () => {
                 <Button
                   className="w-full"
                   onClick={manejarGuardar}
-                  disabled={guardando || !punto_inicio || !punto_fin || !titulo || !contenido}
+                  disabled={guardando || !punto_inicio || !punto_fin || !titulo || !contenido_html}
                 >
                   <Save className="mr-2 h-4 w-4" />
                   {guardando ? 'Guardando...' : 'Guardar Observación'}

@@ -257,8 +257,20 @@ export const proyectosApi = {
     const respuesta = await api.get('/proyectos/cronograma');
     return respuesta.data;
   },
+  obtenerTimelineCompleto: async () => {
+    const respuesta = await api.get('/proyectos/timeline');
+    return respuesta.data;
+  },
   buscarProyectos: async (params: any) => {
     const respuesta = await api.get('/proyectos/buscar', { params });
+    return respuesta.data;
+  },
+  solicitarDefensa: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/proyectos/${id}/solicitar-defensa`, datos);
+    return respuesta.data;
+  },
+  responderSolicitudDefensa: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/proyectos/${id}/responder-defensa`, datos);
     return respuesta.data;
   },
 };
@@ -383,6 +395,48 @@ export const correccionesApi = {
   },
   verificar: async (observacionId: number, datos: any) => {
     const respuesta = await api.patch(`/correcciones/${observacionId}/verificar`, datos);
+    return respuesta.data;
+  },
+};
+
+export const propuestasTemaApi = {
+  crear: async (datos: any) => {
+    const respuesta = await api.post('/propuestas-tema', datos);
+    return respuesta.data;
+  },
+  obtenerPorProyecto: async (id_proyecto: number) => {
+    const respuesta = await api.get(`/propuestas-tema/proyecto/${id_proyecto}`);
+    return respuesta.data;
+  },
+  responder: async (id_propuesta: number, datos: any) => {
+    const respuesta = await api.patch(`/propuestas-tema/${id_propuesta}/responder`, datos);
+    return respuesta.data;
+  },
+  eliminar: async (id_propuesta: number) => {
+    const respuesta = await api.delete(`/propuestas-tema/${id_propuesta}`);
+    return respuesta.data;
+  },
+};
+
+export const reunionesApi = {
+  crear: async (datos: any) => {
+    const respuesta = await api.post('/reuniones', datos);
+    return respuesta.data;
+  },
+  obtenerPorProyecto: async (id_proyecto: number) => {
+    const respuesta = await api.get(`/reuniones/proyecto/${id_proyecto}`);
+    return respuesta.data;
+  },
+  obtenerUna: async (id: number) => {
+    const respuesta = await api.get(`/reuniones/${id}`);
+    return respuesta.data;
+  },
+  actualizar: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/reuniones/${id}`, datos);
+    return respuesta.data;
+  },
+  eliminar: async (id: number) => {
+    const respuesta = await api.delete(`/reuniones/${id}`);
     return respuesta.data;
   },
 };
