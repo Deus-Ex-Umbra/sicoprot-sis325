@@ -5,6 +5,7 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Proyecto } from '../../proyectos/entidades/proyecto.endidad';
 import { Estudiante } from '../../estudiantes/entidades/estudiante.entidad';
@@ -38,8 +39,10 @@ export class PropuestaTema {
   fecha_actualizacion: Date;
 
   @ManyToOne(() => Proyecto, (proyecto) => proyecto.propuestas_tema)
+  @JoinColumn({ name: 'id_proyecto' })
   proyecto: Proyecto;
 
   @ManyToOne(() => Estudiante, (estudiante) => estudiante.propuestas_tema)
+  @JoinColumn({ name: 'id_estudiante' })
   estudiante: Estudiante;
 }

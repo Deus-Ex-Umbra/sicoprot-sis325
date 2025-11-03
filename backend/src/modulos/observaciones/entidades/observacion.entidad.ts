@@ -4,7 +4,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  OneToOne,
+  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -96,8 +96,8 @@ export class Observacion {
   })
   documento: Documento;
 
-  @OneToOne(() => Correccion, (correccion) => correccion.observacion, {
+  @OneToMany(() => Correccion, (correccion) => correccion.observacion, {
     nullable: true,
   })
-  correccion: Correccion | null;
+  correcciones: Correccion[];
 }
