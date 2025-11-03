@@ -6,6 +6,10 @@ import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../asesores/entidades/asesor.entidad';
 import { EstadoUsuario } from '../usuarios/enums/estado-usuario.enum';
 import { Rol } from '../usuarios/enums/rol.enum';
+import { Grupo } from '../grupos/entidades/grupo.entidad';
+import { Periodo } from '../periodos/entidades/periodo.entidad';
+import { SolicitudRegistro } from '../solicitudes-registro/entidades/solicitud-registro.entidad';
+import { EstadoSolicitud } from '../solicitudes-registro/entidades/solicitud-registro.entidad';
 
 @Injectable()
 export class AdministracionService {
@@ -16,6 +20,12 @@ export class AdministracionService {
     private readonly repositorio_estudiante: Repository<Estudiante>,
     @InjectRepository(Asesor)
     private readonly repositorio_asesor: Repository<Asesor>,
+    @InjectRepository(Grupo)
+    private readonly repositorio_grupo: Repository<Grupo>,
+    @InjectRepository(Periodo)
+    private readonly repositorio_periodo: Repository<Periodo>,
+    @InjectRepository(SolicitudRegistro)
+    private readonly repositorio_solicitud: Repository<SolicitudRegistro>,
   ) {}
 
   async obtenerTodosUsuarios() {
@@ -108,6 +118,25 @@ export class AdministracionService {
     const total_estudiantes = await this.repositorio_estudiante.count();
     const total_asesores = await this.repositorio_asesor.count();
     const estudiantes_sin_grupo = await this.obtenerEstudiantesSinGrupo();
+    const total_grupos = await this.repositorio_grupo.count();
+    const grupos_activos = await this.repositorio_grupo.count({
+      where: { activo: true },
+    });
+
+    const periodo_activo = await this.repositorio_periodo.findOne({
+      where: { activo: true },
+    });
+
+    let grupos_periodo_actual = 0;
+    if (periodo_activo) {
+      grupos_periodo_actual = await this.repositorio_grupo.count({
+        where: { periodo: { id: periodo_activo.id }, activo: true },
+      });
+    }
+
+    const solicitudes_pendientes = await this.repositorio_solicitud.count({
+      where: { estado: EstadoSolicitud.Pendiente },
+    });
 
     return {
       total_usuarios,
@@ -116,6 +145,10 @@ export class AdministracionService {
       total_estudiantes,
       total_asesores,
       estudiantes_sin_grupo: estudiantes_sin_grupo.length,
+      total_grupos,
+      grupos_activos,
+      grupos_periodo_actual,
+      solicitudes_pendientes,
     };
   }
 }
