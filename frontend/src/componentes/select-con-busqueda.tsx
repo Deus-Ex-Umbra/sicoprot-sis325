@@ -10,11 +10,7 @@ import {
   CommandItem,
   CommandList,
 } from './ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from './ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 interface Opcion {
   value: string;
@@ -41,7 +37,6 @@ export function SelectConBusqueda({
   className,
 }: SelectConBusquedaProps) {
   const [open, setOpen] = React.useState(false);
-
   const etiqueta_seleccionada =
     opciones.find((opcion) => opcion.value === value)?.label || placeholder;
 
@@ -52,17 +47,31 @@ export function SelectConBusqueda({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn('w-full justify-between', className)}
+          className={cn(
+            'w-full justify-between border border-border text-foreground shadow-sm',
+            className
+          )}
+          style={{
+            backgroundColor: 'hsl(var(--background) / 1)', // fondo sólido, sin transparencia
+          }}
         >
-          <span className="truncate">
-            {etiqueta_seleccionada}
-          </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className="truncate">{etiqueta_seleccionada}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+      <PopoverContent
+        align="start"
+        className="w-[--radix-popover-trigger-width] p-0 border border-border shadow-md"
+        style={{
+          backgroundColor: 'hsl(var(--background) / 1)',
+        }}
+      >
+        <Command style={{ backgroundColor: 'hsl(var(--background) / 1)' }}>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            className="border-b border-border text-foreground"
+            style={{ backgroundColor: 'hsl(var(--background) / 1)' }}
+          />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
@@ -76,7 +85,7 @@ export function SelectConBusqueda({
               >
                 <Check
                   className={cn(
-                    'mr-2 h-4 w-4',
+                    'mr-2 h-4 w-4 opacity-70',
                     value === '' ? 'opacity-100' : 'opacity-0'
                   )}
                 />
@@ -90,10 +99,14 @@ export function SelectConBusqueda({
                     onChange(opcion.value === value ? '' : opcion.value);
                     setOpen(false);
                   }}
+                  className="hover:bg-muted focus:bg-muted"
+                  style={{
+                    backgroundColor: 'hsl(var(--background) / 1)',
+                  }}
                 >
                   <Check
                     className={cn(
-                      'mr-2 h-4 w-4',
+                      'mr-2 h-4 w-4 opacity-70',
                       value === opcion.value ? 'opacity-100' : 'opacity-0'
                     )}
                   />

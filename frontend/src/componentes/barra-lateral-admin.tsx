@@ -51,7 +51,7 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
   const navegar = useNavigate();
   const [colapsado, setColapsado] = useState(false);
 
-  const manejarCerrarSesion = () => {
+  const manejar_cerrar_sesion = () => {
     cerrarSesion();
     navegar('/iniciar-sesion');
   };
@@ -70,7 +70,7 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
     return usuario?.correo || '';
   };
 
-  const ruta_foto = usuario?.ruta_foto;
+  const ruta_foto = usuario?.ruta_foto || usuario?.perfil?.ruta_foto;
 
   return (
     <aside
@@ -167,10 +167,10 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
               <>
                 <div 
                   className="flex items-center gap-3 rounded-xl bg-secondary/60 p-3 border border-border hover:bg-secondary/80 hover:shadow-md transition-all duration-200 cursor-pointer" 
-                  onClick={() => navegar('/panel/configuracion')}
+                  onClick={() => navegar('/panel/perfil')}
                 >
                   <Avatar className="h-11 w-11 flex-shrink-0 hover:scale-110 transition-transform duration-200">
-                    {ruta_foto && <AvatarImage src={ruta_foto} />}
+                    <AvatarImage src={ruta_foto} />
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-base font-bold">
                       {obtener_iniciales()}
                     </AvatarFallback>
@@ -186,7 +186,7 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
                 <Button
                   variant="ghost"
                   className="w-full justify-start gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/15 border border-transparent hover:border-destructive/30 font-medium transition-all duration-200 hover:scale-105 hover:shadow-md"
-                  onClick={manejarCerrarSesion}
+                  onClick={manejar_cerrar_sesion}
                 >
                   <LogOut className="h-5 w-5" />
                   <span>Cerrar Sesión</span>
@@ -196,9 +196,9 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
               <>
                 <Avatar 
                   className="h-11 w-11 mx-auto hover:scale-110 transition-transform duration-200 cursor-pointer" 
-                  onClick={() => navegar('/panel/configuracion')}
+                  onClick={() => navegar('/panel/perfil')}
                 >
-                  {ruta_foto && <AvatarImage src={ruta_foto} />}
+                  <AvatarImage src={ruta_foto} />
                   <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-base font-bold">
                     {obtener_iniciales()}
                   </AvatarFallback>
@@ -207,7 +207,7 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
                   variant="ghost"
                   size="icon"
                   className="w-full h-11 text-destructive hover:text-destructive hover:bg-destructive/15 hover:scale-110 transition-all duration-200"
-                  onClick={manejarCerrarSesion}
+                  onClick={manejar_cerrar_sesion}
                   title="Cerrar Sesión"
                 >
                   <LogOut className="h-5 w-5" />

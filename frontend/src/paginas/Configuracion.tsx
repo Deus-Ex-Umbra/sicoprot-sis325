@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { useTema } from '../contextos/tema-contexto';
@@ -12,40 +12,133 @@ import { Button } from '../componentes/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../componentes/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../componentes/ui/tabs';
 import { toast } from 'sonner';
-import { User, Palette, Lock, Upload, Sun, Moon, Droplet, Waves, Leaf, TreePine, Gem, Sparkles, Flame, FireExtinguisher } from 'lucide-react';
+import { User, Palette, Lock, Upload, Sun, Moon, Droplet, Waves, Leaf, TreePine, Gem, Sparkles, Flame, FireExtinguisher, Save, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utilidades';
+import { usuariosApi } from '../servicios/api';
+import { Alert, AlertDescription } from '../componentes/ui/alert';
 
 export default function Configuracion() {
   const navegar = useNavigate();
-  const { usuario } = useAutenticacion();
+  const { usuario, actualizarUsuario } = useAutenticacion();
   const { tema, cambiarTema } = useTema();
   const [sidebar_open, set_sidebar_open] = useState(true);
   const [nombre, set_nombre] = useState(usuario?.perfil?.nombre || '');
   const [apellido, set_apellido] = useState(usuario?.perfil?.apellido || '');
   const [correo, set_correo] = useState(usuario?.correo || '');
+  const [preview_foto, set_preview_foto] = useState<string | null>(null);
+  const input_archivo_ref = useRef<HTMLInputElement>(null);
+  const [guardando_perfil, set_guardando_perfil] = useState(false);
+  const [error_perfil, set_error_perfil] = useState('');
   const [contrasena_actual, set_contrasena_actual] = useState('');
   const [contrasena_nueva, set_contrasena_nueva] = useState('');
   const [confirmar_contrasena, set_confirmar_contrasena] = useState('');
+  const [guardando_contrasena, set_guardando_contrasena] = useState(false);
+  const [error_contrasena, set_error_contrasena] = useState('');
+
   const es_admin = usuario?.rol === Rol.Administrador;
+
   const toggleSidebar = () => set_sidebar_open(!sidebar_open);
+
   const obtener_iniciales = () => {
     if (usuario?.perfil) {
       return `${usuario.perfil.nombre?.[0] || ''}${usuario.perfil.apellido?.[0] || ''}`.toUpperCase();
     }
     return usuario?.correo?.[0]?.toUpperCase() || 'U';
   };
-  const manejar_guardar_perfil = async () => toast.success('Perfil actualizado correctamente');
+
+  const manejar_cambio_archivo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0];
+    if (archivo) {
+      if (archivo.size > 5 * 1024 * 1024) {
+        toast.error('La imagen debe ser menor a 5MB');
+        return;
+      }
+      if (!archivo.type.startsWith('image/')) {
+        toast.error('Solo se permiten archivos de imagen');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        set_preview_foto(reader.result as string);
+      };
+      reader.readAsDataURL(archivo);
+    }
+  };
+
+  const manejar_click_cambiar_foto = () => {
+    input_archivo_ref.current?.click();
+  };
+
+  const manejar_guardar_perfil = async () => {
+    set_guardando_perfil(true);
+    set_error_perfil('');
+
+    try {
+      const datos_actualizacion: any = {};
+      if (nombre !== usuario?.perfil?.nombre) datos_actualizacion.nombre = nombre;
+      if (apellido !== usuario?.perfil?.apellido) datos_actualizacion.apellido = apellido;
+      if (correo !== usuario?.correo) datos_actualizacion.correo = correo;
+      if (preview_foto) datos_actualizacion.ruta_foto = preview_foto;
+
+      if (Object.keys(datos_actualizacion).length === 0) {
+        toast.info('No hay cambios para guardar');
+        set_guardando_perfil(false);
+        return;
+      }
+
+      const usuario_actualizado = await usuariosApi.actualizarPerfil(datos_actualizacion);
+      actualizarUsuario(usuario_actualizado);
+      toast.success('Perfil actualizado correctamente');
+      set_preview_foto(null);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Error al guardar el perfil';
+      set_error_perfil(msg);
+      toast.error(msg);
+    } finally {
+      set_guardando_perfil(false);
+    }
+  };
+
   const manejar_cambiar_contrasena = async () => {
+    set_guardando_contrasena(true);
+    set_error_contrasena('');
+
     if (contrasena_nueva !== confirmar_contrasena) {
-      toast.error('Las contraseñas no coinciden');
+      set_error_contrasena('Las contraseñas nuevas no coinciden');
+      set_guardando_contrasena(false);
       return;
     }
-    toast.success('Contraseña actualizada correctamente');
+    if (contrasena_nueva.length < 8) {
+      set_error_contrasena('La contraseña debe tener al menos 8 caracteres');
+      set_guardando_contrasena(false);
+      return;
+    }
+    if (!contrasena_actual) {
+      set_error_contrasena('Debe ingresar su contraseña actual');
+      set_guardando_contrasena(false);
+      return;
+    }
+
+    try {
+      const datos_actualizacion = {
+        contrasena_actual: contrasena_actual,
+        contrasena_nueva: contrasena_nueva,
+      };
+      const usuario_actualizado = await usuariosApi.actualizarPerfil(datos_actualizacion);
+      actualizarUsuario(usuario_actualizado);
+      toast.success('Contraseña actualizada correctamente');
+      set_contrasena_actual('');
+      set_contrasena_nueva('');
+      set_confirmar_contrasena('');
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Error al cambiar la contraseña';
+      set_error_contrasena(msg);
+      toast.error(msg);
+    } finally {
+      set_guardando_contrasena(false);
+    }
   };
-  const manejar_cambiar_foto = async (evento: React.ChangeEvent<HTMLInputElement>) => {
-    const archivo = evento.target.files?.[0];
-    if (archivo) toast.success('Foto actualizada correctamente');
-  };
+
   const temas_disponibles = [
     { valor: 'light', etiqueta: 'Claro', icono: <Sun className="w-6 h-6" />, descripcion: 'Ideal para entornos bien iluminados.', colores: ['bg-white', 'bg-gray-200', 'bg-gray-400'] },
     { valor: 'dark', etiqueta: 'Oscuro', icono: <Moon className="w-6 h-6" />, descripcion: 'Descansa la vista en ambientes oscuros.', colores: ['bg-gray-900', 'bg-gray-700', 'bg-gray-500'] },
@@ -58,6 +151,9 @@ export default function Configuracion() {
     { valor: 'light-red', etiqueta: 'Rojo Claro', icono: <Flame className="w-6 h-6" />, descripcion: 'Energía cálida con tonos suaves.', colores: ['bg-red-100', 'bg-red-300', 'bg-red-500'] },
     { valor: 'dark-red', etiqueta: 'Rojo Oscuro', icono: <FireExtinguisher className="w-6 h-6" />, descripcion: 'Fuerte y apasionado.', colores: ['bg-red-900', 'bg-red-700', 'bg-red-500'] },
   ];
+
+  const ruta_foto_actual = usuario?.ruta_foto || usuario?.perfil?.ruta_foto;
+
   return (
     <div className="min-h-screen bg-background">
       {es_admin ? <BarraLateralAdmin isOpen={sidebar_open} /> : <BarraLateral isOpen={sidebar_open} />}
@@ -81,10 +177,14 @@ export default function Configuracion() {
                     <CardDescription>Actualiza tu información de perfil</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    {error_perfil && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{error_perfil}</AlertDescription>
+                      </Alert>
+                    )}
                     <div className="flex items-center gap-6">
                       <Avatar className="h-24 w-24">
-                        {usuario?.ruta_foto && <AvatarImage src={usuario.ruta_foto} />}
-                        {usuario?.perfil?.ruta_foto && <AvatarImage src={usuario.perfil.ruta_foto} />}
+                        <AvatarImage src={preview_foto || ruta_foto_actual} />
                         <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-2xl font-bold">{obtener_iniciales()}</AvatarFallback>
                       </Avatar>
                       <div className="space-y-2">
@@ -92,9 +192,9 @@ export default function Configuracion() {
                           <div className="flex items-center gap-2 text-sm text-primary hover:text-primary/80">
                             <Upload className="h-4 w-4" />Cambiar foto de perfil
                           </div>
-                          <Input id="foto" type="file" accept="image/*" className="hidden" onChange={manejar_cambiar_foto} />
+                          <Input ref={input_archivo_ref} id="foto" type="file" accept="image/*" className="hidden" onChange={manejar_cambio_archivo} />
                         </Label>
-                        <p className="text-xs text-muted-foreground">JPG, PNG o GIF. Máximo 2MB.</p>
+                        <p className="text-xs text-muted-foreground">JPG, PNG o GIF. Máximo 5MB.</p>
                       </div>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
@@ -111,7 +211,12 @@ export default function Configuracion() {
                       <Label htmlFor="correo">Correo Electrónico</Label>
                       <Input id="correo" type="email" value={correo} onChange={(e) => set_correo(e.target.value)} placeholder="tu@correo.com" />
                     </div>
-                    <div className="flex justify-end"><Button onClick={manejar_guardar_perfil}>Guardar Cambios</Button></div>
+                    <div className="flex justify-end">
+                      <Button onClick={manejar_guardar_perfil} disabled={guardando_perfil}>
+                        {guardando_perfil ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        Guardar Cambios
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -157,6 +262,11 @@ export default function Configuracion() {
                     <CardDescription>Actualiza tu contraseña para mantener tu cuenta segura</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {error_contrasena && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{error_contrasena}</AlertDescription>
+                      </Alert>
+                    )}
                     <div className="space-y-2">
                       <Label htmlFor="contrasena_actual">Contraseña Actual</Label>
                       <Input id="contrasena_actual" type="password" value={contrasena_actual} onChange={(e) => set_contrasena_actual(e.target.value)} placeholder="••••••••" />
@@ -169,7 +279,12 @@ export default function Configuracion() {
                       <Label htmlFor="confirmar_contrasena">Confirmar Nueva Contraseña</Label>
                       <Input id="confirmar_contrasena" type="password" value={confirmar_contrasena} onChange={(e) => set_confirmar_contrasena(e.target.value)} placeholder="••••••••" />
                     </div>
-                    <div className="flex justify-end"><Button onClick={manejar_cambiar_contrasena}>Cambiar Contraseña</Button></div>
+                    <div className="flex justify-end">
+                      <Button onClick={manejar_cambiar_contrasena} disabled={guardando_contrasena}>
+                        {guardando_contrasena ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        Cambiar Contraseña
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
