@@ -3,7 +3,7 @@ import { Documento } from '../../documentos/entidades/documento.entidad';
 import { Estudiante } from '../../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../../asesores/entidades/asesor.entidad';
 import { EtapaProyecto } from '../enums/etapa-proyecto.enum';
-import { PropuestaTema } from '../../propuestas-tema/entidad/propuesta-tema.entidad';
+import { PropuestaTema } from '../../propuestas-tema/entidades/propuesta-tema.entidad';
 import { Reunion } from '../../reuniones/entidades/reunion.entidad';
 
 @Entity('proyectos')

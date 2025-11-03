@@ -3,7 +3,7 @@ import { Usuario } from '../../usuarios/entidades/usuario.entidad';
 import { Proyecto } from '../../proyectos/entidades/proyecto.endidad';
 import { Grupo } from '../../grupos/entidades/grupo.entidad';
 import { Correccion } from '../../correcciones/entidades/correccion.entidad';
-import { PropuestaTema } from '../../propuestas-tema/entidad/propuesta-tema.entidad';
+import { PropuestaTema } from '../../propuestas-tema/entidades/propuesta-tema.entidad';
 
 @Entity('estudiantes')
 export class Estudiante {
