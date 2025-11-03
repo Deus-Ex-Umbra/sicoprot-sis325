@@ -3,7 +3,6 @@ import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { usuariosApi } from '../servicios/api';
 import { toast } from 'sonner';
 import { User, Mail, Lock, Save, Loader2, Camera, Upload } from 'lucide-react';
-import Cabecera from '../componentes/Cabecera';
 import BarraLateral from '../componentes/BarraLateral';
 import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
 import { cn } from '../lib/utilidades';
@@ -142,7 +141,6 @@ const Perfil = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
         <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
@@ -151,7 +149,7 @@ const Perfil = () => {
 
       <main
         className={cn(
-          'transition-all duration-300 pt-14',
+          'transition-all duration-300 ',
           sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >

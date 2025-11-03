@@ -3,6 +3,7 @@ import IniciarSesion from '../paginas/auth/IniciarSesion';
 import Registro from '../paginas/auth/Registro';
 import Panel from '../paginas/Panel';
 import Perfil from '../paginas/Perfil';
+import Configuracion from '../paginas/Configuracion';
 import Proyectos from '../paginas/Proyectos';
 import DetalleProyecto from '../paginas/DetalleProyecto';
 import MisDocumentos from '../paginas/estudiante/MisDocumentos';
@@ -47,6 +48,14 @@ const router = createBrowserRouter([
     element: (
       <RutaProtegida>
         <Perfil />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/configuracion',
+    element: (
+      <RutaProtegida>
+        <Configuracion />
       </RutaProtegida>
     ),
   },

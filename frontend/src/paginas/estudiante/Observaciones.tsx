@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { observacionesApi } from '../../servicios/api';
 import type { Observacion } from '../../tipos/observacion';
-import Cabecera from '../../componentes/Cabecera';
 import BarraLateral from '../../componentes/BarraLateral';
 import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
 import { cn } from '../../lib/utilidades';
@@ -202,7 +201,6 @@ const Observaciones = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
         <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
@@ -211,7 +209,7 @@ const Observaciones = () => {
 
       <main
         className={cn(
-          'transition-all duration-300 pt-14',
+          'transition-all duration-300 ',
           sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >

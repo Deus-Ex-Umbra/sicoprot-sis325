@@ -12,7 +12,6 @@ import {
 import { adminApi } from '../../servicios/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
 import { cn } from '../../lib/utilidades';
-import Cabecera from '../../componentes/Cabecera';
 import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Rol } from '../../tipos/usuario';
@@ -154,7 +153,6 @@ const DashboardAdmin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
         <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
@@ -163,7 +161,7 @@ const DashboardAdmin = () => {
 
       <main
         className={cn(
-          'transition-all duration-300 pt-14',
+          'transition-all duration-300 ',
           sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >
