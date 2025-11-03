@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { observacionesApi } from '../../servicios/api';
-import type { Observacion } from '../../tipos/observacion';
-import BarraLateral from '../../componentes/BarraLateral';
-import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import { type Observacion, EstadoObservacion } from '../../tipos/usuario';
+import BarraLateral from '../../componentes/barra-lateral';
+import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { cn } from '../../lib/utilidades';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Rol } from '../../tipos/usuario';
@@ -48,20 +48,20 @@ const Observaciones = () => {
   }, []);
 
   const total_observaciones = observaciones.length;
-  const corregidas = observaciones.filter(o => o.estado === 'CORREGIDO').length;
-  const pendientes = observaciones.filter(o => o.estado === 'PENDIENTE').length;
-  const rechazadas = observaciones.filter(o => o.estado === 'RECHAZADO').length;
+  const corregidas = observaciones.filter(o => o.estado === EstadoObservacion.CORREGIDA).length;
+  const pendientes = observaciones.filter(o => o.estado === EstadoObservacion.PENDIENTE).length;
+  const rechazadas = observaciones.filter(o => o.estado === EstadoObservacion.RECHAZADO).length;
   const porcentaje_completado = total_observaciones > 0
     ? Math.round((corregidas / total_observaciones) * 100)
     : 0;
 
   const obtenerVarianteBadge = (estado: string) => {
     switch (estado) {
-      case 'PENDIENTE':
+      case EstadoObservacion.PENDIENTE:
         return 'secondary';
-      case 'CORREGIDO':
+      case EstadoObservacion.CORREGIDA:
         return 'default';
-      case 'RECHAZADO':
+      case EstadoObservacion.RECHAZADO:
         return 'destructive';
       default:
         return 'outline';
@@ -70,9 +70,10 @@ const Observaciones = () => {
 
   const obtenerIcono = (estado: string) => {
     switch (estado) {
-      case 'PENDIENTE': return '⏳';
-      case 'CORREGIDO': return '✅';
-      case 'RECHAZADO': return '❌';
+      case EstadoObservacion.PENDIENTE: return '⏳';
+      case EstadoObservacion.CORREGIDA: return '✅';
+      case EstadoObservacion.RECHAZADO: return '❌';
+      case EstadoObservacion.EN_REVISION: return '👀';
       default: return '❓';
     }
   };
@@ -177,9 +178,10 @@ const Observaciones = () => {
                         </TableCell>
                         <TableCell>
                           <p className="font-medium">{obs.titulo || 'Sin título'}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {obs.descripcion_corta || obs.contenido_detallado?.substring(0, 50) + '...'}
-                          </p>
+                          <p 
+                            className="text-xs text-muted-foreground prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: obs.contenido_html.substring(0, 70) + '...' }}
+                          />
                         </TableCell>
                         <TableCell className="text-center">{obs.pagina_inicio}</TableCell>
                         <TableCell className="text-center">

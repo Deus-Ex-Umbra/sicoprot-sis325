@@ -4,7 +4,7 @@ import { periodosApi } from '../../servicios/api';
 import { type Periodo } from '../../tipos/usuario';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utilidades';
-import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Rol } from '../../tipos/usuario';
 import { Button } from '../../componentes/ui/button';
@@ -31,7 +31,7 @@ import { Label } from '../../componentes/ui/label';
 import { Switch } from '../../componentes/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
 import { Textarea } from '../../componentes/ui/textarea';
-import BarraLateral from '../../componentes/BarraLateral';
+import BarraLateral from '../../componentes/barra-lateral';
 
 const GestionPeriodos = () => {
   const [periodos, set_periodos] = useState<Periodo[]>([]);

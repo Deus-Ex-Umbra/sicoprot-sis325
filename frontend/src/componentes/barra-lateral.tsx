@@ -12,7 +12,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Timeline,
+  LineChart,
   CalendarClock,
   Archive,
 } from 'lucide-react';
@@ -169,7 +169,7 @@ const BarraLateral = ({ isOpen }: BarraLateralProps) => {
                       />
                       <NavItem
                         to="/panel/mi-progreso"
-                        icon={<Timeline />}
+                        icon={<LineChart />}
                         label={colapsado ? '' : 'Mi Progreso'}
                       />
                       <NavItem

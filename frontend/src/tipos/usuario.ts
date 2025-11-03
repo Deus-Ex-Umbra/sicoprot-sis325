@@ -210,6 +210,7 @@ export interface Observacion {
   fecha_creacion: string;
   fecha_actualizacion: string;
   autor: Asesor;
+  documento: Documento;
   correcciones?: Correccion[];
 }
 
@@ -226,7 +227,119 @@ export interface Correccion {
   pagina_fin: number;
   color: string;
   estado: 'PENDIENTE_REVISION' | 'ACEPTADA' | 'RECHAZADA';
+  estado_verificacion?: string;
+  comentario_verificacion_html?: string;
+  fecha_verificacion?: Date;
   fecha_creacion: string;
   estudiante: Estudiante;
   observacion?: Observacion;
+}
+
+export interface EtapaCronograma {
+  nombre: 'propuesta' | 'perfil' | 'proyecto';
+  fecha_limite_entrega: Date | null;
+  estado: 'pendiente' | 'aprobado' | 'vencido';
+  dias_restantes: number | null;
+  recomendaciones: string[];
+}
+
+export interface CronogramaProyectoDto {
+  periodo: {
+    nombre: string;
+    fecha_inicio: Date;
+    fecha_fin: Date;
+  };
+  etapas: EtapaCronograma[];
+  etapa_actual: EtapaProyecto;
+}
+
+export interface PropuestaTimeline {
+  id: number;
+  numero_propuesta: number;
+  titulo: string;
+  estado: string;
+  fecha_creacion: Date;
+  fecha_revision?: Date;
+  comentario_asesor?: string | null;
+}
+
+export interface ReunionTimeline {
+  id: number;
+  titulo: string;
+  fecha_programada: Date;
+  fecha_realizada?: Date;
+  estado: string;
+  notas_reunion_html?: string;
+}
+
+export interface VersionDocumentoTimeline {
+  id: number;
+  nombre_archivo: string;
+  version: number;
+  fecha_subida: Date;
+  observaciones_count: number;
+}
+
+export interface CorreccionTimeline {
+  id: number;
+  estado: string;
+  fecha_creacion: Date;
+  fecha_verificacion?: Date;
+  comentario_verificacion?: string;
+}
+
+export interface ObservacionTimeline {
+  id: number;
+  titulo: string;
+  estado: string;
+  fecha_creacion: Date;
+  fecha_verificacion?: Date;
+  documento: string;
+  version_observada?: number;
+  tiene_correccion: boolean;
+  correcciones?: CorreccionTimeline[];
+}
+
+export interface DefensaTimeline {
+  solicitada: boolean;
+  fecha_solicitud?: Date;
+  aprobada?: boolean;
+  fecha_aprobacion?: Date;
+  tribunales?: Tribunal[];
+  comentarios?: string;
+}
+
+export interface EventoLineaTiempo {
+  tipo: string;
+  fecha: Date;
+  titulo: string;
+  descripcion?: string;
+  icono?: string;
+}
+
+export interface TimelineCompletoDto {
+  proyecto: {
+    id: number;
+    titulo: string;
+    etapa_actual: EtapaProyecto;
+    fecha_creacion: Date;
+  };
+  propuestas: PropuestaTimeline[];
+  perfil: {
+    aprobado: boolean;
+    fecha_aprobacion?: Date;
+    comentarios?: string;
+    versiones: VersionDocumentoTimeline[];
+    observaciones: ObservacionTimeline[];
+  };
+  proyecto_desarrollo: {
+    aprobado: boolean;
+    fecha_aprobacion?: Date;
+    comentarios?: string;
+    reuniones: ReunionTimeline[];
+    versiones: VersionDocumentoTimeline[];
+    observaciones: ObservacionTimeline[];
+  };
+  defensa: DefensaTimeline;
+  linea_tiempo: EventoLineaTiempo[];
 }

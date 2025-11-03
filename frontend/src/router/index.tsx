@@ -12,7 +12,7 @@ import ObservacionesAsesor from '../paginas/asesor/ObservacionesAsesor';
 import MisEstudiantes from '../paginas/asesor/MisEstudiantes';
 import RevisarDocumentos from '../paginas/asesor/RevisarDocumentos';
 import InscripcionGrupos from '../paginas/estudiante/InscripcionGrupos';
-import RutaProtegida from '../componentes/RutaProtegida';
+import RutaProtegida from '../componentes/ruta-protegida';
 import CrearObservacion from '../paginas/CrearObservacion';
 import CrearCorreccion from '../paginas/CrearCorreccion';
 import DashboardAdmin from '../paginas/admin/DashboardAdmin';

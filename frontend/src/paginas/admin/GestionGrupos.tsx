@@ -5,7 +5,9 @@ import {
   Trash, 
   UserPlus, 
   UserMinus,
-  Loader2
+  Loader2,
+  Search,
+  X
 } from 'lucide-react';
 import { 
   gruposApi,
@@ -16,7 +18,7 @@ import {
 import { type Grupo, type Periodo, type Usuario, type Estudiante } from '../../tipos/usuario';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utilidades';
-import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Rol } from '../../tipos/usuario';
 import { Button } from '../../componentes/ui/button';
@@ -50,10 +52,12 @@ import {
 import { Switch } from '../../componentes/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
 import { Textarea } from '../../componentes/ui/textarea';
-import BarraLateral from '../../componentes/BarraLateral';
+import BarraLateral from '../../componentes/barra-lateral';
+import { SelectConBusqueda } from '../../componentes/select-con-busqueda';
 
 const GestionGrupos = () => {
   const [grupos, set_grupos] = useState<Grupo[]>([]);
+  const [grupos_filtrados, set_grupos_filtrados] = useState<Grupo[]>([]);
   const [periodos, set_periodos] = useState<Periodo[]>([]);
   const [asesores, set_asesores] = useState<Usuario[]>([]);
   const [estudiantes_sin_grupo, set_estudiantes_sin_grupo] = useState<Estudiante[]>([]);
@@ -73,6 +77,12 @@ const GestionGrupos = () => {
     activo: true,
   });
 
+  const [filtros, set_filtros] = useState({
+    busqueda: '',
+    id_periodo: '',
+    id_asesor: '',
+  });
+
   const { usuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
   const es_admin = usuario?.rol === Rol.Administrador;
@@ -85,6 +95,10 @@ const GestionGrupos = () => {
     cargarDatos();
   }, []);
 
+  useEffect(() => {
+    aplicarFiltros();
+  }, [filtros, grupos]);
+
   const cargarDatos = async () => {
     try {
       set_cargando(true);
@@ -95,6 +109,7 @@ const GestionGrupos = () => {
         adminApi.obtenerEstudiantesSinGrupo(),
       ]);
       set_grupos(grupos_data);
+      set_grupos_filtrados(grupos_data);
       set_periodos(periodos_data);
       set_asesores(asesores_data);
       set_estudiantes_sin_grupo(estudiantes_data);
@@ -103,6 +118,36 @@ const GestionGrupos = () => {
     } finally {
       set_cargando(false);
     }
+  };
+
+  const aplicarFiltros = () => {
+    let resultado = [...grupos];
+
+    if (filtros.busqueda) {
+      const busqueda_lower = filtros.busqueda.toLowerCase();
+      resultado = resultado.filter(grupo =>
+        grupo.nombre.toLowerCase().includes(busqueda_lower) ||
+        (grupo.descripcion && grupo.descripcion.toLowerCase().includes(busqueda_lower))
+      );
+    }
+
+    if (filtros.id_periodo) {
+      resultado = resultado.filter(grupo => grupo.periodo?.id === parseInt(filtros.id_periodo));
+    }
+
+    if (filtros.id_asesor) {
+      resultado = resultado.filter(grupo => grupo.asesor?.id === parseInt(filtros.id_asesor));
+    }
+
+    set_grupos_filtrados(resultado);
+  };
+
+  const limpiarFiltros = () => {
+    set_filtros({
+      busqueda: '',
+      id_periodo: '',
+      id_asesor: '',
+    });
   };
 
   const abrirModalCrear = () => {
@@ -194,6 +239,18 @@ const GestionGrupos = () => {
     }
   };
 
+  const opciones_asesores = asesores.map(asesor => ({
+    value: String(asesor.perfil?.id_asesor),
+    label: `${asesor.perfil?.nombre} ${asesor.perfil?.apellido}`
+  }));
+
+  const opciones_periodos = periodos.map(periodo => ({
+    value: String(periodo.id),
+    label: periodo.nombre
+  }));
+
+  const hay_filtros_activos = filtros.busqueda || filtros.id_periodo || filtros.id_asesor;
+
   let contenido_pagina;
 
   if (cargando) {
@@ -206,80 +263,149 @@ const GestionGrupos = () => {
     contenido_pagina = <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
   } else {
     contenido_pagina = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Grupos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead>Asesor</TableHead>
-                <TableHead>Período</TableHead>
-                <TableHead>Estudiantes</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {grupos.map((grupo) => (
-                <TableRow key={grupo.id}>
-                  <TableCell className="font-medium">{grupo.nombre}</TableCell>
-                  <TableCell>{grupo.descripcion || '-'}</TableCell>
-                  <TableCell>
-                    {grupo.asesor?.nombre} {grupo.asesor?.apellido}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={grupo.periodo?.activo ? 'default' : 'secondary'}>
-                      {grupo.periodo?.nombre}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{grupo.estudiantes?.length || 0}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={grupo.activo ? 'default' : 'secondary'}>
-                      {grupo.activo ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => abrirModalEstudiantes(grupo)}
-                      >
-                        <UserPlus className="h-4 w-4 mr-1" /> Estudiantes
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => abrirModalEditar(grupo)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => manejarEliminar(grupo.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+      <>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Filtros</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="busqueda">Buscar por Nombre</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="busqueda"
+                    type="text"
+                    placeholder="Nombre o descripción..."
+                    value={filtros.busqueda}
+                    onChange={(e) => set_filtros({ ...filtros, busqueda: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filtro-periodo">Período</Label>
+                <Select
+                  value={filtros.id_periodo}
+                  onValueChange={(value) => set_filtros({ ...filtros, id_periodo: value === 'todos' ? '' : value })}
+                >
+                  <SelectTrigger id="filtro-periodo">
+                    <SelectValue placeholder="Todos los períodos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los períodos</SelectItem>
+                    {periodos.map(p => (
+                      <SelectItem key={p.id} value={String(p.id)}>{p.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filtro-asesor">Asesor</Label>
+                <SelectConBusqueda
+                  opciones={opciones_asesores}
+                  value={filtros.id_asesor}
+                  onChange={(value) => set_filtros({ ...filtros, id_asesor: value })}
+                  placeholder="Todos los asesores"
+                  searchPlaceholder="Buscar asesor..."
+                  emptyMessage="No se encontró el asesor."
+                />
+              </div>
+            </div>
+            {hay_filtros_activos && (
+              <div className="mt-4 flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={limpiarFiltros}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Limpiar Filtros
+                </Button>
+                <span className="text-muted-foreground text-sm">
+                  Mostrando {grupos_filtrados.length} de {grupos.length} grupos
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista de Grupos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead>Asesor</TableHead>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Estudiantes</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {grupos.length === 0 && (
-            <p className="text-muted-foreground text-center py-10">
-              No hay grupos registrados.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {grupos_filtrados.map((grupo) => (
+                  <TableRow key={grupo.id}>
+                    <TableCell className="font-medium">{grupo.nombre}</TableCell>
+                    <TableCell>{grupo.descripcion || '-'}</TableCell>
+                    <TableCell>
+                      {grupo.asesor?.nombre} {grupo.asesor?.apellido}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={grupo.periodo?.activo ? 'default' : 'secondary'}>
+                        {grupo.periodo?.nombre}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{grupo.estudiantes?.length || 0}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={grupo.activo ? 'default' : 'secondary'}>
+                        {grupo.activo ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => abrirModalEstudiantes(grupo)}
+                        >
+                          <UserPlus className="h-4 w-4 mr-1" /> Estudiantes
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => abrirModalEditar(grupo)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => manejarEliminar(grupo.id)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {grupos_filtrados.length === 0 && (
+              <p className="text-muted-foreground text-center py-10">
+                No hay grupos que coincidan con los filtros.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </>
     );
   }
 
@@ -348,28 +474,20 @@ const GestionGrupos = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="asesor">Asesor Asignado</Label>
-                    <Select
-                      value={String(form_grupo.id_asesor)}
-                      onValueChange={(value) => set_form_grupo({ ...form_grupo, id_asesor: parseInt(value) })}
-                    >
-                      <SelectTrigger id="asesor">
-                        <SelectValue placeholder="Seleccione un asesor..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">Seleccione un asesor...</SelectItem>
-                        {asesores.map(asesor => (
-                          <SelectItem key={asesor.id} value={String(asesor.perfil?.id_asesor)}>
-                            {asesor.perfil?.nombre} {asesor.perfil?.apellido}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SelectConBusqueda
+                      opciones={opciones_asesores}
+                      value={String(form_grupo.id_asesor || '')}
+                      onChange={(value) => set_form_grupo({ ...form_grupo, id_asesor: parseInt(value) || 0 })}
+                      placeholder="Seleccione un asesor..."
+                      searchPlaceholder="Buscar asesor..."
+                      emptyMessage="No se encontró el asesor."
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="periodo">Período</Label>
                     <Select
-                      value={String(form_grupo.id_periodo)}
-                      onValueChange={(value) => set_form_grupo({ ...form_grupo, id_periodo: parseInt(value) })}
+                      value={String(form_grupo.id_periodo || '')}
+                      onValueChange={(value) => set_form_grupo({ ...form_grupo, id_periodo: parseInt(value) || 0 })}
                     >
                       <SelectTrigger id="periodo">
                         <SelectValue placeholder="Seleccione un período..." />

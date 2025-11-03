@@ -4,8 +4,8 @@ import { Plus, Eye, FileUp, Info, Loader2 } from 'lucide-react';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { proyectosApi } from '../servicios/api';
 import { type Proyecto, Rol } from '../tipos/usuario';
-import BarraLateral from '../componentes/BarraLateral';
-import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
+import BarraLateral from '../componentes/barra-lateral';
+import BarraLateralAdmin from '../componentes/barra-lateral-admin';
 import { cn } from '../lib/utilidades';
 import { Card, CardContent } from '../componentes/ui/card';
 import { Button } from '../componentes/ui/button';
@@ -177,7 +177,7 @@ const Proyectos = () => {
                     <TableRow key={proyecto.id}>
                       <TableCell className="font-medium">{proyecto.titulo}</TableCell>
                       <TableCell>
-                        {proyecto.estudiante?.nombre} {proyecto.estudiante?.apellido}
+                        {proyecto.estudiantes?.[0]?.nombre} {proyecto.estudiantes?.[0]?.apellido}
                       </TableCell>
                       <TableCell>
                         {proyecto.asesor?.nombre} {proyecto.asesor?.apellido}

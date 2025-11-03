@@ -4,7 +4,7 @@ import { adminApi } from '../../servicios/api';
 import { type Usuario, EstadoUsuario, Rol } from '../../tipos/usuario';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utilidades';
-import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Button } from '../../componentes/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
@@ -35,7 +35,7 @@ import {
   SelectValue
 } from '../../componentes/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
-import BarraLateral from '../../componentes/BarraLateral';
+import BarraLateral from '../../componentes/barra-lateral';
 
 const GestionUsuarios = () => {
   const [usuarios, set_usuarios] = useState<Usuario[]>([]);

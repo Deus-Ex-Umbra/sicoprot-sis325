@@ -4,7 +4,7 @@ import { Badge } from "./ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { CheckCircle, Clock, Eye, XCircle, AlertCircle, GitPullRequestArrow, History } from "lucide-react";
 import { type Observacion, type Correccion } from "../tipos/usuario";
-import { estadoConfig } from "../tipos/estadoObservacion";
+import { estadoConfig } from "../tipos/estado-observacion";
 import { cn } from "../lib/utilidades";
 import {
   Accordion,
@@ -40,7 +40,8 @@ const RenderCorreccion = ({ correccion }: { correccion: Correccion }) => {
   };
 
   return (
-    <div className="p-3 bg-muted/50 rounded-md">
+    <div className="p-3 bg-muted/50 rounded-md relative pl-5">
+      <div className="absolute left-[-5px] top-5 w-3 h-3 rounded-full bg-primary border-2 border-background" />
       <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-2">
           <GitPullRequestArrow className="h-4 w-4 text-primary" />
@@ -55,6 +56,16 @@ const RenderCorreccion = ({ correccion }: { correccion: Correccion }) => {
         className="text-sm prose prose-sm max-w-none"
         dangerouslySetInnerHTML={{ __html: correccion.descripcion_html }}
       />
+      
+      {correccion.estado_verificacion && (correccion.estado_verificacion === 'APROBADA' || correccion.estado_verificacion === 'RECHAZADA') && (
+        <div className="mt-2 border-t pt-2 space-y-1">
+          <p className="text-xs font-semibold">Verificación del Asesor ({new Date(correccion.fecha_verificacion!).toLocaleString()}):</p>
+          <div
+            className="text-xs prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ __html: correccion.comentario_verificacion_html || '<i>Sin comentarios</i>' }}
+          />
+        </div>
+      )}
     </div>
   );
 };
@@ -193,7 +204,7 @@ const ChecklistObservaciones: React.FC<Props> = ({ observaciones }) => {
                               <History className="h-4 w-4" />
                               Historial de Correcciones
                            </div>
-                           <div className="space-y-2 pl-6 border-l-2 border-primary/50">
+                           <div className="space-y-3 pl-6 border-l-2 border-primary/50 relative">
                             {obs.correcciones.sort((a, b) => new Date(a.fecha_creacion).getTime() - new Date(b.fecha_creacion).getTime()).map(corr => (
                               <RenderCorreccion correccion={corr} key={corr.id} />
                             ))}

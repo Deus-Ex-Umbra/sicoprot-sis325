@@ -4,7 +4,7 @@ import { solicitudesRegistroApi } from '../../servicios/api';
 import { type SolicitudRegistro, Rol } from '../../tipos/usuario';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utilidades';
-import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Button } from '../../componentes/ui/button';
 import { Card, CardContent } from '../../componentes/ui/card';
@@ -28,7 +28,7 @@ import {
 import { Label } from '../../componentes/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
 import { Textarea } from '../../componentes/ui/textarea';
-import BarraLateral from '../../componentes/BarraLateral';
+import BarraLateral from '../../componentes/barra-lateral';
 
 const SolicitudesRegistro = () => {
   const [solicitudes, set_solicitudes] = useState<SolicitudRegistro[]>([]);

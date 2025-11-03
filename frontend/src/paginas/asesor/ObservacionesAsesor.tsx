@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { observacionesApi } from '../../servicios/api';
-import type { Observacion } from '../../tipos/observacion';
+import { type Observacion, EstadoObservacion } from '../../tipos/usuario';
 import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
 import {
   Table,
@@ -21,8 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../componentes/ui/select';
-import BarraLateral from '../../componentes/BarraLateral';
-import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import BarraLateral from '../../componentes/barra-lateral';
+import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { cn } from '../../lib/utilidades';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Rol } from '../../tipos/usuario';
@@ -58,7 +58,7 @@ const ObservacionesAsesor = () => {
     try {
       await observacionesApi.actualizar(id, { estado: nuevoEstado });
       set_observaciones(prev =>
-        prev.map(obs => (obs.id === id ? { ...obs, estado: nuevoEstado } : obs))
+        prev.map(obs => (obs.id === id ? { ...obs, estado: nuevoEstado as EstadoObservacion } : obs))
       );
       toast.success('Estado actualizado correctamente');
     } catch (err) {
@@ -68,12 +68,14 @@ const ObservacionesAsesor = () => {
 
   const obtenerVarianteBadge = (estado: string) => {
     switch (estado) {
-      case 'PENDIENTE':
+      case EstadoObservacion.PENDIENTE:
         return 'secondary';
-      case 'CORREGIDO':
+      case EstadoObservacion.CORREGIDA:
         return 'default';
-      case 'RECHAZADO':
+      case EstadoObservacion.RECHAZADO:
         return 'destructive';
+      case EstadoObservacion.EN_REVISION:
+        return 'outline';
       default:
         return 'outline';
     }
@@ -148,9 +150,10 @@ const ObservacionesAsesor = () => {
                       </TableCell>
                       <TableCell>
                         <p className="font-medium">{obs.titulo || 'Sin título'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {obs.descripcion_corta || obs.contenido_detallado?.substring(0, 50) + '...'}
-                        </p>
+                        <p 
+                          className="text-xs text-muted-foreground prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: obs.contenido_html.substring(0, 70) + '...' }}
+                        />
                       </TableCell>
                       <TableCell className="text-center">{obs.pagina_inicio}</TableCell>
                       <TableCell className="text-center">
@@ -167,9 +170,10 @@ const ObservacionesAsesor = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="PENDIENTE">⏳ Pendiente</SelectItem>
-                            <SelectItem value="CORREGIDO">✅ Corregido</SelectItem>
-                            <SelectItem value="RECHAZADO">❌ Rechazado</SelectItem>
+                            <SelectItem value={EstadoObservacion.PENDIENTE}>⏳ Pendiente</SelectItem>
+                            <SelectItem value={EstadoObservacion.EN_REVISION}>👀 En Revisión</SelectItem>
+                            <SelectItem value={EstadoObservacion.CORREGIDA}>✅ Corregida</SelectItem>
+                            <SelectItem value={EstadoObservacion.RECHAZADO}>❌ Rechazado</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
