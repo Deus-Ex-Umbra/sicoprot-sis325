@@ -4,7 +4,6 @@ import { Plus, Eye, FileUp, Info, Loader2 } from 'lucide-react';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { proyectosApi } from '../servicios/api';
 import { type Proyecto, Rol } from '../tipos/usuario';
-import Cabecera from '../componentes/Cabecera';
 import BarraLateral from '../componentes/BarraLateral';
 import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
 import { cn } from '../lib/utilidades';
@@ -260,7 +259,6 @@ const Proyectos = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
         <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
@@ -269,7 +267,7 @@ const Proyectos = () => {
 
       <main
         className={cn(
-          'transition-all duration-300 pt-14',
+          'transition-all duration-300 ',
           sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >

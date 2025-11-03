@@ -4,7 +4,6 @@ import { adminApi } from '../../servicios/api';
 import { type Usuario, EstadoUsuario, Rol } from '../../tipos/usuario';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utilidades';
-import Cabecera from '../../componentes/Cabecera';
 import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Button } from '../../componentes/ui/button';
@@ -352,7 +351,6 @@ const GestionUsuarios = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
         <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
@@ -361,7 +359,7 @@ const GestionUsuarios = () => {
 
       <main
         className={cn(
-          'transition-all duration-300 pt-14',
+          'transition-all duration-300 ',
           sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >

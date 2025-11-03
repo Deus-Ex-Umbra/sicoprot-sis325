@@ -75,7 +75,7 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] flex flex-col sidebar-desktop smooth-transition',
+        'fixed left-0 z-40 h-[calc(100vh-0.0rem)] flex flex-col sidebar-desktop smooth-transition',
         isOpen ? (colapsado ? 'w-20' : 'w-64') : 'w-0 -translate-x-full'
       )}
     >

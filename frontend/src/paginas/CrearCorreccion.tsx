@@ -7,7 +7,6 @@ import { type Proyecto, type Documento, type Observacion, Rol } from '../tipos/u
 import { toast } from 'sonner';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import Cabecera from '../componentes/Cabecera';
 import BarraLateral from '../componentes/BarraLateral';
 import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
 import { cn } from '../lib/utilidades';
@@ -477,7 +476,6 @@ const CrearCorreccion = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
         <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
@@ -486,7 +484,7 @@ const CrearCorreccion = () => {
 
       <main
         className={cn(
-          'transition-all duration-300 pt-14',
+          'transition-all duration-300 ',
           sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >

@@ -12,7 +12,6 @@ import { gruposApi } from '../../servicios/api';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { type Grupo, Rol } from '../../tipos/usuario';
 import { toast } from 'sonner';
-import Cabecera from '../../componentes/Cabecera';
 import BarraLateral from '../../componentes/BarraLateral';
 import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
 import { cn } from '../../lib/utilidades';
@@ -294,7 +293,6 @@ const InscripcionGrupos = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
         <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
@@ -303,7 +301,7 @@ const InscripcionGrupos = () => {
 
       <main
         className={cn(
-          'transition-all duration-300 pt-14',
+          'transition-all duration-300 ',
           sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >

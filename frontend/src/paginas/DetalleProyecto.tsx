@@ -6,7 +6,6 @@ import { proyectosApi, documentosApi, observacionesApi, correccionesApi } from '
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { type Proyecto, type Documento, type Observacion, type Correccion, Rol } from '../tipos/usuario';
 import { api } from '../servicios/api';
-import Cabecera from '../componentes/Cabecera';
 import BarraLateral from '../componentes/BarraLateral';
 import BarraLateralAdmin from '../componentes/BarraLateralAdmin';
 import { cn } from '../lib/utilidades';
@@ -265,7 +264,6 @@ const DetalleProyecto = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Cabecera toggleSidebar={toggleSidebar} />
       {es_admin ? (
         <BarraLateralAdmin isOpen={sidebar_open} />
       ) : (
@@ -274,7 +272,7 @@ const DetalleProyecto = () => {
 
       <main
         className={cn(
-          'transition-all duration-300 pt-14',
+          'transition-all duration-300 ',
           sidebar_open ? 'ml-64' : 'ml-0'
         )}
       >
