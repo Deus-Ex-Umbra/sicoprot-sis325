@@ -1,11 +1,10 @@
-import { 
-  IsEnum, 
-  IsNotEmpty, 
-  IsOptional, 
-  IsString, 
-  IsNumber, 
-  Min, 
-  Matches 
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsNumber,
+  Min,
+  Matches,
 } from 'class-validator';
 import { EstadoObservacion } from '../enums/estado-observacion.enum';
 import { ApiProperty } from '@nestjs/swagger';
@@ -14,31 +13,36 @@ export class ActualizarObservacionDto {
   @ApiProperty({
     description: 'Nuevo estado de la observación',
     enum: EstadoObservacion,
-    example: EstadoObservacion.CORREGIDO,
-    required: false, // ✅ Permitir actualizaciones parciales
+    example: EstadoObservacion.CORREGIDA,
+    required: false,
   })
   @IsOptional()
   @IsEnum(EstadoObservacion)
   estado?: EstadoObservacion;
 
   @ApiProperty({
-    description: 'Comentario opcional del asesor para guiar al estudiante',
-    example: 'Revisar la redacción de la conclusión y ajustar las referencias APA.',
+    description:
+      'Comentario opcional en HTML del asesor para guiar al estudiante',
+    example:
+      '<p>Revisar la <b>redacción</b> de la conclusión y <i>ajustar</i> las referencias APA.</p>',
     required: false,
   })
   @IsOptional()
   @IsString()
-  comentarios_asesor?: string;
+  comentarios_asesor_html?: string;
 
   @ApiProperty({ example: 'Error corregido', required: false })
   @IsOptional()
   @IsString()
   titulo?: string;
 
-  @ApiProperty({ example: 'Revisar nuevamente la redacción', required: false })
+  @ApiProperty({
+    example: '<p>Revisar nuevamente la <b>redacción</b></p>',
+    required: false,
+  })
   @IsOptional()
   @IsString()
-  contenido?: string;
+  contenido_html?: string;
 
   @ApiProperty({ example: 10.5, required: false })
   @IsOptional()
@@ -75,10 +79,4 @@ export class ActualizarObservacionDto {
   @IsNumber()
   @Min(1)
   pagina_fin?: number;
-
-  @ApiProperty({ example: '#FFD700', required: false })
-  @IsOptional()
-  @IsString()
-  @Matches(/^#[0-9A-F]{6}$/i, { message: 'El color debe estar en formato hexadecimal #RRGGBB' })
-  color?: string;
 }

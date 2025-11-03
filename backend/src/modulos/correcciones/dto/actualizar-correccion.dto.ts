@@ -1,13 +1,6 @@
-import { IsOptional, IsString, IsNumber, Min, Matches } from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, MaxLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-/**
- * DTO para actualizar una corrección existente
- * El estudiante puede actualizar cualquier campo de su corrección
- * mientras esté en estado PENDIENTE_REVISION
- * 
- * NOTA: Todos los campos son opcionales (solo se actualizan los que se envíen)
- */
 export class ActualizarCorreccionDto {
   @ApiProperty({
     description: 'Nuevo título de la corrección',
@@ -16,16 +9,17 @@ export class ActualizarCorreccionDto {
   })
   @IsOptional()
   @IsString()
+  @MaxLength(255)
   titulo?: string;
 
   @ApiProperty({
-    description: 'Nueva descripción de la corrección',
-    example: 'Se realizaron ajustes adicionales en la redacción',
+    description: 'Nueva descripción HTML de la corrección',
+    example: '<p>Se realizaron <b>ajustes</b> adicionales.</p>',
     required: false,
   })
   @IsOptional()
   @IsString()
-  descripcion?: string;
+  descripcion_html?: string;
 
   @ApiProperty({
     description: 'Nueva versión corregida',
@@ -104,10 +98,8 @@ export class ActualizarCorreccionDto {
   })
   @IsOptional()
   @IsString()
-  @Matches(/^#[0-9A-F]{6}$/i, { 
-    message: 'El color debe estar en formato hexadecimal #RRGGBB' 
+  @Matches(/^#[0-9A-F]{6}$/i, {
+    message: 'El color debe estar en formato hexadecimal #RRGGBB',
   })
   color?: string;
 }
-
-

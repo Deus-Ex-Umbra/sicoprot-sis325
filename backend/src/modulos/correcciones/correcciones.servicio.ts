@@ -16,6 +16,7 @@ import { ActualizarCorreccionDto } from './dto/actualizar-correccion.dto';
 import { MarcarCorregidoDto } from './dto/marcar-correccion.dto';
 import { VerificarCorreccionDto } from './dto/verificar-correccion.dto';
 import { EstadoObservacion } from '../observaciones/enums/estado-observacion.enum';
+import { EstadoCorreccion } from './enums/estado-correccion.enum';
 
 @Injectable()
 export class CorreccionesService {
@@ -38,7 +39,9 @@ export class CorreccionesService {
     });
 
     if (!estudiante) {
-      throw new ForbiddenException('Solo los estudiantes pueden crear correcciones.');
+      throw new ForbiddenException(
+        'Solo los estudiantes pueden crear correcciones.',
+      );
     }
 
     const nueva_correccion = this.repositorio_correccion.create({
@@ -46,7 +49,8 @@ export class CorreccionesService {
       estudiante,
     });
 
-    const correccion_guardada = await this.repositorio_correccion.save(nueva_correccion);
+    const correccion_guardada =
+      await this.repositorio_correccion.save(nueva_correccion);
 
     return correccion_guardada;
   }
@@ -58,11 +62,18 @@ export class CorreccionesService {
   ): Promise<Correccion> {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id: observacionId },
-      relations: ['documento', 'documento.proyecto', 'documento.proyecto.estudiantes', 'correccion'],
+      relations: [
+        'documento',
+        'documento.proyecto',
+        'documento.proyecto.estudiantes',
+        'correccion',
+      ],
     });
 
     if (!observacion) {
-      throw new NotFoundException(`Observación con ID ${observacionId} no encontrada`);
+      throw new NotFoundException(
+        `Observación con ID ${observacionId} no encontrada`,
+      );
     }
 
     if (
@@ -85,7 +96,9 @@ export class CorreccionesService {
     });
 
     if (!estudiante) {
-      throw new ForbiddenException('Solo los estudiantes pueden crear correcciones');
+      throw new ForbiddenException(
+        'Solo los estudiantes pueden crear correcciones',
+      );
     }
 
     const esEstudiante = observacion.documento?.proyecto?.estudiantes?.some(
@@ -103,9 +116,11 @@ export class CorreccionesService {
       observacion,
       estudiante,
       documento: observacion.documento,
+      estado: EstadoCorreccion.PENDIENTE_REVISION,
     });
 
-    const correccionGuardada = await this.repositorio_correccion.save(nuevaCorreccion);
+    const correccionGuardada =
+      await this.repositorio_correccion.save(nuevaCorreccion);
 
     observacion.version_corregida = crear_correccion_dto.version_corregida;
     await this.repositorio_observacion.save(observacion);
@@ -124,7 +139,9 @@ export class CorreccionesService {
     });
 
     if (!observacion) {
-      throw new NotFoundException(`Observación con ID ${observacionId} no encontrada`);
+      throw new NotFoundException(
+        `Observación con ID ${observacionId} no encontrada`,
+      );
     }
 
     if (!observacion.correccion) {
@@ -144,11 +161,14 @@ export class CorreccionesService {
     }
 
     observacion.correccion.version_corregida = dto.version_corregida;
-    if (dto.comentario) {
-      observacion.correccion.descripcion = dto.comentario;
+    if (dto.comentario_html) {
+      observacion.correccion.descripcion_html = dto.comentario_html;
     }
+    observacion.correccion.estado = EstadoCorreccion.PENDIENTE_REVISION;
 
-    const correccionActualizada = await this.repositorio_correccion.save(observacion.correccion);
+    const correccionActualizada = await this.repositorio_correccion.save(
+      observacion.correccion,
+    );
 
     observacion.version_corregida = dto.version_corregida;
     await this.repositorio_observacion.save(observacion);
@@ -167,7 +187,9 @@ export class CorreccionesService {
     });
 
     if (!observacion) {
-      throw new NotFoundException(`Observación con ID ${observacionId} no encontrada`);
+      throw new NotFoundException(
+        `Observación con ID ${observacionId} no encontrada`,
+      );
     }
 
     if (!observacion.correccion) {
@@ -185,28 +207,36 @@ export class CorreccionesService {
         'Solo el asesor que creó la observación puede verificar la corrección',
       );
     }
-    
+
     const correccion_a_gestionar = observacion.correccion;
 
     observacion.estado = dto.resultado;
     observacion.fecha_verificacion = new Date();
-    observacion.comentario_verificacion = dto.comentario_verificacion;
+    observacion.comentario_verificacion_html = dto.comentario_verificacion_html;
 
-    if (dto.resultado === EstadoObservacion.CORREGIDO) {
+    if (dto.resultado === EstadoObservacion.CORREGIDA) {
+      correccion_a_gestionar.estado = EstadoCorreccion.ACEPTADA;
       correccion_a_gestionar.estado_verificacion = 'APROBADA';
-      correccion_a_gestionar.comentario_verificacion = dto.comentario_verificacion;
+      correccion_a_gestionar.comentario_verificacion_html =
+        dto.comentario_verificacion_html;
       correccion_a_gestionar.fecha_verificacion = new Date();
       await this.repositorio_correccion.save(correccion_a_gestionar);
     } else if (dto.resultado === EstadoObservacion.RECHAZADO) {
+      correccion_a_gestionar.estado = EstadoCorreccion.RECHAZADA;
+      correccion_a_gestionar.estado_verificacion = 'RECHAZADA';
+      correccion_a_gestionar.comentario_verificacion_html =
+        dto.comentario_verificacion_html;
+      correccion_a_gestionar.fecha_verificacion = new Date();
+
       await this.repositorio_correccion.remove(correccion_a_gestionar);
       observacion.correccion = null;
     }
 
     await this.repositorio_observacion.save(observacion);
 
-    return { 
-      message: `Corrección ${dto.resultado}`, 
-      observacion_actualizada: observacion 
+    return {
+      message: `Corrección ${dto.resultado}`,
+      observacion_actualizada: observacion,
     };
   }
 
@@ -230,39 +260,48 @@ export class CorreccionesService {
       .getMany();
   }
 
-async obtenerPorEstudiante(id_usuario: number) {
-  const estudiante = await this.repositorio_estudiante.findOne({
-    where: { usuario: { id: id_usuario } },
-    relations: ['usuario'],
-  });
+  async obtenerPorEstudiante(id_usuario: number) {
+    const estudiante = await this.repositorio_estudiante.findOne({
+      where: { usuario: { id: id_usuario } },
+      relations: ['usuario'],
+    });
 
-  if (!estudiante) {
-    throw new ForbiddenException('Solo los estudiantes pueden acceder a sus observaciones.');
+    if (!estudiante) {
+      throw new ForbiddenException(
+        'Solo los estudiantes pueden acceder a sus observaciones.',
+      );
+    }
+
+    return await this.repositorio_observacion
+      .createQueryBuilder('observacion')
+      .innerJoin('observacion.documento', 'documento')
+      .innerJoin('documento.proyecto', 'proyecto')
+      .innerJoin('proyecto.estudiantes', 'est')
+      .where('est.id = :estudianteId', { estudianteId: estudiante.id })
+      .andWhere('observacion.archivada = false')
+      .orderBy('observacion.fecha_creacion', 'DESC')
+      .getMany();
   }
 
-  return await this.repositorio_observacion
-    .createQueryBuilder('observacion')
-    .innerJoin('observacion.documento', 'documento')
-    .innerJoin('documento.proyecto', 'proyecto')
-    .innerJoin('proyecto.estudiantes', 'est') 
-    .where('est.id = :estudianteId', { estudianteId: estudiante.id })
-    .andWhere('observacion.archivada = false')
-    .orderBy('observacion.fecha_creacion', 'DESC')
-    .getMany();
-}
-
-  async obtenerPorObservacion(observacionId: number, id_usuario: number): Promise<Correccion> {
+  async obtenerPorObservacion(
+    observacionId: number,
+    id_usuario: number,
+  ): Promise<Correccion> {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id: observacionId },
       relations: ['correccion', 'correccion.estudiante'],
     });
 
     if (!observacion) {
-      throw new NotFoundException(`Observación con ID ${observacionId} no encontrada`);
+      throw new NotFoundException(
+        `Observación con ID ${observacionId} no encontrada`,
+      );
     }
 
     if (!observacion.correccion) {
-      throw new NotFoundException('Esta observación no tiene una corrección asociada');
+      throw new NotFoundException(
+        'Esta observación no tiene una corrección asociada',
+      );
     }
 
     return observacion.correccion;
@@ -303,7 +342,9 @@ async obtenerPorEstudiante(id_usuario: number) {
     });
 
     if (!estudiante || estudiante.id !== correccion.estudiante.id) {
-      throw new ForbiddenException('Solo el estudiante que creó la corrección puede actualizarla.');
+      throw new ForbiddenException(
+        'Solo el estudiante que creó la corrección puede actualizarla.',
+      );
     }
 
     Object.assign(correccion, actualizar_correccion_dto);
@@ -325,7 +366,9 @@ async obtenerPorEstudiante(id_usuario: number) {
     });
 
     if (!estudiante || estudiante.id !== correccion.estudiante.id) {
-      throw new ForbiddenException('Solo el estudiante que creó la corrección puede eliminarla.');
+      throw new ForbiddenException(
+        'Solo el estudiante que creó la corrección puede eliminarla.',
+      );
     }
 
     if (correccion.observacion) {

@@ -1,7 +1,16 @@
-import { Index, Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm'; 
-import { Documento } from '../../documentos/entidades/documento.entidad'; 
-import { Asesor } from '../../asesores/entidades/asesor.entidad'; 
-import { EstadoObservacion } from '../enums/estado-observacion.enum'; 
+import {
+  Index,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Documento } from '../../documentos/entidades/documento.entidad';
+import { Asesor } from '../../asesores/entidades/asesor.entidad';
+import { EstadoObservacion } from '../enums/estado-observacion.enum';
 import { Correccion } from '../../correcciones/entidades/correccion.entidad';
 import { EtapaProyecto } from '../../proyectos/enums/etapa-proyecto.enum';
 
@@ -12,17 +21,21 @@ export class Observacion {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255 })
   titulo: string;
 
   @Column('text')
-  contenido_detallado: string;
-    
-  @Column({ type: 'enum', enum: EstadoObservacion, default: EstadoObservacion.PENDIENTE })
+  contenido_html: string;
+
+  @Column({
+    type: 'enum',
+    enum: EstadoObservacion,
+    default: EstadoObservacion.PENDIENTE,
+  })
   estado: EstadoObservacion;
-    
+
   @Column({ nullable: true, type: 'text' })
-  comentarios_asesor?: string;
+  comentarios_asesor_html?: string;
 
   @Column({ type: 'float' })
   x_inicio: number;
@@ -54,23 +67,16 @@ export class Observacion {
   @Column({ name: 'fecha_verificacion', type: 'timestamp', nullable: true })
   fecha_verificacion?: Date;
 
-  @Column({ name: 'comentario_verificacion', type: 'text', nullable: true })
-  comentario_verificacion?: string;
-  
-  @Column()
+  @Column({ name: 'comentario_verificacion_html', type: 'text', nullable: true })
+  comentario_verificacion_html?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
   descripcion_corta: string;
 
   @Column({
     type: 'enum',
-    enum: ['pendiente', 'aprobado', 'rechazado'],
-    default: 'pendiente',
-  })
-  estado_revision:string;
-  
-  @Column({ 
-    type: 'enum', 
-    enum: EtapaProyecto, 
-    nullable: true 
+    enum: EtapaProyecto,
+    nullable: true,
   })
   etapa_observada: EtapaProyecto;
 
@@ -80,12 +86,18 @@ export class Observacion {
   @UpdateDateColumn({ name: 'fecha_actualizacion' })
   fecha_actualizacion: Date;
 
-  @ManyToOne(() => Asesor, (asesor) => asesor.observaciones_realizadas, { eager: true })
+  @ManyToOne(() => Asesor, (asesor) => asesor.observaciones_realizadas, {
+    eager: true,
+  })
   autor: Asesor;
-    
-  @ManyToOne(() => Documento, (documento) => documento.observaciones, { eager: true })
+
+  @ManyToOne(() => Documento, (documento) => documento.observaciones, {
+    eager: true,
+  })
   documento: Documento;
 
-  @OneToOne(() => Correccion, (correccion) => correccion.observacion, { nullable: true })
+  @OneToOne(() => Correccion, (correccion) => correccion.observacion, {
+    nullable: true,
+  })
   correccion: Correccion | null;
 }
