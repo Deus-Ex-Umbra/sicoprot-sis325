@@ -16,7 +16,7 @@ export class Estudiante {
   @Column({ type: 'varchar', length: 100 })
   apellido: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'text', nullable: true })
   ruta_foto: string;
 
   @OneToOne(() => Usuario, { cascade: true })

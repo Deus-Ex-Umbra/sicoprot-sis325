@@ -45,7 +45,7 @@ const Perfil = () => {
     return usuario?.correo?.[0]?.toUpperCase() || 'U';
   };
 
-  const manejarCambioArchivo = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const manejar_cambio_archivo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = e.target.files?.[0];
     if (archivo) {
       if (archivo.size > 5 * 1024 * 1024) {
@@ -66,11 +66,11 @@ const Perfil = () => {
     }
   };
 
-  const manejarClickCambiarFoto = () => {
+  const manejar_click_cambiar_foto = () => {
     input_archivo_ref.current?.click();
   };
 
-  const manejarSubmit = async (e: React.FormEvent) => {
+  const manejar_submit = async (e: React.FormEvent) => {
     e.preventDefault();
     set_error('');
 
@@ -107,7 +107,7 @@ const Perfil = () => {
       }
 
       if (preview_foto) {
-        datos_actualizacion.foto_url = preview_foto;
+        datos_actualizacion.ruta_foto = preview_foto;
       }
 
       if (Object.keys(datos_actualizacion).length === 0) {
@@ -139,6 +139,8 @@ const Perfil = () => {
     }
   };
 
+  const ruta_foto_actual = usuario?.ruta_foto || usuario?.perfil?.ruta_foto;
+
   return (
     <div className="min-h-screen bg-background">
       {es_admin ? (
@@ -166,7 +168,7 @@ const Perfil = () => {
                 <div className="relative">
                   <Avatar className="h-32 w-32 ring-4 ring-primary/20">
                     <AvatarImage 
-                      src={preview_foto || usuario?.perfil?.foto_url} 
+                      src={preview_foto || ruta_foto_actual} 
                       alt={`${form_data.nombre} ${form_data.apellido}`} 
                     />
                     <AvatarFallback className="text-4xl font-semibold bg-primary/10">
@@ -178,7 +180,7 @@ const Perfil = () => {
                     size="icon"
                     variant="default"
                     className="absolute bottom-0 right-0 rounded-full h-10 w-10 shadow-lg"
-                    onClick={manejarClickCambiarFoto}
+                    onClick={manejar_click_cambiar_foto}
                   >
                     <Camera className="h-4 w-4" />
                   </Button>
@@ -187,7 +189,7 @@ const Perfil = () => {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={manejarCambioArchivo}
+                    onChange={manejar_cambio_archivo}
                   />
                 </div>
                 
@@ -207,7 +209,7 @@ const Perfil = () => {
                   type="button" 
                   variant="outline" 
                   className="w-full"
-                  onClick={manejarClickCambiarFoto}
+                  onClick={manejar_click_cambiar_foto}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Cambiar Foto
@@ -232,7 +234,7 @@ const Perfil = () => {
                     </Alert>
                   )}
 
-                  <form onSubmit={manejarSubmit} className="space-y-8">
+                  <form onSubmit={manejar_submit} className="space-y-8">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-4">
                         <User className="h-5 w-5 text-muted-foreground" />
