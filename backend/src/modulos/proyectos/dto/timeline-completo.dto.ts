@@ -7,7 +7,7 @@ export interface PropuestaTimeline {
   estado: string;
   fecha_creacion: Date;
   fecha_revision?: Date;
-  comentario_asesor?: string;
+  comentario_asesor?: string | null;
 }
 
 export interface ReunionTimeline {

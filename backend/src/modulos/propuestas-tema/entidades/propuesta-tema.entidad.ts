@@ -30,7 +30,7 @@ export class PropuestaTema {
   estado: EstadoPropuesta;
 
   @Column({ type: 'text', nullable: true })
-  comentarios_asesor_html: string;
+  comentarios_asesor_html: string | null;
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fecha_creacion: Date;

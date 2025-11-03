@@ -18,7 +18,7 @@ import { PropuestasTemaModule } from './modulos/propuestas-tema/propuestas-tema.
 import { ReunionesModule } from './modulos/reuniones/reuniones.modulo';
 
 console.log({
-  user: process.env.DB_USER,
+  user: process.env.DB_USERNAME,
   pass: process.env.DB_PASSWORD,
   db: process.env.DB_NAME,
   host: process.env.DB_HOST,
