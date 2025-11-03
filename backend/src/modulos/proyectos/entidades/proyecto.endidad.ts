@@ -2,8 +2,10 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDat
 import { Documento } from '../../documentos/entidades/documento.entidad';
 import { Estudiante } from '../../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../../asesores/entidades/asesor.entidad';
-
 import { EtapaProyecto } from '../enums/etapa-proyecto.enum';
+import { PropuestaTema } from '../../propuestas-tema/entidad/propuesta-tema.entidad';
+import { Reunion } from '../../reuniones/entidades/reunion.entidad';
+
 @Entity('proyectos')
 export class Proyecto {
   @PrimaryGeneratedColumn()
@@ -23,6 +25,12 @@ export class Proyecto {
   
   @OneToMany(() => Documento, (documento) => documento.proyecto)
   documentos: Documento[];
+
+  @OneToMany(() => PropuestaTema, (propuesta) => propuesta.proyecto)
+  propuestas_tema: PropuestaTema[];
+
+  @OneToMany(() => Reunion, (reunion) => reunion.proyecto)
+  reuniones: Reunion[];
 
   @Column({ type: 'enum', enum: EtapaProyecto, default: EtapaProyecto.PROPUESTA })
   etapa_actual: EtapaProyecto;

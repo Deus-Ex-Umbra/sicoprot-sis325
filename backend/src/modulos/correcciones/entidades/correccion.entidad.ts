@@ -75,7 +75,7 @@ export class Correccion {
   @UpdateDateColumn({ name: 'fecha_actualizacion' })
   fecha_actualizacion: Date;
 
-  @OneToOne(() => Observacion, (observacion) => observacion.correccion, {
+  @ManyToOne(() => Observacion, (observacion) => observacion.correcciones, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'observacion_id' })
