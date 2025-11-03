@@ -99,7 +99,7 @@ export class PropuestasTemaService {
     }
 
     propuesta.estado = responderDto.accion;
-    propuesta.comentarios_asesor_html = responderDto.comentarios_asesor_html;
+    propuesta.comentarios_asesor_html = responderDto.comentarios_asesor_html || null;
 
     if (responderDto.accion === EstadoPropuesta.APROBADA) {
       const proyecto = propuesta.proyecto;

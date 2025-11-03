@@ -433,7 +433,7 @@ export class ProyectosService {
       .leftJoin('estudiante.grupos', 'grupo')
       .leftJoin('grupo.periodo', 'periodo');
 
-    if (buscarDto.soloAprobados === 'true' || buscarDto.soloAprobados === true) {
+    if (buscarDto.soloAprobados === true) {
       query.andWhere('proyecto.etapa_actual = :etapaTerminado', { 
         etapaTerminado: EtapaProyecto.TERMINADO
       });
