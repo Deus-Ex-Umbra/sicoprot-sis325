@@ -12,10 +12,10 @@ import {
 import { adminApi } from '../../servicios/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
 import { cn } from '../../lib/utilidades';
-import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Rol } from '../../tipos/usuario';
-import BarraLateral from '../../componentes/BarraLateral';
+import BarraLateral from '../../componentes/barra-lateral';
 
 const DashboardAdmin = () => {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Clock, Eye, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
-import { EstadoObservacion, estadoConfig, type EstadoObservacion as TipoEstadoObservacion } from '../tipos/estadoObservacion';
+import { EstadoObservacion, estadoConfig, type EstadoObservacion as TipoEstadoObservacion } from '../tipos/estado-observacion';
 import { observacionesApi } from '../servicios/api';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import type { Observacion } from '../tipos/usuario';
@@ -47,8 +47,8 @@ const CambiarEstadoObservacion: React.FC<Props> = ({
 }) => {
   const { usuario } = useAutenticacion();
   const [mostrar_modal, set_mostrar_modal] = useState(false);
-  const [nuevo_estado, set_nuevo_estado] = useState<EstadoObservacion>(
-    observacion.estado as EstadoObservacion || EstadoObservacion.PENDIENTE
+  const [nuevo_estado, set_nuevo_estado] = useState<TipoEstadoObservacion>(
+    observacion.estado as TipoEstadoObservacion || EstadoObservacion.PENDIENTE
   );
   const [comentarios, set_comentarios] = useState('');
   const [cargando, set_cargando] = useState(false);
@@ -88,7 +88,7 @@ const CambiarEstadoObservacion: React.FC<Props> = ({
 
   const handleAbrirModal = () => {
     set_mostrar_modal(true);
-    set_nuevo_estado(observacion.estado as EstadoObservacion || EstadoObservacion.PENDIENTE);
+    set_nuevo_estado(observacion.estado as TipoEstadoObservacion || EstadoObservacion.PENDIENTE);
     set_comentarios('');
     set_error('');
   };
@@ -103,7 +103,7 @@ const CambiarEstadoObservacion: React.FC<Props> = ({
     return null;
   }
 
-  const estado_actual_config = estadoConfig[observacion.estado as EstadoObservacion];
+  const estado_actual_config = estadoConfig[observacion.estado as TipoEstadoObservacion];
   const estado_cambiado = nuevo_estado !== observacion.estado;
 
   const estados_permitidos = (() => {
@@ -111,8 +111,8 @@ const CambiarEstadoObservacion: React.FC<Props> = ({
       case EstadoObservacion.PENDIENTE:
         return [EstadoObservacion.EN_REVISION];
       case EstadoObservacion.EN_REVISION:
-        return [EstadoObservacion.APROBADO, EstadoObservacion.RECHAZADO];
-      case EstadoObservacion.CORREGIDO:
+        return [EstadoObservacion.CORREGIDA, EstadoObservacion.RECHAZADO];
+      case EstadoObservacion.CORREGIDA:
         return [EstadoObservacion.EN_REVISION];
       case EstadoObservacion.RECHAZADO:
         return [EstadoObservacion.EN_REVISION];
@@ -149,19 +149,7 @@ const CambiarEstadoObservacion: React.FC<Props> = ({
             <h6 className="font-semibold text-foreground mb-2">
               {observacion.titulo}
             </h6>
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {observacion.contenido}
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Estado actual:</span>
-              <Badge
-                variant="outline"
-                className={cn(estado_actual_config?.className)}
-              >
-                <IconoActual className="h-3 w-3 mr-1.5" />
-                {estado_actual_config?.label}
-              </Badge>
-            </div>
+            <p className="text-sm text-muted-foreground line-clamp-2" dangerouslySetInnerHTML={{ __html: observacion.contenido_html }} />
           </div>
 
           <div className="space-y-2">

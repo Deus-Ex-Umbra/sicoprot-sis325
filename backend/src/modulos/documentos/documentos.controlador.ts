@@ -1,8 +1,8 @@
-import { Controller, Post, Param, UploadedFile, UseInterceptors, ParseIntPipe, Get, Res } from '@nestjs/common';
+import { Controller, Post, Param, UploadedFile, UseInterceptors, ParseIntPipe, Get, Res, Query } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentosService } from './documentos.servicio';
 import { diskStorage } from 'multer';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { createReadStream } from 'fs';
 import { join } from 'path';
@@ -49,9 +49,19 @@ export class DocumentosController {
   }
 
   @Get(':id/archivo')
-  @ApiOperation({ summary: 'Obtener el archivo de un documento' })
+  @ApiOperation({ summary: 'Obtener el archivo de un documento por ID' })
   async obtenerArchivo(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     const documento = await this.servicio_documentos.obtenerUno(id);
+    const file = createReadStream(join(process.cwd(), documento.ruta_archivo));
+    res.setHeader('Content-Type', 'application/pdf');
+    file.pipe(res);
+  }
+
+  @Get('archivo-por-ruta')
+  @ApiOperation({ summary: 'Obtener el archivo de un documento por RUTA' })
+  @ApiQuery({ name: 'ruta', description: 'Ruta del archivo (ej: uploads/archivo.pdf)', required: true })
+  async obtenerArchivoPorRuta(@Query('ruta') ruta: string, @Res() res: Response) {
+    const documento = await this.servicio_documentos.obtenerPorRuta(ruta);
     const file = createReadStream(join(process.cwd(), documento.ruta_archivo));
     res.setHeader('Content-Type', 'application/pdf');
     file.pipe(res);

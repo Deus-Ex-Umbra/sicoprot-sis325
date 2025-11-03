@@ -27,7 +27,7 @@ export const EditorHtmlSimple: React.FC<EditorHtmlSimpleProps> = ({
     set_es_placeholder_visible(e.currentTarget.textContent === '');
   };
 
-  const ejecutarComando = (comando: string, valor: string | null = null) => {
+  const ejecutarComando = (comando: string, valor: string | undefined = undefined) => {
     document.execCommand(comando, false, valor);
     if (editorRef.current) {
       editorRef.current.focus();

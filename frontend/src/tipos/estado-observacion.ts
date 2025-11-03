@@ -1,14 +1,12 @@
 export const EstadoObservacion = {
     PENDIENTE: 'pendiente',
-    CORREGIDO: 'corregido',
-    APROBADO: 'aprobado',
+    CORREGIDA: 'corregida',
     EN_REVISION: 'en_revision',
     RECHAZADO: 'rechazado'
 } as const;
 
 export type EstadoObservacion = typeof EstadoObservacion[keyof typeof EstadoObservacion];
 
-// Configuración visual para cada estado
 export const estadoConfig = {
     [EstadoObservacion.PENDIENTE]: {
         label: 'Pendiente',
@@ -20,14 +18,9 @@ export const estadoConfig = {
         className: 'badge bg-info text-white',
         icon: 'eye'
     },
-    [EstadoObservacion.CORREGIDO]: {
-        label: 'Corregido',
+    [EstadoObservacion.CORREGIDA]: {
+        label: 'Corregida',
         className: 'badge bg-success text-white',
-        icon: 'check-circle'
-    },
-    [EstadoObservacion.APROBADO]: {
-        label: 'Aprobado',
-        className: 'badge bg-primary text-white',
         icon: 'check-circle'
     },
     [EstadoObservacion.RECHAZADO]: {

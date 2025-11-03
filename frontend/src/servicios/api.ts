@@ -287,6 +287,9 @@ export const documentosApi = {
   obtenerArchivoUrl: (id: number) => {
     return `${api.defaults.baseURL}/documentos/${id}/archivo`;
   },
+  obtenerArchivoPorRutaUrl: (ruta: string) => {
+    return `${api.defaults.baseURL}/documentos/archivo-por-ruta?ruta=${encodeURIComponent(ruta)}`;
+  },
 };
 
 export const observacionesApi = {

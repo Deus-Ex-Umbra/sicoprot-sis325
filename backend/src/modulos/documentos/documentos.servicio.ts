@@ -44,4 +44,12 @@ export class DocumentosService {
     }
     return documento;
   }
+
+  async obtenerPorRuta(ruta: string): Promise<Documento> {
+    const documento = await this.repositorio_documento.findOneBy({ ruta_archivo: ruta });
+    if (!documento) {
+      throw new NotFoundException(`Documento con ruta '${ruta}' no encontrado.`);
+    }
+    return documento;
+  }
 }

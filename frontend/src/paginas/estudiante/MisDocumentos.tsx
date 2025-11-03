@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { proyectosApi } from '../../servicios/api';
 import { type Proyecto, Rol } from '../../tipos/usuario';
-import BarraLateral from '../../componentes/BarraLateral';
-import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import BarraLateral from '../../componentes/barra-lateral';
+import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { cn } from '../../lib/utilidades';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import {

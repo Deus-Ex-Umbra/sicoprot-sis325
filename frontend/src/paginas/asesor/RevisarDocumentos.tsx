@@ -15,8 +15,8 @@ import {
 import { Badge } from '../../componentes/ui/badge';
 import { Button } from '../../componentes/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
-import BarraLateral from '../../componentes/BarraLateral';
-import BarraLateralAdmin from '../../componentes/BarraLateralAdmin';
+import BarraLateral from '../../componentes/barra-lateral';
+import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { cn } from '../../lib/utilidades';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 
@@ -86,7 +86,7 @@ const RevisarDocumentos = () => {
                 return (
                   <TableRow key={proyecto.id}>
                     <TableCell className="font-medium">{proyecto.titulo}</TableCell>
-                    <TableCell>{proyecto.estudiante?.nombre} {proyecto.estudiante?.apellido}</TableCell>
+                    <TableCell>{proyecto.estudiantes?.[0]?.nombre} {proyecto.estudiantes?.[0]?.apellido}</TableCell>
                     <TableCell>
                       <Badge variant="default">Versión {ultimo_documento?.version}</Badge>
                     </TableCell>
