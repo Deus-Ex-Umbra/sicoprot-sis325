@@ -1,15 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ObservacionesController } from './observaciones.controlador'; // Ajustado a nombre en español consistente
-import { ObservacionesService } from './observaciones.servicio'; // Ajustado a nombre en español consistente
-import { Observacion } from './entidades/observacion.entidad'; // Usando la entidad del segundo bloque para consistencia
+import { ObservacionesController } from './observaciones.controlador';
+import { ObservacionesService } from './observaciones.servicio';
+import { Observacion } from './entidades/observacion.entidad';
 import { DocumentosModule } from '../documentos/documentos.modulo';
 import { AsesoresModule } from '../asesores/asesores.modulo';
 import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
-import { CorreccionesModule } from '../correcciones/correcciones.modulo';  // ← AGREGAR
-
-// Si tienes un módulo de notificaciones, agrégalo aquí si es necesario
-// import { NotificacionesModule } from '../notificaciones/notificaciones.modulo';
+import { CorreccionesModule } from '../correcciones/correcciones.modulo';
 
 @Module({
   imports: [
@@ -17,13 +14,10 @@ import { CorreccionesModule } from '../correcciones/correcciones.modulo';  // �
     DocumentosModule,
     AsesoresModule,
     EstudiantesModule,
-
-    CorreccionesModule,
-    // NotificacionesModule, // Descomenta si integras notificaciones reales
+    forwardRef(() => CorreccionesModule),
   ],
   controllers: [ObservacionesController],
   providers: [ObservacionesService],
-  exports: [
-    TypeOrmModule,  ObservacionesService], // Cambiado a exportar el servicio, como en el primer bloque (más estándar)
+  exports: [TypeOrmModule, ObservacionesService],
 })
 export class ObservacionesModule {}
