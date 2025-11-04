@@ -183,7 +183,6 @@ const router = createBrowserRouter([
       </RutaProtegida>
     ),
   },
-  // REQ 9: NUEVA RUTA
   {
     path: '/panel/admin/solicitudes-defensa',
     element: (

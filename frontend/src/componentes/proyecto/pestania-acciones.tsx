@@ -68,6 +68,9 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, onActualiz
   const puede_aprobar_perfil = proyecto.etapa_actual === EtapaProyecto.PERFIL && observaciones_pendientes === 0;
   const puede_aprobar_proyecto = proyecto.etapa_actual === EtapaProyecto.PROYECTO && observaciones_pendientes === 0;
 
+  const es_taller_i = proyecto.etapa_actual === EtapaProyecto.PROPUESTA || proyecto.etapa_actual === EtapaProyecto.PERFIL;
+  const es_taller_ii = proyecto.etapa_actual === EtapaProyecto.PROYECTO;
+
   return (
     <Card>
       <CardHeader>
@@ -86,29 +89,35 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, onActualiz
           </Alert>
         )}
 
-        <Button
-          className="w-full"
-          disabled={!puede_aprobar_propuesta}
-          onClick={() => abrirModal(EtapaProyecto.PROPUESTA)}
-        >
-          <FileCheck className="mr-2 h-4 w-4" /> Aprobar Propuesta (Taller I)
-        </Button>
+        {es_taller_i && (
+          <>
+            <Button
+              className="w-full"
+              disabled={!puede_aprobar_propuesta}
+              onClick={() => abrirModal(EtapaProyecto.PROPUESTA)}
+            >
+              <FileCheck className="mr-2 h-4 w-4" /> Aprobar Propuesta (Taller I)
+            </Button>
 
-        <Button
-          className="w-full"
-          disabled={!puede_aprobar_perfil}
-          onClick={() => abrirModal(EtapaProyecto.PERFIL)}
-        >
-          <CheckCircle className="mr-2 h-4 w-4" /> Aprobar Etapa de Perfil (Taller I)
-        </Button>
+            <Button
+              className="w-full"
+              disabled={!puede_aprobar_perfil}
+              onClick={() => abrirModal(EtapaProyecto.PERFIL)}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" /> Aprobar Etapa de Perfil (Taller I)
+            </Button>
+          </>
+        )}
         
-        <Button
-          className="w-full"
-          disabled={!puede_aprobar_proyecto}
-          onClick={() => abrirModal(EtapaProyecto.PROYECTO)}
-        >
-          <ShieldCheck className="mr-2 h-4 w-4" /> Marcar como Listo para Defensa (Taller II)
-        </Button>
+        {es_taller_ii && (
+          <Button
+            className="w-full"
+            disabled={!puede_aprobar_proyecto}
+            onClick={() => abrirModal(EtapaProyecto.PROYECTO)}
+          >
+            <ShieldCheck className="mr-2 h-4 w-4" /> Marcar como Listo para Defensa (Taller II)
+          </Button>
+        )}
 
       </CardContent>
       <Dialog open={mostrar_modal} onOpenChange={set_mostrar_modal}>

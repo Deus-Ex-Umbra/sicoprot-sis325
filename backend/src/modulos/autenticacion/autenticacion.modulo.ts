@@ -8,9 +8,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtEstrategia } from './estrategias/jwt.estrategia';
 import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
 import { AsesoresModule } from '../asesores/asesores.modulo';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { SolicitudRegistro } from '../solicitudes-registro/entidades/solicitud-registro.entidad';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([SolicitudRegistro]),
     UsuariosModule,
     EstudiantesModule,
     AsesoresModule,

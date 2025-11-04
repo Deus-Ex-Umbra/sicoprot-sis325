@@ -8,19 +8,6 @@ import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { Documento } from '../documentos/entidades/documento.entidad';
 import { Asesor } from '../asesores/entidades/asesor.entidad';
 
-/**
- * MÓDULO: Correcciones
- * 
- * VERSIÓN FUSIONADA:
- * - Registra todas las entidades necesarias directamente con TypeOrmModule
- * - Incluye Controller y Service
- * - Exporta el Service para que ObservacionesModule lo use
- * 
- * DIFERENCIA con versión anterior:
- * - Antes: Importaba módulos completos (ObservacionesModule, EstudiantesModule, etc.)
- * - Ahora: Importa solo las entidades necesarias
- * - Ventaja: Evita dependencias circulares entre módulos
- */
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -34,8 +21,8 @@ import { Asesor } from '../asesores/entidades/asesor.entidad';
   controllers: [CorreccionesController],
   providers: [CorreccionesService],
   exports: [
-    TypeOrmModule,        // Para que otros módulos accedan a Repository<Correccion>
-    CorreccionesService,  // Para que ObservacionesService lo inyecte
+    TypeOrmModule,
+    CorreccionesService,
   ],
 })
 export class CorreccionesModule {}

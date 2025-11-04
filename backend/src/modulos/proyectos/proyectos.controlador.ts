@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Patch, Body, Param, ParseIntPipe, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, ParseIntPipe, UseGuards, Request, Query, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { ProyectosService } from './proyectos.servicio';
 import { CrearProyectoDto } from './dto/crear-proyecto.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { JwtGuard } from '../autenticacion/guards/jwt.guard';
 import { AprobarEtapaDto } from './dto/aprobar-etapa.dto';
 import { AccionTemaDto } from './dto/accion-tema.dto';
@@ -13,6 +13,8 @@ import { Rol } from '../usuarios/enums/rol.enum';
 import { Roles } from '../autenticacion/decorators/roles.decorator';
 import { RolesGuard } from '../autenticacion/guards/roles.guard';
 import { ActualizarPropuestaDto } from './dto/actualizar-propuesta.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
 
 @ApiTags('proyectos')
 @ApiBearerAuth('JWT-auth')
@@ -58,10 +60,11 @@ export class ProyectosController {
   @Get('solicitudes/defensa')
   @Roles(Rol.Administrador)
   @UseGuards(RolesGuard)
-  @ApiOperation({ summary: 'Obtener todas las solicitudes de defensa pendientes (Admin)' })
+  @ApiOperation({ summary: 'Obtener todas las solicitudes de defensa (Admin)' })
+  @ApiQuery({ name: 'estado', required: false, enum: ['pendientes', 'aprobadas', 'rechazadas'] })
   @ApiResponse({ status: 200, description: 'Lista de solicitudes de defensa.' })
-  obtenerSolicitudesDefensa() {
-    return this.servicio_proyectos.obtenerSolicitudesDefensa();
+  obtenerSolicitudesDefensa(@Query('estado') estado?: string) {
+    return this.servicio_proyectos.obtenerSolicitudesDefensa(estado);
   }
 
   @Get('historial-progreso')
@@ -154,13 +157,53 @@ export class ProyectosController {
   @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Solicitar defensa de proyecto (Estudiante)' })
   @ApiParam({ name: 'id', description: 'ID del proyecto' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Archivo memorial PDF',
+    schema: {
+      type: 'object',
+      properties: {
+        memorial: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 200, description: 'Solicitud de defensa enviada.' })
+  @UseInterceptors(
+    FileInterceptor('memorial', {
+      storage: diskStorage({
+        destination: './uploads/memoriales',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const extension = file.originalname.split('.').pop();
+          cb(null, `memorial-${(req.user as any).id_usuario}-${uniqueSuffix}.${extension}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/\/(pdf)$/)) {
+          return cb(new BadRequestException('Solo se permiten archivos PDF'), false);
+        }
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB
+      }
+    }),
+  )
   async solicitarDefensa(
     @Param('id', ParseIntPipe) id: number,
-    @Body() solicitarDefensaDto: SolicitarDefensaDto,
+    @UploadedFile() memorial: Express.Multer.File,
     @Request() req,
   ) {
-    return this.servicio_proyectos.solicitarDefensa(id, solicitarDefensaDto, req.user.id_usuario);
+    if (!memorial) {
+      throw new BadRequestException('No se proporcionó ningún archivo de memorial.');
+    }
+    const dto: SolicitarDefensaDto = {
+      ruta_memorial: `uploads/memoriales/${memorial.filename}`,
+    };
+    return this.servicio_proyectos.solicitarDefensa(id, dto, req.user.id_usuario);
   }
   
   @Patch(':id/responder-defensa')

@@ -78,7 +78,6 @@ export default function Configuracion() {
     let cambios_realizados = false;
 
     try {
-      // 1. Subir la foto si existe
       if (archivo_foto) {
         const form_data_foto = new FormData();
         form_data_foto.append('foto', archivo_foto);
@@ -88,8 +87,6 @@ export default function Configuracion() {
         set_archivo_foto(null);
         cambios_realizados = true;
       }
-
-      // 2. Actualizar datos de texto
       const datos_actualizacion_texto: any = {};
       if (nombre !== usuario?.perfil?.nombre) datos_actualizacion_texto.nombre = nombre;
       if (apellido !== usuario?.perfil?.apellido) datos_actualizacion_texto.apellido = apellido;

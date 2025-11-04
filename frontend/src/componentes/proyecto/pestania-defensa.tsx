@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { type Proyecto, type Usuario, Rol } from '../../tipos/usuario';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Button } from '../ui/button';
-import { Send, ShieldCheck, ShieldOff, Upload, FileText } from 'lucide-react';
+import { Send, ShieldCheck, ShieldOff, Upload, FileText, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -44,39 +44,28 @@ export const PestanaDefensa = ({ proyecto, asesores, onActualizarProyecto }: Pes
     label: `${a.perfil?.nombre} ${a.perfil?.apellido}`
   }));
 
-  const manejarSubidaMemorial = async (): Promise<string | null> => {
-    if (!archivo_memorial) return null;
-    set_subiendo_memorial(true);
-    try {
-      const form_data = new FormData();
-      form_data.append('archivo', archivo_memorial);
-      
-      const respuesta = await documentosApi.subirDocumento(proyecto.id, form_data);
-      return respuesta.ruta_archivo;
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error al subir el memorial');
-      return null;
-    } finally {
-      set_subiendo_memorial(false);
-    }
-  };
-
   const manejarSolicitarDefensa = async () => {
     if (!archivo_memorial) {
       toast.error('Debe adjuntar el archivo memorial.');
       return;
     }
 
-    const ruta_memorial = await manejarSubidaMemorial();
-    if (!ruta_memorial) return;
-
+    set_subiendo_memorial(true);
+    
     try {
-      await proyectosApi.solicitarDefensa(proyecto.id, { ruta_memorial });
+      const form_data = new FormData();
+      form_data.append('memorial', archivo_memorial);
+      
+      await proyectosApi.solicitarDefensa(proyecto.id, form_data);
+      
       toast.success('Solicitud de defensa enviada exitosamente');
       set_mostrar_modal_solicitar(false);
+      set_archivo_memorial(null);
       onActualizarProyecto();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al enviar la solicitud');
+    } finally {
+      set_subiendo_memorial(false);
     }
   };
 
@@ -184,7 +173,6 @@ export const PestanaDefensa = ({ proyecto, asesores, onActualizarProyecto }: Pes
         </CardContent>
       </Card>
 
-      {/* Modal Solicitar Defensa (Estudiante) */}
       <Dialog open={mostrar_modal_solicitar} onOpenChange={set_mostrar_modal_solicitar}>
         <DialogContent>
           <DialogHeader><DialogTitle>Solicitar Defensa de Proyecto</DialogTitle></DialogHeader>
@@ -207,13 +195,12 @@ export const PestanaDefensa = ({ proyecto, asesores, onActualizarProyecto }: Pes
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
             <Button onClick={manejarSolicitarDefensa} disabled={!archivo_memorial || subiendo_memorial}>
-              {subiendo_memorial ? 'Subiendo...' : 'Enviar Solicitud'}
+              {subiendo_memorial ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Enviar Solicitud'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal Responder Solicitud (Admin) */}
       <Dialog open={mostrar_modal_responder} onOpenChange={set_mostrar_modal_responder}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>Responder Solicitud de Defensa</DialogTitle></DialogHeader>

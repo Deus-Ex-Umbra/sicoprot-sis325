@@ -138,6 +138,10 @@ export class ProyectosService {
       throw new NotFoundException(`Proyecto con ID '${id}' no encontrado.`);
     }
 
+    if (proyecto.etapa_actual === EtapaProyecto.TERMINADO) {
+      return proyecto;
+    }
+
     if (rol === Rol.Estudiante) {
       const esMiembroDelProyecto = proyecto.estudiantes?.some(
         estudiante => estudiante.usuario?.id === id_usuario
@@ -150,6 +154,8 @@ export class ProyectosService {
       if (!proyecto.asesor || proyecto.asesor.usuario?.id !== id_usuario) {
         throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
       }
+    } else if (rol !== Rol.Administrador) {
+       throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
     }
 
     if (proyecto.documentos) {
@@ -363,90 +369,95 @@ export class ProyectosService {
       where: { usuario: { id: id_usuario_estudiante } },
       relations: ['proyecto', 'proyecto.asesor', 'grupos', 'grupos.periodo']
     });
-
+  
     if (!estudiante) {
-        throw new NotFoundException('Estudiante no encontrado');
+      throw new NotFoundException('Estudiante no encontrado');
     }
     
-    const periodo_activo = estudiante.grupos.find(g => g.periodo.activo)?.periodo;
-
-    if (!periodo_activo) {
-        throw new NotFoundException('No estás inscrito en un grupo con un período académico activo');
+    const grupo_activo = estudiante.grupos.find(g => g.periodo?.activo);
+  
+    if (!grupo_activo) {
+      throw new NotFoundException('No estás inscrito en un grupo con un período académico activo');
     }
-
+  
     const proyecto = estudiante.proyecto;
-    const periodo = periodo_activo;
+    const grupo = grupo_activo;
+    const periodo = grupo.periodo;
     const hoy = new Date();
-
-    const calcularDiasRestantes = (fechaLimite: Date | string | null): number | null => {
+    hoy.setHours(0, 0, 0, 0);
+  
+    const calcularDiasRestantes = (fechaLimite?: Date | null): number | null => {
       if (!fechaLimite) return null;
       const fecha_lim = new Date(fechaLimite);
       fecha_lim.setHours(23, 59, 59, 999);
+      if (hoy > fecha_lim) {
+        return 0;
+      }
       const diffTime = fecha_lim.getTime() - hoy.getTime();
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
-
+  
     const etapas: EtapaCronograma[] = [
       {
         nombre: 'propuesta',
-        fecha_limite_entrega: periodo.fecha_limite_propuesta || null,
+        fecha_limite_entrega: grupo.fecha_limite_propuesta || null,
         estado: proyecto?.propuesta_aprobada 
           ? 'aprobado' 
-          : (periodo.fecha_limite_propuesta && hoy > new Date(periodo.fecha_limite_propuesta)) 
+          : (grupo.fecha_limite_propuesta && hoy > new Date(grupo.fecha_limite_propuesta)) 
             ? 'vencido' 
             : 'pendiente',
-        dias_restantes: calcularDiasRestantes(periodo.fecha_limite_propuesta || null),
+        dias_restantes: calcularDiasRestantes(grupo.fecha_limite_propuesta),
         recomendaciones: []
       },
       {
         nombre: 'perfil',
-        fecha_limite_entrega: periodo.fecha_limite_perfil || null,
+        fecha_limite_entrega: grupo.fecha_limite_perfil || null,
         estado: proyecto?.perfil_aprobado 
           ? 'aprobado' 
-          : (periodo.fecha_limite_perfil && hoy > new Date(periodo.fecha_limite_perfil)) 
+          : (grupo.fecha_limite_perfil && hoy > new Date(grupo.fecha_limite_perfil)) 
             ? 'vencido' 
             : 'pendiente',
-        dias_restantes: calcularDiasRestantes(periodo.fecha_limite_perfil || null),
+        dias_restantes: calcularDiasRestantes(grupo.fecha_limite_perfil),
         recomendaciones: []
       },
       {
         nombre: 'proyecto',
-        fecha_limite_entrega: periodo.fecha_limite_proyecto || null,
+        fecha_limite_entrega: grupo.fecha_limite_proyecto || null,
         estado: proyecto?.proyecto_aprobado 
           ? 'aprobado' 
-          : (periodo.fecha_limite_proyecto && hoy > new Date(periodo.fecha_limite_proyecto)) 
+          : (grupo.fecha_limite_proyecto && hoy > new Date(grupo.fecha_limite_proyecto)) 
             ? 'vencido' 
             : 'pendiente',
-        dias_restantes: calcularDiasRestantes(periodo.fecha_limite_proyecto || null),
+        dias_restantes: calcularDiasRestantes(grupo.fecha_limite_proyecto),
         recomendaciones: []
       }
     ];
-
+  
     const etapaActual = proyecto?.etapa_actual || EtapaProyecto.PROPUESTA;
     switch (etapaActual) {
       case EtapaProyecto.PROPUESTA:
         etapas[0].recomendaciones = [
-          `Tienes ${etapas[0].dias_restantes || 'N/A'} días para entregar la propuesta`,
-          `El asesor tendrá ${periodo.dias_revision_asesor} días para revisar tu propuesta`,
-          `Si es rechazada, tendrás ${periodo.dias_correccion_estudiante} días para corregir`
+          `Tienes ${etapas[0].dias_restantes ?? 'N/A'} días para entregar la propuesta`,
+          `El asesor tendrá ${grupo.dias_revision_asesor} días para revisar tu propuesta`,
+          `Si es rechazada, tendrás ${grupo.dias_correccion_estudiante} días para corregir`
         ];
         break;
       case EtapaProyecto.PERFIL:
         etapas[1].recomendaciones = [
-          `Tienes ${etapas[1].dias_restantes || 'N/A'} días para entregar el perfil`,
+          `Tienes ${etapas[1].dias_restantes ?? 'N/A'} días para entregar el perfil`,
           `Asegúrate de haber corregido todas las observaciones de la propuesta`,
           `El perfil debe incluir la metodología detallada`
         ];
         break;
       case EtapaProyecto.PROYECTO:
         etapas[2].recomendaciones = [
-          `Tienes ${etapas[2].dias_restantes || 'N/A'} días para entregar el proyecto final`,
+          `Tienes ${etapas[2].dias_restantes ?? 'N/A'} días para entregar el proyecto final`,
           `Prepárate para la defensa privada y pública`,
           `Revisa todas las correcciones pendientes`
         ];
         break;
     }
-
+  
     return {
       periodo: {
         nombre: periodo.nombre,
@@ -534,9 +545,31 @@ export class ProyectosService {
     }));
   }
 
-  async obtenerSolicitudesDefensa(): Promise<Proyecto[]> {
+  async obtenerSolicitudesDefensa(estado?: string): Promise<Proyecto[]> {
+    let etapas: EtapaProyecto[];
+
+    switch (estado) {
+      case 'aprobadas':
+        etapas = [EtapaProyecto.TERMINADO];
+        break;
+      case 'rechazadas':
+        etapas = [EtapaProyecto.LISTO_DEFENSA];
+        break;
+      case 'pendientes':
+      default:
+        etapas = [EtapaProyecto.SOLICITUD_DEFENSA];
+    }
+    
+    const where_condicion: any = {
+      etapa_actual: In(etapas)
+    };
+    
+    if (estado === 'rechazadas') {
+      where_condicion.comentarios_defensa = In(['IS NOT NULL', '!= \'\'']);
+    }
+
     return this.repositorio_proyecto.find({
-      where: { etapa_actual: EtapaProyecto.SOLICITUD_DEFENSA },
+      where: where_condicion,
       relations: ['estudiantes', 'asesor', 'asesor.usuario'],
       order: { fecha_creacion: 'ASC' },
     });

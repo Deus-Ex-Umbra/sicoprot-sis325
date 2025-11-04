@@ -474,8 +474,6 @@ const GestionGrupos = () => {
           </div>
           
           {contenido_pagina}
-
-          {/* Modal Crear/Editar Grupo */}
           <Dialog open={mostrar_modal_grupo} onOpenChange={set_mostrar_modal_grupo}>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
@@ -583,8 +581,6 @@ const GestionGrupos = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-
-          {/* Modal Gestionar Estudiantes */}
           <Dialog open={mostrar_modal_estudiantes} onOpenChange={set_mostrar_modal_estudiantes}>
             <DialogContent className="sm:max-w-3xl">
               <DialogHeader>

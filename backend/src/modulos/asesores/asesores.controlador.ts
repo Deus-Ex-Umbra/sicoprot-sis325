@@ -1,4 +1,3 @@
-// src/modulos/asesores/asesores.controlador.ts
 import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { AsesoresService } from './asesores.servicio';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -16,7 +15,6 @@ export class AsesoresController {
     return this.asesoresService.findAll();
   }
 
-  // ✅ NUEVO ENDPOINT: Obtener estudiantes de mi grupo
   @Get('mi-grupo/estudiantes')
   @ApiOperation({ summary: 'Obtener estudiantes asignados al grupo del asesor' })
   @ApiResponse({ 

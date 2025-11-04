@@ -10,6 +10,7 @@ import { EstadoUsuario } from '../usuarios/enums/estado-usuario.enum';
 import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../asesores/entidades/asesor.entidad';
 import { JwtService } from '@nestjs/jwt';
+import { SolicitudRegistro, EstadoSolicitud } from '../solicitudes-registro/entidades/solicitud-registro.entidad';
 
 export interface Perfil {
   id_estudiante?: number;
@@ -29,6 +30,8 @@ export class AutenticacionService {
     private readonly repositorio_estudiante: Repository<Estudiante>,
     @InjectRepository(Asesor)
     private readonly repositorio_asesor: Repository<Asesor>,
+    @InjectRepository(SolicitudRegistro)
+    private readonly repositorio_solicitud: Repository<SolicitudRegistro>,
     private readonly jwt_service: JwtService,
   ) {}
 
@@ -37,6 +40,16 @@ export class AutenticacionService {
     const usuario = await this.servicio_usuarios.buscarPorCorreo(correo);
 
     if (!usuario) {
+      const solicitud = await this.repositorio_solicitud.findOne({ where: { correo } });
+      
+      if (solicitud && solicitud.estado === EstadoSolicitud.Rechazada) {
+        throw new UnauthorizedException(`Tu solicitud fue rechazada. Motivo: ${solicitud.comentarios_admin || 'Sin comentarios.'}`);
+      }
+      
+      if (solicitud && solicitud.estado === EstadoSolicitud.Pendiente) {
+        throw new UnauthorizedException('Tu solicitud de registro aún está pendiente de aprobación.');
+      }
+      
       throw new UnauthorizedException('Credenciales inválidas');
     }
 

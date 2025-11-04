@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  Matches,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -52,4 +53,16 @@ export class CrearObservacionDto {
   @IsOptional()
   @IsString()
   descripcion_corta?: string;
+
+  @ApiProperty({
+    description: 'Color en formato hexadecimal',
+    example: '#FFD700',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^#[0-9A-F]{6}$/i, {
+    message: 'El color debe estar en formato hexadecimal #RRGGBB',
+  })
+  color?: string;
 }

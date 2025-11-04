@@ -1,6 +1,3 @@
-// src/tipos/observacion.ts
-
-// Usuario básico
 export interface Usuario {
     id: number;
     correo: string;
@@ -8,15 +5,13 @@ export interface Usuario {
     estado: string;
 }
 
-// Estudiante
 export interface Estudiante {
     id: number;
-    nombre: string;        // ✅ AGREGADO
-    apellido: string;      // ✅ AGREGADO
+    nombre: string;      
+    apellido: string; 
     usuario: Usuario;
 }
 
-// Asesor
 export interface Asesor {
     id: number;
     nombre: string;
@@ -24,39 +19,35 @@ export interface Asesor {
     usuario: Usuario;
 }
 
-// Proyecto
 export interface Proyecto {
     id: number;
-    titulo: string;        // ✅ AGREGADO
+    titulo: string; 
     fecha_creacion: string;
     estudiantes: Estudiante[];
     asesor: Asesor;
 }
 
-// Documento
 export interface Documento {
     id: number;
-    nombre_archivo: string;  // ✅ CORREGIDO (era "titulo")
+    nombre_archivo: string; 
     ruta_archivo: string;
     version: number;
     fecha_subida: string;
     proyecto: Proyecto;
 }
 
-// Corrección (puede ser null)
 export interface Correccion {
     id: number;
     comentario: string;
     fecha_creacion: string;
 }
 
-// Observación principal
 export interface Observacion {
     id: number;
     titulo: string;
-    contenido_detallado: string;  // ✅ CORREGIDO (era "contenido")
-    descripcion_corta: string;    // ✅ AGREGADO
-    estado: string;               // ✅ CORREGIDO (acepta mayúsculas)
+    contenido_detallado: string;
+    descripcion_corta: string;
+    estado: string;
     x_inicio: number;
     y_inicio: number;
     x_fin: number;
@@ -70,7 +61,7 @@ export interface Observacion {
     comentario_verificacion?: string;
     fecha_creacion: string;
     fecha_actualizacion: string;
-    autor: Asesor;                // ✅ AGREGADO
+    autor: Asesor;
     documento: Documento;
     correccion?: Correccion | null;
 }

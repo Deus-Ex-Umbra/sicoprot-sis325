@@ -79,4 +79,16 @@ export class ActualizarObservacionDto {
   @IsNumber()
   @Min(1)
   pagina_fin?: number;
+  
+  @ApiProperty({
+    description: 'Color en formato hexadecimal',
+    example: '#FFD700',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^#[0-9A-F]{6}$/i, {
+    message: 'El color debe estar en formato hexadecimal #RRGGBB',
+  })
+  color?: string;
 }
