@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { EditorHtmlSimple } from '../ui/editor-html-simple';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '../ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '../ui/dialog';
 import { propuestasTemaApi, proyectosApi } from '../../servicios/api';
 import { toast } from 'sonner';
 
@@ -123,7 +123,12 @@ export const PestanaPropuestas = ({ proyecto, onActualizarProyecto }: PestanaPro
       {/* Modal Crear Propuesta */}
       <Dialog open={mostrar_modal_crear} onOpenChange={set_mostrar_modal_crear}>
         <DialogContent className="sm:max-w-2xl">
-          <DialogHeader><DialogTitle>Nueva Propuesta de Tema</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Nueva Propuesta de Tema</DialogTitle>
+            <DialogDescription>
+              Completa los campos para enviar una nueva propuesta de tema a tu asesor.
+            </DialogDescription>
+          </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="titulo-propuesta">Título</Label>
@@ -144,7 +149,12 @@ export const PestanaPropuestas = ({ proyecto, onActualizarProyecto }: PestanaPro
       {/* Modal Responder Propuesta */}
       <Dialog open={mostrar_modal_responder} onOpenChange={set_mostrar_modal_responder}>
         <DialogContent className="sm:max-w-2xl">
-          <DialogHeader><DialogTitle>Responder a: {propuesta_seleccionada?.titulo}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Responder a: {propuesta_seleccionada?.titulo}</DialogTitle>
+            <DialogDescription>
+              Aprueba o rechaza la propuesta y añade tus comentarios.
+            </DialogDescription>
+          </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
               <Label>Acción</Label>
