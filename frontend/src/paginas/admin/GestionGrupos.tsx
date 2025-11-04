@@ -61,7 +61,7 @@ const GestionGrupos = () => {
   const [grupos_filtrados, set_grupos_filtrados] = useState<Grupo[]>([]);
   const [periodos, set_periodos] = useState<Periodo[]>([]);
   const [asesores, set_asesores] = useState<Usuario[]>([]);
-  const [estudiantes_sin_grupo, set_estudiantes_sin_grupo] = useState<Estudiante[]>([]);
+  const [estudiantes_sin_grupo, set_estudiantes_sin_grupo] = useState<Usuario[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
   
@@ -78,6 +78,11 @@ const GestionGrupos = () => {
     activo: true,
     tipo: 'taller_grado_i' as 'taller_grado_i' | 'taller_grado_ii',
     carrera: '',
+    fecha_limite_propuesta: '',
+    fecha_limite_perfil: '',
+    fecha_limite_proyecto: '',
+    dias_revision_asesor: 7,
+    dias_correccion_estudiante: 14,
   });
 
   const [estudiantes_a_asignar, set_estudiantes_a_asignar] = useState<string[]>([]);
@@ -156,6 +161,11 @@ const GestionGrupos = () => {
     });
   };
 
+  const formatDate = (dateString?: string | Date) => {
+    if (!dateString) return '';
+    return new Date(dateString).toISOString().split('T')[0];
+  }
+
   const abrirModalCrear = () => {
     set_grupo_editando(null);
     const periodo_activo = periodos.find(p => p.activo);
@@ -167,6 +177,11 @@ const GestionGrupos = () => {
       activo: true,
       tipo: 'taller_grado_i',
       carrera: '',
+      fecha_limite_propuesta: '',
+      fecha_limite_perfil: '',
+      fecha_limite_proyecto: '',
+      dias_revision_asesor: 7,
+      dias_correccion_estudiante: 14,
     });
     set_mostrar_modal_grupo(true);
   };
@@ -181,6 +196,11 @@ const GestionGrupos = () => {
       activo: grupo.activo,
       tipo: grupo.tipo || 'taller_grado_i',
       carrera: (grupo as any).carrera || '',
+      fecha_limite_propuesta: formatDate((grupo as any).fecha_limite_propuesta),
+      fecha_limite_perfil: formatDate((grupo as any).fecha_limite_perfil),
+      fecha_limite_proyecto: formatDate((grupo as any).fecha_limite_proyecto),
+      dias_revision_asesor: (grupo as any).dias_revision_asesor || 7,
+      dias_correccion_estudiante: (grupo as any).dias_correccion_estudiante || 14,
     });
     set_mostrar_modal_grupo(true);
   };
@@ -198,6 +218,8 @@ const GestionGrupos = () => {
         ...form_grupo,
         id_asesor: Number(form_grupo.id_asesor),
         id_periodo: Number(form_grupo.id_periodo),
+        dias_revision_asesor: Number(form_grupo.dias_revision_asesor),
+        dias_correccion_estudiante: Number(form_grupo.dias_correccion_estudiante),
       };
 
       if (grupo_editando) {
@@ -246,7 +268,7 @@ const GestionGrupos = () => {
     set_cargando_asignacion(false);
     toast.success(`${asignados_count} estudiante(s) asignado(s) exitosamente.`);
     if (errores_count > 0) {
-      toast.warning(`${errores_count} asignaciones fallaron (posiblemente ya estaban en otro grupo).`);
+      toast.warning(`${errores_count} asignaciones fallaron (posiblemente ya estaban en otro grupo o no cumplen requisitos).`);
     }
 
     await cargarDatos();
@@ -281,10 +303,23 @@ const GestionGrupos = () => {
     label: periodo.nombre
   }));
   
-  const opciones_estudiantes_disponibles: OpcionMultiSelect[] = estudiantes_sin_grupo.map((est: any) => ({
-    value: String(est.id),
-    label: `${est.nombre} ${est.apellido} (${est.usuario.correo})`
-  }));
+  const opciones_estudiantes_disponibles: OpcionMultiSelect[] = estudiantes_sin_grupo
+    .filter((est: Usuario) => {
+      if (!grupo_seleccionado) return false;
+      const perfil_aprobado = est.perfil?.proyecto?.perfil_aprobado || false;
+      if (grupo_seleccionado.tipo === 'taller_grado_i') {
+        return !perfil_aprobado;
+      }
+      if (grupo_seleccionado.tipo === 'taller_grado_ii') {
+        return perfil_aprobado;
+      }
+      return false;
+    })
+    .map((est: Usuario) => ({
+      value: String(est.perfil?.id_estudiante),
+      label: `${est.perfil?.nombre} ${est.perfil?.apellido} (${est.correo})`
+    }));
+
 
   const hay_filtros_activos = filtros.busqueda || filtros.id_periodo || filtros.id_asesor;
 
@@ -475,103 +510,159 @@ const GestionGrupos = () => {
           
           {contenido_pagina}
           <Dialog open={mostrar_modal_grupo} onOpenChange={set_mostrar_modal_grupo}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-3xl">
               <DialogHeader>
                 <DialogTitle>{grupo_editando ? 'Editar' : 'Crear'} Grupo</DialogTitle>
               </DialogHeader>
-              <div className="py-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre">Nombre del Grupo</Label>
-                    <Input
-                      id="nombre"
-                      value={form_grupo.nombre}
-                      onChange={(e) => set_form_grupo({ ...form_grupo, nombre: e.target.value })}
-                      placeholder="Ej: Grupo A - Ing. Software"
-                    />
-                  </div>
-                  <div className="space-y-2 pt-6">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="activo"
-                        checked={form_grupo.activo}
-                        onCheckedChange={(checked) => set_form_grupo({ ...form_grupo, activo: checked })}
+              <ScrollArea className="max-h-[80vh]">
+                <div className="py-4 px-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre">Nombre del Grupo</Label>
+                      <Input
+                        id="nombre"
+                        value={form_grupo.nombre}
+                        onChange={(e) => set_form_grupo({ ...form_grupo, nombre: e.target.value })}
+                        placeholder="Ej: Grupo A - Ing. Software"
                       />
-                      <Label htmlFor="activo">Grupo Activo</Label>
+                    </div>
+                    <div className="space-y-2 pt-6">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="activo"
+                          checked={form_grupo.activo}
+                          onCheckedChange={(checked) => set_form_grupo({ ...form_grupo, activo: checked })}
+                        />
+                        <Label htmlFor="activo">Grupo Activo</Label>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="descripcion">Descripción</Label>
-                  <Textarea
-                    id="descripcion"
-                    value={form_grupo.descripcion}
-                    onChange={(e) => set_form_grupo({ ...form_grupo, descripcion: e.target.value })}
-                    placeholder="Descripción del grupo"
-                  />
-                </div>
-                 <div className="space-y-2">
-                  <Label htmlFor="carrera">Carrera</Label>
-                  <Input
-                    id="carrera"
-                    value={form_grupo.carrera}
-                    onChange={(e) => set_form_grupo({ ...form_grupo, carrera: e.target.value })}
-                    placeholder="Ej: Ingeniería de Software"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="asesor">Asesor Asignado</Label>
-                    <SelectConBusqueda
-                      opciones={opciones_asesores}
-                      value={String(form_grupo.id_asesor || '')}
-                      onChange={(value) => set_form_grupo({ ...form_grupo, id_asesor: parseInt(value) || 0 })}
-                      placeholder="Seleccione un asesor..."
-                      searchPlaceholder="Buscar asesor..."
-                      emptyMessage="No se encontró el asesor."
+                    <Label htmlFor="descripcion">Descripción</Label>
+                    <Textarea
+                      id="descripcion"
+                      value={form_grupo.descripcion}
+                      onChange={(e) => set_form_grupo({ ...form_grupo, descripcion: e.target.value })}
+                      placeholder="Descripción del grupo"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="periodo">Período</Label>
+                    <Label htmlFor="carrera">Carrera</Label>
+                    <Input
+                      id="carrera"
+                      value={form_grupo.carrera}
+                      onChange={(e) => set_form_grupo({ ...form_grupo, carrera: e.target.value })}
+                      placeholder="Ej: Ingeniería de Software"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="asesor">Asesor Asignado</Label>
+                      <SelectConBusqueda
+                        opciones={opciones_asesores}
+                        value={String(form_grupo.id_asesor || '')}
+                        onChange={(value) => set_form_grupo({ ...form_grupo, id_asesor: parseInt(value) || 0 })}
+                        placeholder="Seleccione un asesor..."
+                        searchPlaceholder="Buscar asesor..."
+                        emptyMessage="No se encontró el asesor."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="periodo">Período</Label>
+                      <Select
+                        value={String(form_grupo.id_periodo || '')}
+                        onValueChange={(value) => set_form_grupo({ ...form_grupo, id_periodo: parseInt(value) || 0 })}
+                      >
+                        <SelectTrigger id="periodo">
+                          <SelectValue placeholder="Seleccione un período..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">Seleccione un período...</SelectItem>
+                          {periodos.map(periodo => (
+                            <SelectItem key={periodo.id} value={String(periodo.id)}>
+                              {periodo.nombre} {periodo.activo && '(Activo)'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tipo-grupo">Tipo de Grupo</Label>
                     <Select
-                      value={String(form_grupo.id_periodo || '')}
-                      onValueChange={(value) => set_form_grupo({ ...form_grupo, id_periodo: parseInt(value) || 0 })}
+                      value={form_grupo.tipo}
+                      onValueChange={(value) => set_form_grupo({ ...form_grupo, tipo: value as any })}
                     >
-                      <SelectTrigger id="periodo">
-                        <SelectValue placeholder="Seleccione un período..." />
+                      <SelectTrigger id="tipo-grupo">
+                        <SelectValue placeholder="Seleccione un tipo..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="0">Seleccione un período...</SelectItem>
-                        {periodos.map(periodo => (
-                          <SelectItem key={periodo.id} value={String(periodo.id)}>
-                            {periodo.nombre} {periodo.activo && '(Activo)'}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="taller_grado_i">
+                          Taller de Grado I (Propuesta y Perfil)
+                        </SelectItem>
+                        <SelectItem value="taller_grado_ii">
+                          Taller de Grado II (Proyecto)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  <h6 className="font-semibold pt-2">Fechas Límite (Taller I y II)</h6>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_limite_propuesta">Límite Propuesta</Label>
+                      <Input
+                        id="fecha_limite_propuesta"
+                        type="date"
+                        value={form_grupo.fecha_limite_propuesta}
+                        onChange={(e) => set_form_grupo({ ...form_grupo, fecha_limite_propuesta: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_limite_perfil">Límite Perfil</Label>
+                      <Input
+                        id="fecha_limite_perfil"
+                        type="date"
+                        value={form_grupo.fecha_limite_perfil}
+                        onChange={(e) => set_form_grupo({ ...form_grupo, fecha_limite_perfil: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_limite_proyecto">Límite Proyecto Final</Label>
+                      <Input
+                        id="fecha_limite_proyecto"
+                        type="date"
+                        value={form_grupo.fecha_limite_proyecto}
+                        onChange={(e) => set_form_grupo({ ...form_grupo, fecha_limite_proyecto: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <h6 className="font-semibold pt-2">Tiempos de Revisión</h6>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="dias_revision_asesor">Días Revisión (Asesor)</Label>
+                      <Input
+                        id="dias_revision_asesor"
+                        type="number"
+                        value={form_grupo.dias_revision_asesor}
+                        onChange={(e) => set_form_grupo({ ...form_grupo, dias_revision_asesor: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dias_correccion_estudiante">Días Corrección (Estudiante)</Label>
+                      <Input
+                        id="dias_correccion_estudiante"
+                        type="number"
+                        value={form_grupo.dias_correccion_estudiante}
+                        onChange={(e) => set_form_grupo({ ...form_grupo, dias_correccion_estudiante: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tipo-grupo">Tipo de Grupo</Label>
-                  <Select
-                    value={form_grupo.tipo}
-                    onValueChange={(value) => set_form_grupo({ ...form_grupo, tipo: value as any })}
-                  >
-                    <SelectTrigger id="tipo-grupo">
-                      <SelectValue placeholder="Seleccione un tipo..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="taller_grado_i">
-                        Taller de Grado I (Propuesta y Perfil)
-                      </SelectItem>
-                      <SelectItem value="taller_grado_ii">
-                        Taller de Grado II (Proyecto)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
+              </ScrollArea>
+              <DialogFooter className="px-6 pb-4 pt-0">
                 <DialogClose asChild>
                   <Button variant="outline">Cancelar</Button>
                 </DialogClose>
@@ -618,6 +709,9 @@ const GestionGrupos = () => {
                 </div>
                 <div className="space-y-4">
                   <h6 className="font-semibold">Asignar Estudiantes Disponibles</h6>
+                  <p className="text-xs text-muted-foreground">
+                    Mostrando estudiantes para {grupo_seleccionado?.tipo === 'taller_grado_i' ? 'Taller I (Sin perfil)' : 'Taller II (Con perfil)'}.
+                  </p>
                   <MultiSelect
                     opciones={opciones_estudiantes_disponibles}
                     seleccionados={estudiantes_a_asignar}
@@ -627,7 +721,7 @@ const GestionGrupos = () => {
                   />
                   {opciones_estudiantes_disponibles.length === 0 && (
                      <p className="text-muted-foreground text-center text-sm p-4">
-                        No hay estudiantes disponibles sin grupo activo.
+                        No hay estudiantes disponibles que cumplan los requisitos para este grupo.
                      </p>
                   )}
                 </div>

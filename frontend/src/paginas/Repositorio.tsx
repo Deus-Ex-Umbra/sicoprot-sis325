@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, X, FileText, User, Calendar, Award } from 'lucide-react';
 import { proyectosApi, asesoresApi, periodosApi } from '../servicios/api';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
@@ -37,6 +38,7 @@ interface ResultadoBusqueda {
 const Repositorio = () => {
   const { usuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
+  const navigate = useNavigate();
   
   const [proyectos, set_proyectos] = useState<ResultadoBusqueda[]>([]);
   const [cargando, set_cargando] = useState(false);
@@ -267,7 +269,11 @@ const Repositorio = () => {
               </p>
               
               {proyectos.map((proyecto) => (
-                <Card key={proyecto.id} className="hover:shadow-lg transition-shadow">
+                <Card 
+                  key={proyecto.id} 
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => navigate(`/panel/proyecto/${proyecto.id}`)}
+                >
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">

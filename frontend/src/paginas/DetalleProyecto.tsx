@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileUp, Plus, Loader2, Info, FileText, Users, Shield, MessageSquare, CheckCircle } from 'lucide-react';
+import { ArrowLeft, FileUp, Plus, Loader2, Info, FileText, Users, Shield, MessageSquare, CheckCircle, Wrench } from 'lucide-react';
 import VisualizadorDocumento from '../componentes/visualizador-documento';
 import { proyectosApi, documentosApi, observacionesApi, correccionesApi, asesoresApi, api } from '../servicios/api';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
-import { type Proyecto, type Documento, type Observacion, type Correccion, Rol, EtapaProyecto, type Usuario } from '../tipos/usuario';
+import { type Proyecto, type Documento, type Observacion, type Correccion, Rol, EtapaProyecto, type Usuario, TipoGrupo } from '../tipos/usuario';
 import BarraLateral from '../componentes/barra-lateral';
 import BarraLateralAdmin from '../componentes/barra-lateral-admin';
 import { cn } from '../lib/utilidades';
@@ -18,6 +18,7 @@ import { Badge } from '../componentes/ui/badge';
 import { PestanaReuniones } from '../componentes/proyecto/pestania-reuniones';
 import { PestanaDefensa } from '../componentes/proyecto/pestania-defensa';
 import { PestanaAcciones } from '../componentes/proyecto/pestania-acciones';
+import { EstadoObservacion } from '../../tipos/estado-observacion';
 
 const DetalleProyecto = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,7 +60,10 @@ const DetalleProyecto = () => {
       const proyecto_data = await proyectosApi.obtenerUno(parseInt(id!));
       set_proyecto(proyecto_data);
 
-      const documentos_data = proyecto_data.documentos?.sort((a: Documento, b: Documento) => b.version - a.version) || [];
+      const documentos_data = proyecto_data.documentos
+        ?.filter((doc: Documento) => doc.ruta_archivo !== proyecto_data.ruta_memorial)
+        .sort((a: Documento, b: Documento) => b.version - a.version) || [];
+        
       set_documentos(documentos_data);
 
       if (documentos_data.length > 0) {
@@ -161,9 +165,9 @@ const DetalleProyecto = () => {
 
     const puede_subir_documento = es_estudiante && etapa_actual === EtapaProyecto.PERFIL;
     
-    const documentos_para_mostrar = (es_taller_2_o_superior || etapa_actual === EtapaProyecto.PERFIL) && !es_admin
-      ? documentos.slice(0, 1)
-      : documentos;
+    const documentos_para_mostrar = (es_taller_2_o_superior || etapa_actual === EtapaProyecto.PERFIL)
+      ? documentos
+      : [];
 
     const observaciones_del_documento = documento_seleccionado
       ? observaciones.filter(obs => obs.documento && obs.documento.id === documento_seleccionado.id)
@@ -175,6 +179,10 @@ const DetalleProyecto = () => {
       ? correcciones.filter(corr => (corr as any).documento?.id === documento_seleccionado.id)
       : [];
 
+    const observaciones_pendientes = observaciones.filter(obs =>
+      (obs.estado === 'pendiente' || obs.estado === 'rechazado')
+    ).length;
+
     const observaciones_pendientes_etapa_actual = observaciones.filter(obs =>
       obs.etapa_observada === proyecto?.etapa_actual &&
       (obs.estado === 'pendiente' || obs.estado === 'en_revision' || obs.estado === 'rechazado')
@@ -182,6 +190,10 @@ const DetalleProyecto = () => {
 
     const comentario_propuesta = (proyecto as any).comentario_aprobacion_propuesta;
     const comentario_perfil = (proyecto as any).comentario_aprobacion_perfil;
+    
+    const estudiante_principal = proyecto.estudiantes?.[0];
+    const grupo_activo_estudiante = estudiante_principal?.grupos?.find(g => g.periodo?.activo);
+    const tipo_grupo_actual = grupo_activo_estudiante?.tipo || null;
 
     contenido_pagina = (
       <Tabs defaultValue={getPestanaPorDefecto()} className="w-full">
@@ -233,6 +245,7 @@ const DetalleProyecto = () => {
                 <PestanaAcciones
                   proyecto={proyecto}
                   observaciones_pendientes={observaciones_pendientes_etapa_actual}
+                  tipo_grupo_actual={tipo_grupo_actual}
                   onActualizarProyecto={cargarDatos}
                 />
               )}
@@ -342,10 +355,22 @@ const DetalleProyecto = () => {
                 </Button>
               )}
 
+              {es_estudiante && observaciones_pendientes > 0 && etapa_actual === EtapaProyecto.PERFIL && (
+                 <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate(`/panel/proyecto/${proyecto.id}/crear-correccion`)}
+                >
+                  <Wrench className="mr-2 h-4 w-4" />
+                  Registrar Corrección
+                </Button>
+              )}
+
               {es_asesor && (
                 <PestanaAcciones
                   proyecto={proyecto}
                   observaciones_pendientes={observaciones_pendientes_etapa_actual}
+                  tipo_grupo_actual={tipo_grupo_actual}
                   onActualizarProyecto={cargarDatos}
                 />
               )}

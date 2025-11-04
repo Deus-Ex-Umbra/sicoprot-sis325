@@ -9,16 +9,7 @@ import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Rol } from '../../tipos/usuario';
 import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
-import { Badge } from '../../componentes/ui/badge';
-import { Progress } from '../../componentes/ui/progress';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../componentes/ui/table';
+import ChecklistObservaciones from '../../componentes/checklist-observaciones';
 
 const Observaciones = () => {
   const [observaciones, set_observaciones] = useState<Observacion[]>([]);
@@ -34,47 +25,17 @@ const Observaciones = () => {
   };
 
   useEffect(() => {
-    const cargar = async () => {
-      try {
-        const data = await observacionesApi.obtenerPorEstudiante();
-        set_observaciones(data);
-      } catch (err) {
-        set_error('Error al cargar observaciones');
-      } finally {
-        set_cargando(false);
-      }
-    };
-    cargar();
+    cargarDatos();
   }, []);
 
-  const total_observaciones = observaciones.length;
-  const corregidas = observaciones.filter(o => o.estado === EstadoObservacion.CORREGIDA).length;
-  const pendientes = observaciones.filter(o => o.estado === EstadoObservacion.PENDIENTE).length;
-  const rechazadas = observaciones.filter(o => o.estado === EstadoObservacion.RECHAZADO).length;
-  const porcentaje_completado = total_observaciones > 0
-    ? Math.round((corregidas / total_observaciones) * 100)
-    : 0;
-
-  const obtenerVarianteBadge = (estado: string) => {
-    switch (estado) {
-      case EstadoObservacion.PENDIENTE:
-        return 'secondary';
-      case EstadoObservacion.CORREGIDA:
-        return 'default';
-      case EstadoObservacion.RECHAZADO:
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  };
-
-  const obtenerIcono = (estado: string) => {
-    switch (estado) {
-      case EstadoObservacion.PENDIENTE: return '⏳';
-      case EstadoObservacion.CORREGIDA: return '✅';
-      case EstadoObservacion.RECHAZADO: return '❌';
-      case EstadoObservacion.EN_REVISION: return '👀';
-      default: return '❓';
+  const cargarDatos = async () => {
+    try {
+      const data = await observacionesApi.obtenerPorEstudiante();
+      set_observaciones(data);
+    } catch (err) {
+      set_error('Error al cargar observaciones');
+    } finally {
+      set_cargando(false);
     }
   };
 
@@ -94,110 +55,7 @@ const Observaciones = () => {
     );
   } else {
     contenido_pagina = (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Resumen de Observaciones</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-6">
-              <div>
-                <p className="text-3xl font-bold text-yellow-500">{pendientes}</p>
-                <p className="text-sm text-muted-foreground">Pendientes</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-green-500">{corregidas}</p>
-                <p className="text-sm text-muted-foreground">Corregidas</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-red-500">{rechazadas}</p>
-                <p className="text-sm text-muted-foreground">Rechazadas</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold">{total_observaciones}</p>
-                <p className="text-sm text-muted-foreground">Total</p>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Progreso de correcciones</span>
-                <span className="text-sm font-bold">{porcentaje_completado}%</span>
-              </div>
-              <Progress value={porcentaje_completado} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Mis Observaciones Recibidas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {observaciones.length === 0 ? (
-              <Alert>
-                <AlertTitle>¡Excelente!</AlertTitle>
-                <AlertDescription>
-                  No tienes observaciones pendientes.
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>#</TableHead>
-                    <TableHead>Proyecto</TableHead>
-                    <TableHead>Asesor</TableHead>
-                    <TableHead>Documento</TableHead>
-                    <TableHead>Observación</TableHead>
-                    <TableHead>Página</TableHead>
-                    <TableHead>Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {observaciones.map((obs) => {
-                    const proyecto = obs.documento?.proyecto;
-                    const asesor = obs.autor;
-                    const nombre_asesor = asesor
-                      ? `${asesor.nombre} ${asesor.apellido}`
-                      : '—';
-                    const titulo_proyecto = proyecto?.titulo || 'Sin proyecto';
-                    const nombre_documento = obs.documento?.nombre_archivo || 'Sin documento';
-
-                    return (
-                      <TableRow key={obs.id}>
-                        <TableCell>{obs.id}</TableCell>
-                        <TableCell className="font-medium">{titulo_proyecto}</TableCell>
-                        <TableCell>{nombre_asesor}</TableCell>
-                        <TableCell>
-                          <span className="text-muted-foreground">{nombre_documento}</span>
-                          <br />
-                          <Badge variant="outline" className="mt-1">
-                            v{obs.documento?.version || 1}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <p className="font-medium">{obs.titulo || 'Sin título'}</p>
-                          <p 
-                            className="text-xs text-muted-foreground prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: obs.contenido_html.substring(0, 70) + '...' }}
-                          />
-                        </TableCell>
-                        <TableCell className="text-center">{obs.pagina_inicio}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={obtenerVarianteBadge(obs.estado)}>
-                            {obtenerIcono(obs.estado)} {obs.estado}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <ChecklistObservaciones observaciones={observaciones} />
     );
   }
 
@@ -216,6 +74,7 @@ const Observaciones = () => {
         )}
       >
         <div className="container mx-auto p-6 max-w-7xl">
+           <h1 className="text-3xl font-bold tracking-tight mb-6">Mis Observaciones</h1>
           {contenido_pagina}
         </div>
       </main>

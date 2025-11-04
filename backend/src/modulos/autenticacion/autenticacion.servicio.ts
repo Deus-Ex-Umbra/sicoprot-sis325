@@ -47,7 +47,7 @@ export class AutenticacionService {
       }
       
       if (solicitud && solicitud.estado === EstadoSolicitud.Pendiente) {
-        throw new UnauthorizedException('Tu solicitud de registro aún está pendiente de aprobación.');
+        throw new UnauthorizedException(`Tu solicitud de registro aún está pendiente de aprobación. ${solicitud.comentarios_admin || ''}`);
       }
       
       throw new UnauthorizedException('Credenciales inválidas');

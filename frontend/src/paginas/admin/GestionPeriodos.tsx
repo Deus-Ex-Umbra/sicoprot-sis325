@@ -56,11 +56,6 @@ const GestionPeriodos = () => {
     fecha_inicio_inscripciones: '',
     fecha_fin_inscripciones: '',
     activo: false,
-    fecha_limite_propuesta: '',
-    fecha_limite_perfil: '',
-    fecha_limite_proyecto: '',
-    dias_revision_asesor: 7,
-    dias_correccion_estudiante: 14,
   });
 
   const [filtros, set_filtros] = useState({
@@ -138,11 +133,6 @@ const GestionPeriodos = () => {
       fecha_inicio_inscripciones: '',
       fecha_fin_inscripciones: '',
       activo: false,
-      fecha_limite_propuesta: '',
-      fecha_limite_perfil: '',
-      fecha_limite_proyecto: '',
-      dias_revision_asesor: 7,
-      dias_correccion_estudiante: 14,
     });
     set_mostrar_modal(true);
   };
@@ -157,11 +147,6 @@ const GestionPeriodos = () => {
       fecha_inicio_inscripciones: formatDate(periodo.fecha_inicio_inscripciones),
       fecha_fin_inscripciones: formatDate(periodo.fecha_fin_inscripciones),
       activo: periodo.activo,
-      fecha_limite_propuesta: formatDate(periodo.fecha_limite_propuesta),
-      fecha_limite_perfil: formatDate(periodo.fecha_limite_perfil),
-      fecha_limite_proyecto: formatDate(periodo.fecha_limite_proyecto),
-      dias_revision_asesor: (periodo as any).dias_revision_asesor || 7,
-      dias_correccion_estudiante: (periodo as any).dias_correccion_estudiante || 14,
     });
     set_mostrar_modal(true);
   };
@@ -170,8 +155,6 @@ const GestionPeriodos = () => {
     try {
       const datos_a_enviar = {
         ...form_periodo,
-        dias_revision_asesor: Number(form_periodo.dias_revision_asesor),
-        dias_correccion_estudiante: Number(form_periodo.dias_correccion_estudiante),
       };
 
       if (periodo_editando) {
@@ -457,59 +440,6 @@ const GestionPeriodos = () => {
                       />
                     </div>
                   </div>
-                  <h6 className="font-semibold pt-2">Fechas Límite (Taller I y II)</h6>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fecha_limite_propuesta">Límite Propuesta</Label>
-                      <Input
-                        id="fecha_limite_propuesta"
-                        type="date"
-                        value={form_periodo.fecha_limite_propuesta}
-                        onChange={(e) => set_form_periodo({ ...form_periodo, fecha_limite_propuesta: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="fecha_limite_perfil">Límite Perfil</Label>
-                      <Input
-                        id="fecha_limite_perfil"
-                        type="date"
-                        value={form_periodo.fecha_limite_perfil}
-                        onChange={(e) => set_form_periodo({ ...form_periodo, fecha_limite_perfil: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="fecha_limite_proyecto">Límite Proyecto Final</Label>
-                      <Input
-                        id="fecha_limite_proyecto"
-                        type="date"
-                        value={form_periodo.fecha_limite_proyecto}
-                        onChange={(e) => set_form_periodo({ ...form_periodo, fecha_limite_proyecto: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <h6 className="font-semibold pt-2">Tiempos de Revisión</h6>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dias_revision_asesor">Días Revisión (Asesor)</Label>
-                      <Input
-                        id="dias_revision_asesor"
-                        type="number"
-                        value={form_periodo.dias_revision_asesor}
-                        onChange={(e) => set_form_periodo({ ...form_periodo, dias_revision_asesor: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dias_correccion_estudiante">Días Corrección (Estudiante)</Label>
-                      <Input
-                        id="dias_correccion_estudiante"
-                        type="number"
-                        value={form_periodo.dias_correccion_estudiante}
-                        onChange={(e) => set_form_periodo({ ...form_periodo, dias_correccion_estudiante: Number(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-
                 </div>
               </ScrollArea>
               <DialogFooter className="px-6 pb-4 pt-0">

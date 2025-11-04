@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Search, X, Edit } from 'lucide-react';
+import { Loader2, Search, X, Edit, Trash, MessageSquare } from 'lucide-react';
 import { observacionesApi } from '../../servicios/api';
 import { type Observacion, EstadoObservacion, Rol } from '../../tipos/usuario';
 import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../componentes/ui/table';
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../../componentes/ui/accordion';
 import { Badge } from '../../componentes/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
 import {
@@ -37,6 +35,7 @@ import {
   DialogClose,
 } from '../../componentes/ui/dialog';
 import { EditorHtmlSimple } from '../../componentes/ui/editor-html-simple';
+import { estadoConfig } from '../../tipos/estado-observacion';
 
 const ObservacionesAsesor = () => {
   const [observaciones, set_observaciones] = useState<Observacion[]>([]);
@@ -51,7 +50,7 @@ const ObservacionesAsesor = () => {
 
   const [mostrar_modal_editar, set_mostrar_modal_editar] = useState(false);
   const [obs_seleccionada, set_obs_seleccionada] = useState<Observacion | null>(null);
-  const [form_editar, set_form_editar] = useState({ titulo: '', contenido_html: '' });
+  const [form_editar, set_form_editar] = useState({ titulo: '', contenido_html: '', comentarios_asesor_html: '' });
   const [cargando_edicion, set_cargando_edicion] = useState(false);
 
   const { usuario } = useAutenticacion();
@@ -89,7 +88,7 @@ const ObservacionesAsesor = () => {
 
     if (busqueda_lower) {
       resultado = resultado.filter(obs => {
-        const proyecto = obs.documento?.proyecto;
+        const proyecto = obs.documento?.proyecto || obs.proyecto;
         const estudiante = proyecto?.estudiantes?.[0];
         const nombre_estudiante = estudiante ? `${estudiante.nombre} ${estudiante.apellido}` : '';
         const titulo_proyecto = proyecto?.titulo || '';
@@ -119,7 +118,7 @@ const ObservacionesAsesor = () => {
 
   const manejarCambioEstado = async (id: number, nuevoEstado: string) => {
     try {
-      await observacionesApi.actualizar(id, { estado: nuevoEstado });
+      await observacionesApi.cambiarEstado(id, { estado: nuevoEstado });
       set_observaciones(prev =>
         prev.map(obs => (obs.id === id ? { ...obs, estado: nuevoEstado as EstadoObservacion } : obs))
       );
@@ -134,6 +133,7 @@ const ObservacionesAsesor = () => {
     set_form_editar({
       titulo: obs.titulo,
       contenido_html: obs.contenido_html,
+      comentarios_asesor_html: obs.comentarios_asesor_html || ''
     });
     set_mostrar_modal_editar(true);
   };
@@ -153,19 +153,19 @@ const ObservacionesAsesor = () => {
     }
   };
 
-  const obtenerVarianteBadge = (estado: string) => {
-    switch (estado) {
-      case EstadoObservacion.PENDIENTE:
-        return 'secondary';
-      case EstadoObservacion.CORREGIDA:
-        return 'default';
-      case EstadoObservacion.RECHAZADO:
-        return 'destructive';
-      case EstadoObservacion.EN_REVISION:
-        return 'outline';
-      default:
-        return 'outline';
+  const manejarEliminar = async (id: number) => {
+    if (!window.confirm('¿Está seguro de eliminar esta observación?')) return;
+    try {
+      await observacionesApi.eliminarObservacion(id);
+      toast.success('Observación eliminada');
+      await cargarObservaciones();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Error al eliminar');
     }
+  }
+
+  const obtenerConfigEstado = (estado: string) => {
+    return estadoConfig[estado as EstadoObservacion] || estadoConfig[EstadoObservacion.PENDIENTE];
   };
 
   const hay_filtros_activos = filtros.busqueda || filtros.estado;
@@ -260,76 +260,71 @@ const ObservacionesAsesor = () => {
                 </AlertDescription>
               </Alert>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Proyecto</TableHead>
-                    <TableHead>Estudiante</TableHead>
-                    <TableHead>Documento</TableHead>
-                    <TableHead>Observación</TableHead>
-                    <TableHead>Estado Actual</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {observaciones_filtradas.map((obs) => {
-                    const proyecto = obs.documento?.proyecto;
-                    const estudiante = proyecto?.estudiantes?.[0];
-                    const nombre_estudiante = estudiante
-                      ? `${estudiante.nombre} ${estudiante.apellido}`
-                      : '—';
-                    const titulo_proyecto = proyecto?.titulo || 'Sin proyecto';
-                    const nombre_documento = obs.documento?.nombre_archivo || 'Sin documento';
-
-                    return (
-                      <TableRow key={obs.id}>
-                        <TableCell className="font-medium">{titulo_proyecto}</TableCell>
-                        <TableCell>{nombre_estudiante}</TableCell>
-                        <TableCell>
-                          <span className="text-muted-foreground">{nombre_documento}</span>
-                          <br />
-                          <Badge variant="outline" className="mt-1">
-                            v{obs.documento?.version || 1}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <p className="font-medium">{obs.titulo || 'Sin título'}</p>
-                          <p 
-                            className="text-xs text-muted-foreground prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: obs.contenido_html.substring(0, 70) + '...' }}
-                          />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={obtenerVarianteBadge(obs.estado)}>
-                            {obs.estado}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Select
-                              value={obs.estado}
-                              onValueChange={(value) => manejarCambioEstado(obs.id, value)}
-                            >
-                              <SelectTrigger className="w-[160px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value={EstadoObservacion.PENDIENTE}>⏳ Pendiente</SelectItem>
-                                <SelectItem value={EstadoObservacion.EN_REVISION}>👀 En Revisión</SelectItem>
-                                <SelectItem value={EstadoObservacion.CORREGIDA}>✅ Corregida</SelectItem>
-                                <SelectItem value={EstadoObservacion.RECHAZADO}>❌ Rechazado</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Button variant="outline" size="icon" onClick={() => abrirModalEditar(obs)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
+              <Accordion type="multiple" className="w-full">
+                {observaciones_filtradas.map((obs) => {
+                  const proyecto = obs.documento?.proyecto || obs.proyecto;
+                  const estudiante = proyecto?.estudiantes?.[0];
+                  const nombre_estudiante = estudiante
+                    ? `${estudiante.nombre} ${estudiante.apellido}`
+                    : '—';
+                  const titulo_proyecto = proyecto?.titulo || 'Sin proyecto';
+                  const config_estado = obtenerConfigEstado(obs.estado);
+                  
+                  return (
+                    <AccordionItem value={`obs-${obs.id}`} key={obs.id}>
+                      <AccordionTrigger>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between w-full pr-4">
+                          <div className="text-left">
+                            <Badge variant={config_estado.variant as any} className={cn(config_estado.className)}>
+                              {config_estado.label}
+                            </Badge>
+                            <span className="font-semibold ml-2">{obs.titulo}</span>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                          <div className="text-sm text-muted-foreground text-left md:text-right mt-1 md:mt-0">
+                            {titulo_proyecto} ({nombre_estudiante})
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-4">
+                        <div
+                          className="prose prose-sm max-w-none text-muted-foreground"
+                          dangerouslySetInnerHTML={{ __html: obs.contenido_html }}
+                        />
+                        {obs.comentarios_asesor_html && (
+                          <Alert>
+                            <AlertTitle>Comentario Adicional</AlertTitle>
+                            <AlertDescription
+                              dangerouslySetInnerHTML={{ __html: obs.comentarios_asesor_html }}
+                            />
+                          </Alert>
+                        )}
+                        <div className="flex gap-2">
+                          <Select
+                            value={obs.estado}
+                            onValueChange={(value) => manejarCambioEstado(obs.id, value)}
+                          >
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={EstadoObservacion.PENDIENTE}>⏳ Pendiente</SelectItem>
+                              <SelectItem value={EstadoObservacion.EN_REVISION}>👀 En Revisión</SelectItem>
+                              <SelectItem value={EstadoObservacion.CORREGIDA}>✅ Corregida</SelectItem>
+                              <SelectItem value={EstadoObservacion.RECHAZADO}>❌ Rechazado</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button variant="outline" size="sm" onClick={() => abrirModalEditar(obs)}>
+                            <Edit className="h-4 w-4 mr-2" /> Editar
+                          </Button>
+                          <Button variant="destructive" size="icon" onClick={() => manejarEliminar(obs.id)}>
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  )
+                })}
+              </Accordion>
             )}
           </CardContent>
         </Card>
@@ -356,7 +351,7 @@ const ObservacionesAsesor = () => {
         </div>
 
         <Dialog open={mostrar_modal_editar} onOpenChange={set_mostrar_modal_editar}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Editar Observación</DialogTitle>
             </DialogHeader>
@@ -371,10 +366,17 @@ const ObservacionesAsesor = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-contenido">Contenido</Label>
+                <Label htmlFor="edit-contenido">Contenido de Observación</Label>
                 <EditorHtmlSimple
                   value={form_editar.contenido_html}
                   onChange={(v) => set_form_editar({ ...form_editar, contenido_html: v })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-comentarios">Comentarios Adicionales</Label>
+                <EditorHtmlSimple
+                  value={form_editar.comentarios_asesor_html}
+                  onChange={(v) => set_form_editar({ ...form_editar, comentarios_asesor_html: v })}
                 />
               </div>
             </div>

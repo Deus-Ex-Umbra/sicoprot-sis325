@@ -40,7 +40,7 @@ export class AdministracionService {
         if (usuario.rol === Rol.Estudiante) {
           const estudiante = await this.repositorio_estudiante.findOne({
             where: { usuario: { id: usuario.id } },
-            relations: ['grupos', 'grupos.periodo'],
+            relations: ['grupos', 'grupos.periodo', 'proyecto'],
           });
           if (estudiante) {
             const grupo_activo = estudiante.grupos?.find(g => g.periodo.activo);
@@ -49,6 +49,7 @@ export class AdministracionService {
               nombre: estudiante.nombre,
               apellido: estudiante.apellido,
               grupo: grupo_activo,
+              proyecto: estudiante.proyecto,
             };
           }
         } else if (usuario.rol === Rol.Asesor) {
@@ -78,7 +79,7 @@ export class AdministracionService {
 
   async obtenerEstudiantes() {
     return this.repositorio_estudiante.find({
-      relations: ['usuario', 'grupos', 'grupos.asesor', 'grupos.periodo'],
+      relations: ['usuario', 'grupos', 'grupos.asesor', 'grupos.periodo', 'proyecto'],
     });
   }
 
@@ -86,7 +87,7 @@ export class AdministracionService {
     const periodo_activo = await this.repositorio_periodo.findOne({ where: { activo: true } });
     
     if (!periodo_activo) {
-      return this.repositorio_estudiante.find({ relations: ['usuario'] });
+      return this.repositorio_estudiante.find({ relations: ['usuario', 'proyecto'] });
     }
 
     const estudiantes_con_grupo_activo = await this.repositorio_estudiante
@@ -98,14 +99,14 @@ export class AdministracionService {
     const ids_con_grupo = estudiantes_con_grupo_activo.map(e => e.id);
 
     if (ids_con_grupo.length === 0) {
-      return this.repositorio_estudiante.find({ relations: ['usuario'] });
+      return this.repositorio_estudiante.find({ relations: ['usuario', 'proyecto'] });
     }
 
     return this.repositorio_estudiante.find({
       where: {
         id: Not(In(ids_con_grupo))
       },
-      relations: ['usuario']
+      relations: ['usuario', 'proyecto']
     });
   }
 

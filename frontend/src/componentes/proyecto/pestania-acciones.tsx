@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { type Proyecto, EtapaProyecto } from '../../tipos/usuario';
+import { type Proyecto, EtapaProyecto, TipoGrupo } from '../../tipos/usuario';
 import { Button } from '../ui/button';
 import { CheckCircle, ShieldCheck, Send, AlertTriangle, FileCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '../ui/dialog';
@@ -13,10 +13,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui
 interface PestanaAccionesProps {
   proyecto: Proyecto;
   observaciones_pendientes: number;
+  tipo_grupo_actual: typeof TipoGrupo[keyof typeof TipoGrupo] | null;
   onActualizarProyecto: () => void;
 }
 
-export const PestanaAcciones = ({ proyecto, observaciones_pendientes, onActualizarProyecto }: PestanaAccionesProps) => {
+export const PestanaAcciones = ({ proyecto, observaciones_pendientes, tipo_grupo_actual, onActualizarProyecto }: PestanaAccionesProps) => {
   const [mostrar_modal, set_mostrar_modal] = useState(false);
   const [etapa_a_aprobar, set_etapa_a_aprobar] = useState<EtapaProyecto | null>(null);
   const [comentarios, set_comentarios] = useState('');
@@ -64,12 +65,12 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, onActualiz
     }
   };
 
-  const puede_aprobar_propuesta = proyecto.etapa_actual === EtapaProyecto.PROPUESTA;
-  const puede_aprobar_perfil = proyecto.etapa_actual === EtapaProyecto.PERFIL && observaciones_pendientes === 0;
-  const puede_aprobar_proyecto = proyecto.etapa_actual === EtapaProyecto.PROYECTO && observaciones_pendientes === 0;
+  const es_taller_i = tipo_grupo_actual === TipoGrupo.TALLER_GRADO_I;
+  const es_taller_ii = tipo_grupo_actual === TipoGrupo.TALLER_GRADO_II;
 
-  const es_taller_i = proyecto.etapa_actual === EtapaProyecto.PROPUESTA || proyecto.etapa_actual === EtapaProyecto.PERFIL;
-  const es_taller_ii = proyecto.etapa_actual === EtapaProyecto.PROYECTO;
+  const puede_aprobar_propuesta = es_taller_i && proyecto.etapa_actual === EtapaProyecto.PROPUESTA;
+  const puede_aprobar_perfil = es_taller_i && proyecto.etapa_actual === EtapaProyecto.PERFIL && observaciones_pendientes === 0;
+  const puede_aprobar_proyecto = es_taller_ii && proyecto.etapa_actual === EtapaProyecto.PROYECTO && observaciones_pendientes === 0;
 
   return (
     <Card>

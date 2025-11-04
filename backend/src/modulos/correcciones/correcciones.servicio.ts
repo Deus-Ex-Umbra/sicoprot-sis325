@@ -17,6 +17,7 @@ import { MarcarCorregidoDto } from './dto/marcar-correccion.dto';
 import { VerificarCorreccionDto } from './dto/verificar-correccion.dto';
 import { EstadoObservacion } from '../observaciones/enums/estado-observacion.enum';
 import { EstadoCorreccion } from './enums/estado-correccion.enum';
+import { EtapaProyecto } from '../proyectos/enums/etapa-proyecto.enum';
 
 @Injectable()
 export class CorreccionesService {
@@ -67,6 +68,8 @@ export class CorreccionesService {
         'documento',
         'documento.proyecto',
         'documento.proyecto.estudiantes',
+        'proyecto',
+        'proyecto.estudiantes'
       ],
     });
 
@@ -76,9 +79,12 @@ export class CorreccionesService {
       );
     }
     
-    if (!observacion.documento || !observacion.documento.proyecto) {
-      throw new BadRequestException(
-        'Esta observación no está asociada a un documento válido (Taller I).',
+    const esTaller1 = observacion.documento && observacion.documento.proyecto;
+    const esTaller2 = !observacion.documento && observacion.proyecto;
+
+    if (!esTaller1 && !esTaller2) {
+       throw new BadRequestException(
+        'Esta observación no está asociada a un proyecto o documento válido.',
       );
     }
 
@@ -101,27 +107,38 @@ export class CorreccionesService {
       );
     }
 
-    const esEstudiante = observacion.documento.proyecto.estudiantes?.some(
-      (est) => est.id === estudiante.id,
-    );
+    let esEstudiante = false;
+    let documento_correccion: Documento | undefined = undefined;
+
+    if (esTaller1) {
+        esEstudiante = observacion.documento.proyecto.estudiantes?.some(
+          (est) => est.id === estudiante.id,
+        );
+        
+        documento_correccion = await this.repositorio_documento.findOneBy({
+            proyecto: { id: observacion.documento.proyecto.id },
+            version: crear_correccion_dto.version_corregida,
+        });
+
+        if (!documento_correccion) {
+            throw new NotFoundException(`No se encontró el documento versión ${crear_correccion_dto.version_corregida} en el proyecto.`);
+        }
+
+        if (documento_correccion.version <= (observacion.version_observada || 0)) {
+            throw new BadRequestException(`La corrección debe estar en una versión posterior (v${documento_correccion.version}) a la observación (v${observacion.version_observada}).`);
+        }
+
+    } else if (esTaller2) {
+        esEstudiante = observacion.proyecto.estudiantes?.some(
+          (est) => est.id === estudiante.id,
+        );
+    }
+
 
     if (!esEstudiante) {
       throw new ForbiddenException(
         'Solo los estudiantes del proyecto pueden crear correcciones para esta observación',
       );
-    }
-
-    const documento_correccion = await this.repositorio_documento.findOneBy({
-        proyecto: { id: observacion.documento.proyecto.id },
-        version: crear_correccion_dto.version_corregida,
-    });
-
-    if (!documento_correccion) {
-        throw new NotFoundException(`No se encontró el documento versión ${crear_correccion_dto.version_corregida} en el proyecto.`);
-    }
-
-    if (documento_correccion.version <= (observacion.version_observada || 0)) {
-        throw new BadRequestException(`La corrección debe estar en una versión posterior (v${documento_correccion.version}) a la observación (v${observacion.version_observada}).`);
     }
 
     const nuevaCorreccion = this.repositorio_correccion.create({
