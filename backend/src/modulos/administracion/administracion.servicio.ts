@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, Not, In } from 'typeorm';
 import { Usuario } from '../usuarios/entidades/usuario.entidad';
 import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../asesores/entidades/asesor.entidad';
@@ -83,13 +83,30 @@ export class AdministracionService {
   }
 
   async obtenerEstudiantesSinGrupo() {
-    return this.repositorio_estudiante
+    const periodo_activo = await this.repositorio_periodo.findOne({ where: { activo: true } });
+    
+    if (!periodo_activo) {
+      return this.repositorio_estudiante.find({ relations: ['usuario'] });
+    }
+
+    const estudiantes_con_grupo_activo = await this.repositorio_estudiante
       .createQueryBuilder('estudiante')
-      .leftJoinAndSelect('estudiante.usuario', 'usuario')
-      .leftJoin('estudiante.grupos', 'grupo')
-      .leftJoin('grupo.periodo', 'periodo')
-      .where('periodo.activo IS NULL')
+      .innerJoin('estudiante.grupos', 'grupo')
+      .where('grupo.periodoId = :periodoId', { periodoId: periodo_activo.id })
       .getMany();
+    
+    const ids_con_grupo = estudiantes_con_grupo_activo.map(e => e.id);
+
+    if (ids_con_grupo.length === 0) {
+      return this.repositorio_estudiante.find({ relations: ['usuario'] });
+    }
+
+    return this.repositorio_estudiante.find({
+      where: {
+        id: Not(In(ids_con_grupo))
+      },
+      relations: ['usuario']
+    });
   }
 
   async cambiarEstadoUsuario(id_usuario: number, nuevo_estado: EstadoUsuario) {
@@ -112,9 +129,7 @@ export class AdministracionService {
     const usuarios_activos = await this.repositorio_usuario.count({
       where: { estado: EstadoUsuario.Activo },
     });
-    const usuarios_pendientes = await this.repositorio_usuario.count({
-      where: { estado: EstadoUsuario.Pendiente },
-    });
+    
     const total_estudiantes = await this.repositorio_estudiante.count();
     const total_asesores = await this.repositorio_asesor.count();
     const estudiantes_sin_grupo = await this.obtenerEstudiantesSinGrupo();
@@ -136,6 +151,10 @@ export class AdministracionService {
 
     const solicitudes_pendientes = await this.repositorio_solicitud.count({
       where: { estado: EstadoSolicitud.Pendiente },
+    });
+    
+    const usuarios_pendientes = await this.repositorio_usuario.count({
+      where: { estado: EstadoUsuario.Pendiente },
     });
 
     return {

@@ -25,29 +25,29 @@ export class AsesoresService {
       }
     }));
   }
-    /**
-   * Obtiene los estudiantes del grupo del asesor actual
-   */
+  
   async obtenerEstudiantesDeMiGrupo(id_usuario: number) {
-    // 1. Buscar al asesor por su usuario
     const asesor = await this.asesoresRepository.findOne({
       where: { usuario: { id: id_usuario } },
-      relations: ['grupos', 'grupos.estudiantes', 'grupos.estudiantes.usuario'],
+      relations: [
+        'grupos',
+        'grupos.periodo',
+        'grupos.estudiantes',
+        'grupos.estudiantes.usuario',
+        'grupos.estudiantes.proyecto',
+      ],
     });
 
     if (!asesor) {
       throw new ForbiddenException('Solo los asesores pueden acceder a esta información.');
     }
-
-    // 2. Si el asesor no tiene grupos, devolver lista vacía
     if (!asesor.grupos || asesor.grupos.length === 0) {
       return { grupos: [] };
     }
-
-    // 3. Formatear la respuesta
-    const gruposConEstudiantes = asesor.grupos.map(grupo => ({
+    const grupos_con_estudiantes = asesor.grupos.map(grupo => ({
       id: grupo.id,
       nombre: grupo.nombre,
+      tipo: grupo.tipo,
       descripcion: grupo.descripcion,
       activo: grupo.activo,
       periodo: grupo.periodo,
@@ -60,6 +60,6 @@ export class AsesoresService {
       })),
     }));
 
-    return { grupos: gruposConEstudiantes };
+    return { grupos: grupos_con_estudiantes };
   }
 }

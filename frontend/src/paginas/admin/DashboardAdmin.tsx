@@ -84,7 +84,7 @@ const DashboardAdmin = () => {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {estadisticas?.usuarios_pendientes || 0}
+              {estadisticas?.solicitudes_pendientes || 0}
             </p>
             <p className="text-muted-foreground text-sm">
               pendientes

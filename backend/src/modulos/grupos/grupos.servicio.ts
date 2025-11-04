@@ -54,7 +54,7 @@ export class GruposService {
     });
   }
 
-  async obtenerGruposDisponibles(tipo?: TipoGrupo) {
+  async obtenerGruposDisponibles(id_usuario: number) {
     const periodo_activo = await this.repositorio_periodo.findOne({
       where: { activo: true }
     });
@@ -63,14 +63,26 @@ export class GruposService {
       return [];
     }
     
+    const estudiante = await this.repositorio_estudiante.findOne({
+      where: { usuario: { id: id_usuario } },
+      relations: ['proyecto']
+    });
+
+    if (!estudiante) {
+      throw new ForbiddenException('Solo los estudiantes pueden ver grupos disponibles.');
+    }
+
+    const perfil_aprobado = estudiante.proyecto?.perfil_aprobado || false;
+    
+    const tipo_requerido = perfil_aprobado 
+      ? TipoGrupo.TALLER_GRADO_II 
+      : TipoGrupo.TALLER_GRADO_I;
+    
     const where_query: any = {
       periodo: { id: periodo_activo.id },
-      activo: true
+      activo: true,
+      tipo: tipo_requerido
     };
-    
-    if (tipo) {
-      where_query.tipo = tipo;
-    }
 
     const grupos = await this.repositorio_grupo.find({
       where: where_query,
@@ -97,7 +109,7 @@ export class GruposService {
       return null;
     }
 
-    const grupo_activo = estudiante.grupos.find(g => g.periodo.activo);
+    const grupo_activo = estudiante.grupos.find(g => g.periodo && g.periodo.activo);
     return grupo_activo || null;
   }
 
@@ -176,7 +188,7 @@ export class GruposService {
       throw new NotFoundException(`Estudiante con ID '${id_estudiante}' no encontrado.`);
     }
 
-    const grupo_activo_existente = estudiante.grupos.find(g => g.periodo.activo);
+    const grupo_activo_existente = estudiante.grupos.find(g => g.periodo && g.periodo.activo);
     if (grupo_activo_existente && grupo_activo_existente.id !== id_grupo) {
       throw new BadRequestException('El estudiante ya pertenece a otro grupo activo. Debes removerlo primero.');
     }
@@ -247,7 +259,7 @@ export class GruposService {
       throw new NotFoundException('Estudiante no encontrado.');
     }
 
-    const grupo_activo_existente = estudiante.grupos.find(g => g.periodo.activo);
+    const grupo_activo_existente = estudiante.grupos.find(g => g.periodo && g.periodo.activo);
     if (grupo_activo_existente) {
       throw new BadRequestException('Ya estás inscrito en un grupo activo. Debes desinscribirte primero.');
     }
@@ -289,6 +301,10 @@ export class GruposService {
 
     if (!grupo_a_eliminar) {
       throw new BadRequestException('No estás inscrito en este grupo.');
+    }
+    
+    if (!grupo_a_eliminar.periodo) {
+      throw new BadRequestException('El grupo no tiene un período asociado.');
     }
 
     const ahora = new Date();
