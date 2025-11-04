@@ -424,25 +424,6 @@ export const correccionesApi = {
   },
 };
 
-export const propuestasTemaApi = {
-  crear: async (datos: any) => {
-    const respuesta = await api.post('/propuestas-tema', datos);
-    return respuesta.data;
-  },
-  obtenerPorProyecto: async (id_proyecto: number) => {
-    const respuesta = await api.get(`/propuestas-tema/proyecto/${id_proyecto}`);
-    return respuesta.data;
-  },
-  responder: async (id_propuesta: number, datos: any) => {
-    const respuesta = await api.patch(`/propuestas-tema/${id_propuesta}/responder`, datos);
-    return respuesta.data;
-  },
-  eliminar: async (id_propuesta: number) => {
-    const respuesta = await api.delete(`/propuestas-tema/${id_propuesta}`);
-    return respuesta.data;
-  },
-};
-
 export const reunionesApi = {
   crear: async (datos: any) => {
     const respuesta = await api.post('/reuniones', datos);

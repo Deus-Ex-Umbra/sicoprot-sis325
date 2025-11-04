@@ -15,7 +15,6 @@ import { Input } from '../componentes/ui/input';
 import { Label } from '../componentes/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../componentes/ui/tabs';
 import { Badge } from '../componentes/ui/badge';
-import { PestanaPropuestas } from '../componentes/proyecto/pestania-propuesta';
 import { PestanaReuniones } from '../componentes/proyecto/pestania-reuniones';
 import { PestanaDefensa } from '../componentes/proyecto/pestania-defensa';
 import { PestanaAcciones } from '../componentes/proyecto/pestania-acciones';
@@ -108,11 +107,11 @@ const DetalleProyecto = () => {
   };
 
   const getPestanaPorDefecto = () => {
-    if (!proyecto) return 'propuestas';
+    if (!proyecto) return 'propuesta-info';
 
     switch (proyecto.etapa_actual) {
       case EtapaProyecto.PROPUESTA:
-        return 'propuestas';
+        return 'propuesta-info';
       case EtapaProyecto.PERFIL:
         return 'visor';
       case EtapaProyecto.PROYECTO:
@@ -122,7 +121,7 @@ const DetalleProyecto = () => {
       case EtapaProyecto.TERMINADO:
         return 'defensa';
       default:
-        return 'propuestas';
+        return 'propuesta-info';
     }
   };
 
@@ -156,7 +155,6 @@ const DetalleProyecto = () => {
                                      etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA || 
                                      etapa_actual === EtapaProyecto.TERMINADO;
 
-    const mostrar_pestana_propuestas = es_taller_1;
     const mostrar_pestana_visor = etapa_actual !== EtapaProyecto.PROPUESTA;
     const mostrar_pestana_reuniones = es_taller_2_o_superior;
     const mostrar_pestana_defensa = es_taller_2_o_superior;
@@ -199,7 +197,7 @@ const DetalleProyecto = () => {
             </div>
           </div>
           <TabsList>
-            {mostrar_pestana_propuestas && <TabsTrigger value="propuestas"><Info className="h-4 w-4 mr-2" />Propuestas</TabsTrigger>}
+            <TabsTrigger value="propuesta-info"><Info className="h-4 w-4 mr-2" />Propuesta</TabsTrigger>
             {mostrar_pestana_visor && <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Visor (Perfil)</TabsTrigger>}
             {mostrar_pestana_reuniones && <TabsTrigger value="reuniones"><Users className="h-4 w-4 mr-2" />Reuniones y Obs. (Taller II)</TabsTrigger>}
             {mostrar_pestana_defensa && <TabsTrigger value="defensa"><Shield className="h-4 w-4 mr-2" />Defensa</TabsTrigger>}
@@ -208,6 +206,27 @@ const DetalleProyecto = () => {
 
         {error && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
         
+        <TabsContent value="propuesta-info">
+          <Card>
+            <CardHeader>
+              <CardTitle>Descripción de la Propuesta</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div 
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: proyecto.cuerpo_html || '<p><em>No se proporcionó descripción.</em></p>' }} 
+              />
+              {es_asesor && (
+                <PestanaAcciones
+                  proyecto={proyecto}
+                  observaciones_pendientes={observaciones_pendientes_etapa_actual}
+                  onActualizarProyecto={cargarDatos}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="visor">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1">
@@ -322,10 +341,6 @@ const DetalleProyecto = () => {
           </div>
         </TabsContent>
         
-        <TabsContent value="propuestas">
-          <PestanaPropuestas proyecto={proyecto} onActualizarProyecto={cargarDatos} />
-        </TabsContent>
-
         <TabsContent value="reuniones">
           <PestanaReuniones 
             proyecto={proyecto} 

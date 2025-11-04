@@ -1,15 +1,5 @@
 import { EtapaProyecto } from '../enums/etapa-proyecto.enum';
 
-export interface PropuestaTimeline {
-  id: number;
-  numero_propuesta: number;
-  titulo: string;
-  estado: string;
-  fecha_creacion: Date;
-  fecha_revision?: Date;
-  comentario_asesor?: string | null;
-}
-
 export interface ReunionTimeline {
   id: number;
   titulo: string;
@@ -65,8 +55,6 @@ export class TimelineCompletoDto {
     fecha_creacion: Date;
   };
 
-  propuestas: PropuestaTimeline[];
-
   perfil: {
     aprobado: boolean;
     fecha_aprobacion?: Date;
@@ -87,7 +75,7 @@ export class TimelineCompletoDto {
   defensa: DefensaTimeline;
 
   linea_tiempo: Array<{
-    tipo: 'propuesta' | 'perfil_inicio' | 'observacion' | 'correccion' | 'version_documento' | 'perfil_aprobado' | 'proyecto_inicio' | 'reunion' | 'proyecto_listo' | 'defensa_solicitada' | 'defensa_aprobada' | 'proyecto_terminado';
+    tipo: 'perfil_inicio' | 'observacion' | 'correccion' | 'version_documento' | 'perfil_aprobado' | 'proyecto_inicio' | 'reunion' | 'proyecto_listo' | 'defensa_solicitada' | 'defensa_aprobada' | 'proyecto_terminado' | 'propuesta';
     fecha: Date;
     titulo: string;
     descripcion?: string;

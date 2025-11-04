@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { type Proyecto, EtapaProyecto } from '../../tipos/usuario';
 import { Button } from '../ui/button';
-import { CheckCircle, ShieldCheck, Send, AlertTriangle } from 'lucide-react';
+import { CheckCircle, ShieldCheck, Send, AlertTriangle, FileCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '../ui/dialog';
 import { proyectosApi } from '../../servicios/api';
 import { toast } from 'sonner';
@@ -44,14 +44,17 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, onActualiz
 
   const getTituloModal = () => {
     switch (etapa_a_aprobar) {
-      case EtapaProyecto.PERFIL: return 'Aprobar Perfil';
-      case EtapaProyecto.PROYECTO: return 'Marcar como Listo para Defensa';
+      case EtapaProyecto.PROPUESTA: return 'Aprobar Propuesta (Taller I)';
+      case EtapaProyecto.PERFIL: return 'Aprobar Perfil (Taller I)';
+      case EtapaProyecto.PROYECTO: return 'Marcar como Listo para Defensa (Taller II)';
       default: return 'Confirmar Acción';
     }
   };
 
   const getDescripcionModal = () => {
     switch (etapa_a_aprobar) {
+      case EtapaProyecto.PROPUESTA:
+        return 'Está a punto de aprobar la Propuesta de Tema. El proyecto pasará a la etapa de "Perfil". Esta acción no se puede deshacer.';
       case EtapaProyecto.PERFIL:
         return 'Está a punto de aprobar el Perfil. El proyecto pasará a la etapa de "Proyecto" (Taller II). Esta acción no se puede deshacer.';
       case EtapaProyecto.PROYECTO:
@@ -61,6 +64,7 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, onActualiz
     }
   };
 
+  const puede_aprobar_propuesta = proyecto.etapa_actual === EtapaProyecto.PROPUESTA;
   const puede_aprobar_perfil = proyecto.etapa_actual === EtapaProyecto.PERFIL && observaciones_pendientes === 0;
   const puede_aprobar_proyecto = proyecto.etapa_actual === EtapaProyecto.PROYECTO && observaciones_pendientes === 0;
 
@@ -72,7 +76,8 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, onActualiz
       </CardHeader>
       <CardContent className="space-y-4">
         
-        {observaciones_pendientes > 0 && (
+        {observaciones_pendientes > 0 && 
+         (proyecto.etapa_actual === EtapaProyecto.PERFIL || proyecto.etapa_actual === EtapaProyecto.PROYECTO) && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
@@ -83,10 +88,18 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, onActualiz
 
         <Button
           className="w-full"
+          disabled={!puede_aprobar_propuesta}
+          onClick={() => abrirModal(EtapaProyecto.PROPUESTA)}
+        >
+          <FileCheck className="mr-2 h-4 w-4" /> Aprobar Propuesta (Taller I)
+        </Button>
+
+        <Button
+          className="w-full"
           disabled={!puede_aprobar_perfil}
           onClick={() => abrirModal(EtapaProyecto.PERFIL)}
         >
-          <CheckCircle className="mr-2 h-4 w-4" /> Aprobar Etapa de Perfil
+          <CheckCircle className="mr-2 h-4 w-4" /> Aprobar Etapa de Perfil (Taller I)
         </Button>
         
         <Button
@@ -94,7 +107,7 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, onActualiz
           disabled={!puede_aprobar_proyecto}
           onClick={() => abrirModal(EtapaProyecto.PROYECTO)}
         >
-          <ShieldCheck className="mr-2 h-4 w-4" /> Marcar como Listo para Defensa
+          <ShieldCheck className="mr-2 h-4 w-4" /> Marcar como Listo para Defensa (Taller II)
         </Button>
 
       </CardContent>

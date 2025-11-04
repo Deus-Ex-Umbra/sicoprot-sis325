@@ -3,7 +3,6 @@ import { Documento } from '../../documentos/entidades/documento.entidad';
 import { Estudiante } from '../../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../../asesores/entidades/asesor.entidad';
 import { EtapaProyecto } from '../enums/etapa-proyecto.enum';
-import { PropuestaTema } from '../../propuestas-tema/entidades/propuesta-tema.entidad';
 import { Reunion } from '../../reuniones/entidades/reunion.entidad';
 import { Observacion } from '../../observaciones/entidades/observacion.entidad';
 
@@ -14,6 +13,9 @@ export class Proyecto {
 
   @Column({ type: 'varchar', length: 300 })
   titulo: string;
+
+  @Column({ type: 'text' })
+  cuerpo_html: string;
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fecha_creacion: Date;
@@ -26,9 +28,6 @@ export class Proyecto {
   
   @OneToMany(() => Documento, (documento) => documento.proyecto)
   documentos: Documento[];
-
-  @OneToMany(() => PropuestaTema, (propuesta) => propuesta.proyecto)
-  propuestas_tema: PropuestaTema[];
 
   @OneToMany(() => Reunion, (reunion) => reunion.proyecto)
   reuniones: Reunion[];

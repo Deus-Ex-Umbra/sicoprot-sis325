@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogDescription,
 } from '../componentes/ui/dialog';
 import { Input } from '../componentes/ui/input';
 import { Label } from '../componentes/ui/label';
@@ -36,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '../componentes/ui/select';
+import { EditorHtmlSimple } from '../componentes/ui/editor-html-simple';
 
 const Proyectos = () => {
   const [proyectos, set_proyectos] = useState<Proyecto[]>([]);
@@ -45,6 +47,7 @@ const Proyectos = () => {
   const [mostrar_modal, set_mostrar_modal] = useState(false);
   const [nuevo_proyecto, set_nuevo_proyecto] = useState({
     titulo: '',
+    cuerpo_html: '',
   });
 
   const [filtros, set_filtros] = useState({
@@ -117,8 +120,8 @@ const Proyectos = () => {
   };
 
   const manejarCrearProyecto = async () => {
-    if (!nuevo_proyecto.titulo) {
-      set_error('El título del proyecto es obligatorio');
+    if (!nuevo_proyecto.titulo || !nuevo_proyecto.cuerpo_html) {
+      set_error('El título y la descripción (propuesta) son obligatorios');
       return;
     }
 
@@ -131,7 +134,7 @@ const Proyectos = () => {
       await proyectosApi.crear(nuevo_proyecto);
       set_mostrar_modal(false);
       await cargarProyectos();
-      set_nuevo_proyecto({ titulo: '' });
+      set_nuevo_proyecto({ titulo: '', cuerpo_html: '' });
     } catch (err: any) {
       set_error(err.response?.data?.message || 'Error al crear el proyecto');
     }
@@ -143,7 +146,7 @@ const Proyectos = () => {
       return;
     }
     set_error('');
-    set_nuevo_proyecto({ titulo: '' });
+    set_nuevo_proyecto({ titulo: '', cuerpo_html: '' });
     set_mostrar_modal(true);
   };
 
@@ -327,9 +330,12 @@ const Proyectos = () => {
         )}
 
         <Dialog open={mostrar_modal} onOpenChange={set_mostrar_modal}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Crear Nuevo Proyecto</DialogTitle>
+              <DialogTitle>Crear Nuevo Proyecto (Propuesta)</DialogTitle>
+              <DialogDescription>
+                Ingresa el título y la descripción detallada de tu propuesta.
+              </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
               {tiene_grupo && grupo && grupo.asesor && (
@@ -347,9 +353,17 @@ const Proyectos = () => {
                 <Input
                   id="titulo"
                   value={nuevo_proyecto.titulo}
-                  onChange={(e) => set_nuevo_proyecto({ titulo: e.target.value })}
+                  onChange={(e) => set_nuevo_proyecto({ ...nuevo_proyecto, titulo: e.target.value })}
                   placeholder="Ingrese el título del proyecto"
                   autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cuerpo_html">Descripción / Propuesta (HTML)</Label>
+                <EditorHtmlSimple
+                  value={nuevo_proyecto.cuerpo_html}
+                  onChange={(v) => set_nuevo_proyecto({ ...nuevo_proyecto, cuerpo_html: v })}
+                  placeholder="Describa su propuesta de tema, justificación, objetivos..."
                 />
               </div>
             </div>

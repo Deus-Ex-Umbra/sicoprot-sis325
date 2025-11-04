@@ -14,7 +14,6 @@ import { AccionTema, AccionTemaDto } from './dto/accion-tema.dto';
 import { AvanceHistorial, HistorialProgresoDto, RevisionHistorial } from './dto/historial-progreso.dto';
 import { CronogramaProyectoDto, EtapaCronograma } from './dto/cronograma-proyecto.dto';
 import { BuscarProyectosDto, ResultadoBusqueda } from './dto/buscar-proyectos.dto';
-import { PropuestaTema } from '../propuestas-tema/entidades/propuesta-tema.entidad';
 import { Reunion } from '../reuniones/entidades/reunion.entidad';
 import { Documento } from '../documentos/entidades/documento.entidad';
 import { Observacion } from '../observaciones/entidades/observacion.entidad';
@@ -35,8 +34,6 @@ export class ProyectosService {
     private readonly repositorio_asesor: Repository<Asesor>,
     @InjectRepository(Periodo)
     private readonly repositorio_periodo: Repository<Periodo>,
-    @InjectRepository(PropuestaTema)
-    private readonly repositorio_propuesta: Repository<PropuestaTema>,
     @InjectRepository(Reunion)
     private readonly repositorio_reunion: Repository<Reunion>,
     @InjectRepository(Documento)
@@ -48,7 +45,7 @@ export class ProyectosService {
   ) {}
 
   async crear(crear_proyecto_dto: CrearProyectoDto, id_usuario_estudiante: number) {
-    const { id_asesor, titulo } = crear_proyecto_dto;
+    const { id_asesor, titulo, cuerpo_html } = crear_proyecto_dto;
 
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario_estudiante } },
@@ -79,6 +76,7 @@ export class ProyectosService {
 
     const nuevo_proyecto = this.repositorio_proyecto.create({
       titulo,
+      cuerpo_html,
       asesor,
     });
 
@@ -126,7 +124,7 @@ export class ProyectosService {
   async obtenerUno(id: number, id_usuario: number, rol: string) {
     const proyecto = await this.repositorio_proyecto.findOne({
       where: { id },
-      relations: ['estudiantes', 'estudiantes.usuario', 'asesor', 'asesor.usuario', 'documentos'],
+      relations: ['estudiantes', 'estudiantes.usuario', 'asesor', 'asesor.usuario', 'documentos', 'reuniones', 'observaciones'],
     });
 
     if (!proyecto) {
@@ -571,9 +569,8 @@ export class ProyectosService {
 
     const id_proyecto = estudiante.proyecto.id;
 
-    const [proyecto, propuestas, reuniones, documentos, observaciones] = await Promise.all([
+    const [proyecto, reuniones, documentos, observaciones] = await Promise.all([
       this.repositorio_proyecto.findOneBy({ id: id_proyecto }),
-      this.repositorio_propuesta.find({ where: { proyecto: { id: id_proyecto } }, order: { fecha_creacion: 'ASC' } }),
       this.repositorio_reunion.find({ where: { proyecto: { id: id_proyecto } }, order: { fecha_programada: 'ASC' } }),
       this.repositorio_documento.find({ where: { proyecto: { id: id_proyecto } }, order: { version: 'ASC' } }),
       this.repositorio_observacion.find({ 
@@ -592,25 +589,12 @@ export class ProyectosService {
 
     const linea_tiempo: any[] = [];
 
-    const propuestas_timeline = propuestas.map((p, i) => {
-      const item = {
-        id: p.id,
-        numero_propuesta: i + 1,
-        titulo: p.titulo,
-        estado: p.estado,
-        fecha_creacion: p.fecha_creacion,
-        fecha_revision: p.estado !== 'pendiente' ? p.fecha_actualizacion : undefined,
-        comentario_asesor: p.comentarios_asesor_html,
-      };
-      
-      linea_tiempo.push({
-        tipo: 'propuesta',
-        fecha: p.fecha_creacion,
-        titulo: `Propuesta de Tema #${i + 1}: ${p.titulo}`,
-        descripcion: `Estado: ${p.estado}. ${p.comentarios_asesor_html || ''}`,
-        icono: 'file-text'
-      });
-      return item;
+    linea_tiempo.push({
+      tipo: 'propuesta',
+      fecha: proyecto.fecha_creacion,
+      titulo: `Propuesta de Tema: ${proyecto.titulo}`,
+      descripcion: `Estado: ${proyecto.propuesta_aprobada ? 'Aprobada' : 'Pendiente'}. ${proyecto.comentario_aprobacion_propuesta || ''}`,
+      icono: 'file-text'
     });
 
     const versiones_perfil: any[] = [];
@@ -753,7 +737,6 @@ export class ProyectosService {
         etapa_actual: proyecto.etapa_actual,
         fecha_creacion: proyecto.fecha_creacion,
       },
-      propuestas: propuestas_timeline,
       perfil: {
         aprobado: proyecto.perfil_aprobado,
         fecha_aprobacion: proyecto.fecha_aprobacion_perfil,

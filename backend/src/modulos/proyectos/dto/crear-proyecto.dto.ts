@@ -7,6 +7,14 @@ export class CrearProyectoDto {
   @IsNotEmpty()
   titulo: string;
 
+  @ApiProperty({
+    description: 'Descripción detallada de la propuesta en formato HTML',
+    example: '<p>Este proyecto busca...</p>',
+  })
+  @IsString()
+  @IsNotEmpty()
+  cuerpo_html: string;
+
   @ApiProperty({ description: 'ID del asesor asignado al proyecto (opcional si el estudiante tiene grupo)', example: 2, required: false })
   @IsNumber()
   @IsOptional()
