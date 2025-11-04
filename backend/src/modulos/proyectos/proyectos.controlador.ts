@@ -51,10 +51,10 @@ export class ProyectosController {
   @ApiQuery({ name: 'asesorId', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Resultados de la búsqueda' })
   async buscarProyectos(
-    @Query() buscarDto: BuscarProyectosDto,
+    @Query() buscar_dto: BuscarProyectosDto,
     @Request() req
   ) {
-    return this.servicio_proyectos.buscarProyectos(buscarDto, req.user.id_usuario, req.user.rol);
+    return this.servicio_proyectos.buscarProyectos(buscar_dto, req.user.id_usuario, req.user.rol);
   }
 
   @Get('solicitudes/defensa')
@@ -116,10 +116,10 @@ export class ProyectosController {
   @ApiResponse({ status: 400, description: 'Transición de etapa inválida' })
   async aprobarEtapa(
     @Param('id', ParseIntPipe) id: number,
-    @Body() aprobarEtapaDto: AprobarEtapaDto,
+    @Body() aprobar_etapa_dto: AprobarEtapaDto,
     @Request() req
   ) {
-    return this.servicio_proyectos.aprobarEtapa(id, aprobarEtapaDto, req.user.id_usuario);
+    return this.servicio_proyectos.aprobarEtapa(id, aprobar_etapa_dto, req.user.id_usuario);
   }
 
   @Patch(':id/tema')
@@ -132,10 +132,10 @@ export class ProyectosController {
   @ApiResponse({ status: 400, description: 'El tema ya fue aprobado' })
   async gestionarTemaPropuesto(
     @Param('id', ParseIntPipe) id: number,
-    @Body() accionTemaDto: AccionTemaDto,
+    @Body() accion_tema_dto: AccionTemaDto,
     @Request() req
   ) {
-    return this.servicio_proyectos.gestionarTemaPropuesto(id, accionTemaDto, req.user.id_usuario);
+    return this.servicio_proyectos.gestionarTemaPropuesto(id, accion_tema_dto, req.user.id_usuario);
   }
 
   @Patch(':id/propuesta')
@@ -214,9 +214,9 @@ export class ProyectosController {
   @ApiResponse({ status: 200, description: 'Respuesta a solicitud registrada.' })
   async responderSolicitudDefensa(
     @Param('id', ParseIntPipe) id: number,
-    @Body() responderDto: ResponderSolicitudDefensaDto,
+    @Body() responder_dto: ResponderSolicitudDefensaDto,
     @Request() req,
   ) {
-    return this.servicio_proyectos.responderSolicitudDefensa(id, responderDto, req.user.id_usuario);
+    return this.servicio_proyectos.responderSolicitudDefensa(id, responder_dto, req.user.id_usuario);
   }
 }

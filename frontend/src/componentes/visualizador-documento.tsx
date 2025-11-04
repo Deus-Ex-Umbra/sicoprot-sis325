@@ -143,15 +143,16 @@ const VisualizadorDocumento = ({
                 <div
                   key={index}
                   className={cn(
-                    'absolute w-2 h-2 transition-all opacity-80',
+                    'absolute w-2 h-2 transition-all',
                     esta_seleccionada && 'ring-2 ring-offset-1 ring-primary',
-                    es_hover && 'scale-110 opacity-100'
+                    es_hover && 'scale-110'
                   )}
                   style={{
                     ...style,
                     width: `${cornerSize}px`,
                     height: `${cornerSize}px`,
-                    backgroundColor: (es_hover || esta_seleccionada) ? color : `${color}30`,
+                    backgroundColor: color,
+                    opacity: (es_hover || esta_seleccionada) ? 1 : 0.3,
                   }}
                 />
               ))}
