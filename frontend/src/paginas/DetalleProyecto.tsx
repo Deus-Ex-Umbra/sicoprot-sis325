@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileUp, Plus, Loader2, Info, FileText, Users, Shield } from 'lucide-react';
+import { ArrowLeft, FileUp, Plus, Loader2, Info, FileText, Users, Shield, MessageSquare, CheckCircle } from 'lucide-react';
 import VisualizadorDocumento from '../componentes/visualizador-documento';
 import { proyectosApi, documentosApi, observacionesApi, correccionesApi, asesoresApi, api } from '../servicios/api';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
-import { type Proyecto, type Documento, type Observacion, type Correccion, Rol, EtapaProyecto, type Asesor } from '../tipos/usuario';
+import { type Proyecto, type Documento, type Observacion, type Correccion, Rol, EtapaProyecto, type Usuario } from '../tipos/usuario';
 import BarraLateral from '../componentes/barra-lateral';
 import BarraLateralAdmin from '../componentes/barra-lateral-admin';
 import { cn } from '../lib/utilidades';
@@ -30,7 +30,7 @@ const DetalleProyecto = () => {
   const [documento_seleccionado, set_documento_seleccionado] = useState<Documento | null>(null);
   const [observaciones, set_observaciones] = useState<Observacion[]>([]);
   const [correcciones, set_correcciones] = useState<Correccion[]>([]);
-  const [asesores, set_asesores] = useState<Asesor[]>([]);
+  const [asesores, set_asesores] = useState<Usuario[]>([]);
   
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
@@ -75,7 +75,7 @@ const DetalleProyecto = () => {
       ]);
       set_observaciones(obs_data);
       set_correcciones(corr_data);
-      set_asesores(asesores_data as Asesor[]);
+      set_asesores(asesores_data as Usuario[]);
       
     } catch (err: any) {
       console.error('Error al cargar datos:', err);
@@ -180,6 +180,9 @@ const DetalleProyecto = () => {
       (obs.estado === 'pendiente' || obs.estado === 'en_revision' || obs.estado === 'rechazado')
     ).length;
 
+    const comentario_propuesta = (proyecto as any).comentario_aprobacion_propuesta;
+    const comentario_perfil = (proyecto as any).comentario_aprobacion_perfil;
+
     contenido_pagina = (
       <Tabs defaultValue={getPestanaPorDefecto()} className="w-full">
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
@@ -211,7 +214,17 @@ const DetalleProyecto = () => {
             <CardHeader>
               <CardTitle>Descripción de la Propuesta</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {comentario_propuesta && (
+                <Alert variant={proyecto.propuesta_aprobada ? 'default' : 'destructive'}>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertTitle>Comentarios del Asesor sobre la Propuesta</AlertTitle>
+                  <AlertDescription
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: comentario_propuesta }}
+                  />
+                </Alert>
+              )}
               <div 
                 className="prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: proyecto.cuerpo_html || '<p><em>No se proporcionó descripción.</em></p>' }} 
@@ -229,7 +242,7 @@ const DetalleProyecto = () => {
 
         <TabsContent value="visor">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Documentos (Perfil)</CardTitle>
@@ -306,6 +319,28 @@ const DetalleProyecto = () => {
                   )}
                 </CardContent>
               </Card>
+
+              {comentario_perfil && (
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertTitle>Comentarios del Asesor sobre el Perfil</AlertTitle>
+                  <AlertDescription
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: comentario_perfil }}
+                  />
+                </Alert>
+              )}
+
+              {es_asesor && documento_seleccionado && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate(`/panel/proyecto/${proyecto.id}/crear-observacion`)}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Crear Observación
+                </Button>
+              )}
 
               {es_asesor && (
                 <PestanaAcciones

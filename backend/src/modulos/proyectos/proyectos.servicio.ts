@@ -255,7 +255,7 @@ export class ProyectosService {
       proyecto.etapa_actual = EtapaProyecto.PERFIL;
     } else if (accion === AccionTema.RECHAZAR) {
       proyecto.propuesta_aprobada = false;
-      proyecto.fecha_aprobacion_propuesta = null;
+      proyecto.fecha_aprobacion_propuesta = undefined;
       proyecto.comentario_aprobacion_propuesta = comentarios;
       proyecto.etapa_actual = EtapaProyecto.PROPUESTA;
     }
@@ -473,7 +473,7 @@ export class ProyectosService {
       .leftJoin('estudiante.grupos', 'grupo')
       .leftJoin('grupo.periodo', 'periodo');
 
-    if (buscarDto.soloAprobados === true || buscarDto.soloAprobados === 'true') {
+    if (buscarDto.soloAprobados === true) {
       query.andWhere('proyecto.etapa_actual = :etapaTerminado', { 
         etapaTerminado: EtapaProyecto.TERMINADO
       });

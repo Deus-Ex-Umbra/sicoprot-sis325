@@ -123,26 +123,34 @@ const SolicitudesDefensa = () => {
   }
   
   return (
-    <div className="min-h-screen bg-background">
-      {es_admin ? (
-        <BarraLateralAdmin isOpen={sidebar_open} />
-      ) : (
-        <BarraLateral isOpen={sidebar_open} />
-      )}
+  <div
+    className="min-h-screen"
+    style={{
+      backgroundColor: 'hsl(var(--background) / 1)',
+    }}
+  >
+    {es_admin ? (
+      <BarraLateralAdmin isOpen={sidebar_open} />
+    ) : (
+      <BarraLateral isOpen={sidebar_open} />
+    )}
 
-      <main
-        className={cn(
-          'transition-all duration-300 ',
-          sidebar_open ? 'ml-64' : 'ml-0'
-        )}
-      >
-        <div className="container mx-auto p-6 max-w-7xl">
-          <h1 className="text-3xl font-bold tracking-tight mb-6">Solicitudes de Defensa</h1>
-          {contenido_pagina}
-        </div>
-      </main>
-    </div>
-  );
+    <main
+      className={cn(
+        'transition-all duration-300 ',
+        sidebar_open ? 'ml-64' : 'ml-0'
+      )}
+    >
+      <div className="container mx-auto p-6 max-w-7xl">
+        <h1 className="text-3xl font-bold tracking-tight mb-6">
+          Solicitudes de Defensa
+        </h1>
+        {contenido_pagina}
+      </div>
+    </main>
+  </div>
+);
+
 };
 
 export default SolicitudesDefensa;

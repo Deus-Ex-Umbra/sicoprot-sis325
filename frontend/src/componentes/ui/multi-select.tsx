@@ -40,20 +40,24 @@ export function MultiSelect({
   className,
 }: MultiSelectProps) {
   const [abierto, setAbierto] = React.useState(false)
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
+  const [anchoTrigger, setAnchoTrigger] = React.useState<number>()
 
-  const opcionesSeleccionadas = opciones.filter((opcion) =>
-    seleccionados.includes(opcion.value)
+  React.useEffect(() => {
+    if (triggerRef.current) {
+      setAnchoTrigger(triggerRef.current.offsetWidth)
+    }
+  }, [abierto])
+
+  const opcionesSeleccionadas = opciones.filter((o) =>
+    seleccionados.includes(o.value)
   )
 
   const toggleOpcion = (valor: string) => {
     const yaSeleccionado = seleccionados.includes(valor)
-    
-    if (yaSeleccionado) {
-      onChange(seleccionados.filter((v) => v !== valor))
-    } else {
-      if (max_seleccion && seleccionados.length >= max_seleccion) {
-        return
-      }
+    if (yaSeleccionado) onChange(seleccionados.filter((v) => v !== valor))
+    else {
+      if (max_seleccion && seleccionados.length >= max_seleccion) return
       onChange([...seleccionados, valor])
     }
   }
@@ -70,10 +74,17 @@ export function MultiSelect({
     <Popover open={abierto} onOpenChange={setAbierto}>
       <PopoverTrigger asChild>
         <Button
+          ref={triggerRef}
           variant="outline"
           role="combobox"
           aria-expanded={abierto}
-          className={cn("w-full justify-between", className)}
+          className={cn(
+            "w-full justify-between rounded-md border border-border text-foreground shadow-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60",
+            className
+          )}
+          style={{
+            backgroundColor: "hsl(var(--background) / 1)",
+          }}
         >
           <div className="flex gap-1 flex-wrap">
             {opcionesSeleccionadas.length === 0 ? (
@@ -89,9 +100,7 @@ export function MultiSelect({
                   <button
                     className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        removerOpcion(opcion.value)
-                      }
+                      if (e.key === "Enter") removerOpcion(opcion.value)
                     }}
                     onMouseDown={(e) => {
                       e.preventDefault()
@@ -108,8 +117,20 @@ export function MultiSelect({
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
-        <Command>
+
+      <PopoverContent
+        align="start"
+        className="p-0 border border-border shadow-md rounded-md"
+        style={{
+          width: anchoTrigger ? `${anchoTrigger}px` : "auto",
+          backgroundColor: "hsl(var(--background) / 1)",
+        }}
+      >
+        <Command
+          style={{
+            backgroundColor: "hsl(var(--background) / 1)",
+          }}
+        >
           <CommandInput placeholder="Buscar..." />
           <CommandList>
             <CommandEmpty>No se encontraron opciones.</CommandEmpty>
@@ -125,16 +146,15 @@ export function MultiSelect({
                   <CommandItem
                     key={opcion.value}
                     value={opcion.value}
-                    onSelect={() => {
-                      if (puedeSeleccionar) {
-                        toggleOpcion(opcion.value)
-                      }
-                    }}
+                    onSelect={() => puedeSeleccionar && toggleOpcion(opcion.value)}
                     disabled={!puedeSeleccionar}
                     className={cn(
-                      "cursor-pointer",
+                      "cursor-pointer flex items-center rounded-sm py-1.5 text-sm outline-none hover:bg-muted focus:bg-muted",
                       !puedeSeleccionar && "opacity-50 cursor-not-allowed"
                     )}
+                    style={{
+                      backgroundColor: "hsl(var(--background) / 1)",
+                    }}
                   >
                     <Check
                       className={cn(
@@ -149,14 +169,15 @@ export function MultiSelect({
             </CommandGroup>
           </CommandList>
         </Command>
+
         {seleccionados.length > 0 && (
-          <div className="border-t p-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full"
-              onClick={limpiarTodo}
-            >
+          <div
+            className="border-t p-2"
+            style={{
+              backgroundColor: "hsl(var(--background) / 1)",
+            }}
+          >
+            <Button variant="ghost" size="sm" className="w-full" onClick={limpiarTodo}>
               Limpiar todo
             </Button>
           </div>

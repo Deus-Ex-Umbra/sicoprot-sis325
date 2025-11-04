@@ -9,6 +9,7 @@ import { Input } from '../../componentes/ui/input';
 import { Label } from '../../componentes/ui/label';
 import { Alert, AlertDescription } from '../../componentes/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../componentes/ui/select';
+import { toast } from 'sonner';
 
 const Registro = () => {
   const navigate = useNavigate();
@@ -19,26 +20,24 @@ const Registro = () => {
   const [rol, set_rol] = useState<Rol>(Rol.Estudiante);
   const [contrasena, set_contrasena] = useState('');
   const [confirmar_contrasena, set_confirmar_contrasena] = useState('');
-  const [error, set_error] = useState('');
   const [cargando, set_cargando] = useState(false);
   const [exito, set_exito] = useState(false);
 
   const manejarSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    set_error('');
 
     if (!nombre || !apellido || !correo || !contrasena || !confirmar_contrasena) {
-      set_error('Todos los campos son obligatorios.');
+      toast.error('Todos los campos son obligatorios.');
       return;
     }
 
     if (contrasena.length < 8) {
-      set_error('La contraseña debe tener al menos 8 caracteres.');
+      toast.error('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
 
     if (contrasena !== confirmar_contrasena) {
-      set_error('Las contraseñas no coinciden.');
+      toast.error('Las contraseñas no coinciden.');
       return;
     }
 
@@ -47,11 +46,15 @@ const Registro = () => {
     try {
       await solicitudesRegistroApi.crear({ nombre, apellido, correo, contrasena, rol });
       set_exito(true);
+      toast.success('¡Solicitud Enviada!', {
+        description: 'Un administrador revisará tu solicitud.',
+      });
       setTimeout(() => {
         navigate('/iniciar-sesion');
       }, 3000);
     } catch (err: any) {
-      set_error(err.response?.data?.message || 'Error al procesar la solicitud.');
+      const mensaje_error = err.response?.data?.message || 'Error al procesar la solicitud.';
+      toast.error(mensaje_error);
     } finally {
       set_cargando(false);
     }
@@ -93,12 +96,6 @@ const Registro = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
         <form onSubmit={manejarSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">

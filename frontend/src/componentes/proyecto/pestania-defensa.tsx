@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { type Proyecto, type Asesor, Rol } from '../../tipos/usuario';
+import { type Proyecto, type Usuario, Rol } from '../../tipos/usuario';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Button } from '../ui/button';
 import { Send, ShieldCheck, ShieldOff, Upload, FileText } from 'lucide-react';
@@ -13,10 +13,12 @@ import { proyectosApi, documentosApi, api } from '../../servicios/api';
 import { toast } from 'sonner';
 import { MultiSelect, type OpcionMultiSelect } from '../ui/multi-select';
 import { Textarea } from '../ui/textarea';
+import { Switch } from '../ui/switch';
+import { cn } from '../../lib/utilidades';
 
 interface PestanaDefensaProps {
   proyecto: Proyecto;
-  asesores: Asesor[];
+  asesores: Usuario[];
   onActualizarProyecto: () => void;
 }
 
@@ -38,8 +40,8 @@ export const PestanaDefensa = ({ proyecto, asesores, onActualizarProyecto }: Pes
   });
 
   const opciones_tribunales: OpcionMultiSelect[] = asesores.map(a => ({
-    value: JSON.stringify({ nombre: `${a.nombre} ${a.apellido}`, correo: a.usuario?.correo || '' }),
-    label: `${a.nombre} ${a.apellido}`
+    value: JSON.stringify({ nombre: `${a.perfil?.nombre} ${a.perfil?.apellido}`, correo: a.correo || '' }),
+    label: `${a.perfil?.nombre} ${a.perfil?.apellido}`
   }));
 
   const manejarSubidaMemorial = async (): Promise<string | null> => {
@@ -218,14 +220,22 @@ export const PestanaDefensa = ({ proyecto, asesores, onActualizarProyecto }: Pes
           <div className="py-4 space-y-4">
             <div className="space-y-2">
               <Label>Decisión</Label>
-              <select
-                value={form_responder.aprobada ? 'aprobada' : 'rechazada'}
-                onChange={(e) => set_form_responder({ ...form_responder, aprobada: e.target.value === 'aprobada' })}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="aprobada">Aprobar Solicitud</option>
-                <option value="rechazada">Rechazar Solicitud</option>
-              </select>
+              <div className="flex items-center space-x-3">
+                <Switch
+                  id="decision-aprobada"
+                  checked={form_responder.aprobada}
+                  onCheckedChange={(checked) => set_form_responder({ ...form_responder, aprobada: checked })}
+                />
+                <Label
+                  htmlFor="decision-aprobada"
+                  className={cn(
+                    "font-medium",
+                    form_responder.aprobada ? "text-green-600" : "text-destructive"
+                  )}
+                >
+                  {form_responder.aprobada ? 'Aprobar Solicitud' : 'Rechazar Solicitud'}
+                </Label>
+              </div>
             </div>
             
             {form_responder.aprobada && (
