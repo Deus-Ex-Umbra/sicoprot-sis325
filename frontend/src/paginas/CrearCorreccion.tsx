@@ -157,8 +157,7 @@ const CrearCorreccion = () => {
       toast.success('Corrección creada exitosamente');
       navigate(`/panel/proyecto/${proyectoId}`);
     } catch (err: any) {
-      set_error(err.response?.data?.message || 'Error al crear la corrección');
-      toast.error('Error al crear la corrección');
+      toast.error(err.response?.data?.message || 'Error al crear la corrección');
     } finally {
       set_guardando(false);
     }

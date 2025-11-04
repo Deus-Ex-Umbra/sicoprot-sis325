@@ -135,8 +135,7 @@ const CrearObservacion = () => {
       toast.success('Observación creada exitosamente');
       navigate(`/panel/proyecto/${proyectoId}`);
     } catch (err: any) {
-      set_error(err.response?.data?.message || 'Error al crear la observación');
-      toast.error('Error al crear la observación');
+      toast.error(err.response?.data?.message || 'Error al crear la observación');
     } finally {
       set_guardando(false);
     }

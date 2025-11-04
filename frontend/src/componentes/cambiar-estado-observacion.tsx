@@ -58,7 +58,7 @@ const CambiarEstadoObservacion: React.FC<Props> = ({
 
   const handleCambiarEstado = async () => {
     if (!observacion?.id) {
-      set_error('ID de observación no válido');
+      toast.error('ID de observación no válido');
       return;
     }
 
@@ -79,7 +79,6 @@ const CambiarEstadoObservacion: React.FC<Props> = ({
       handleCerrarModal();
     } catch (err: any) {
       const mensaje_error = err.response?.data?.message || 'Error al cambiar el estado';
-      set_error(mensaje_error);
       toast.error(mensaje_error);
     } finally {
       set_cargando(false);

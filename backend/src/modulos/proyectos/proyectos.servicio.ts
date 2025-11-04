@@ -23,6 +23,7 @@ import { SolicitarDefensaDto } from './dto/solicitar-defensa.dto';
 import { ResponderSolicitudDefensaDto } from './dto/responder-solicitud-defensa.dto';
 import { Usuario } from '../usuarios/entidades/usuario.entidad';
 import { GruposService } from '../grupos/grupos.servicio';
+import { ActualizarPropuestaDto } from './dto/actualizar-propuesta.dto';
 
 @Injectable()
 export class ProyectosService {
@@ -51,11 +52,15 @@ export class ProyectosService {
 
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario_estudiante } },
-      relations: ['grupos', 'grupos.asesor', 'grupos.periodo']
+      relations: ['grupos', 'grupos.asesor', 'grupos.periodo', 'proyecto']
     });
 
     if (!estudiante) {
       throw new NotFoundException(`Estudiante con ID de usuario '${id_usuario_estudiante}' no encontrado.`);
+    }
+
+    if (estudiante.proyecto) {
+      throw new BadRequestException('Ya tienes un proyecto asignado. No puedes crear otro.');
     }
 
     let asesor: Asesor | null = null;
@@ -241,6 +246,9 @@ export class ProyectosService {
     const ahora = new Date();
 
     if (accion === AccionTema.APROBAR) {
+      if (proyecto.propuesta_aprobada) {
+        throw new BadRequestException('La propuesta ya ha sido aprobada');
+      }
       proyecto.propuesta_aprobada = true;
       proyecto.fecha_aprobacion_propuesta = ahora;
       proyecto.comentario_aprobacion_propuesta = comentarios;
@@ -250,6 +258,35 @@ export class ProyectosService {
       proyecto.fecha_aprobacion_propuesta = null;
       proyecto.comentario_aprobacion_propuesta = comentarios;
       proyecto.etapa_actual = EtapaProyecto.PROPUESTA;
+    }
+
+    return this.repositorio_proyecto.save(proyecto);
+  }
+
+  async actualizarPropuesta(id_proyecto: number, dto: ActualizarPropuestaDto, id_usuario_estudiante: number) {
+    const proyecto = await this.repositorio_proyecto.findOne({
+      where: { id: id_proyecto },
+      relations: ['estudiantes', 'estudiantes.usuario']
+    });
+
+    if (!proyecto) {
+      throw new NotFoundException(`Proyecto con ID ${id_proyecto} no encontrado`);
+    }
+
+    const esEstudianteDelProyecto = proyecto.estudiantes.some(e => e.usuario.id === id_usuario_estudiante);
+    if (!esEstudianteDelProyecto) {
+      throw new ForbiddenException('No tienes permiso para editar este proyecto.');
+    }
+
+    if (proyecto.etapa_actual !== EtapaProyecto.PROPUESTA || proyecto.propuesta_aprobada) {
+      throw new BadRequestException('Solo se puede editar una propuesta que esté en etapa "propuesta" y no haya sido aprobada.');
+    }
+
+    if (dto.titulo) {
+      proyecto.titulo = dto.titulo;
+    }
+    if (dto.cuerpo_html) {
+      proyecto.cuerpo_html = dto.cuerpo_html;
     }
 
     return this.repositorio_proyecto.save(proyecto);
