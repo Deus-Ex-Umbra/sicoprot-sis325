@@ -37,14 +37,6 @@ export const EstadoObservacion = {
 
 export type EstadoObservacion = typeof EstadoObservacion[keyof typeof EstadoObservacion];
 
-export const EstadoPropuesta = {
-  PENDIENTE: 'pendiente',
-  APROBADA: 'aprobada',
-  RECHAZADA: 'rechazada',
-} as const;
-
-export type EstadoPropuesta = typeof EstadoPropuesta[keyof typeof EstadoPropuesta];
-
 export const EstadoReunion = {
   PROGRAMADA: 'programada',
   REALIZADA: 'realizada',
@@ -132,17 +124,6 @@ export interface SolicitudRegistro {
   fecha_respuesta?: string;
 }
 
-export interface PropuestaTema {
-  id: number;
-  titulo: string;
-  cuerpo_html: string;
-  estado: EstadoPropuesta;
-  comentarios_asesor_html: string | null;
-  fecha_creacion: string;
-  fecha_actualizacion: string;
-  estudiante: Estudiante;
-}
-
 export interface Reunion {
   id: number;
   titulo: string;
@@ -163,11 +144,11 @@ export interface Tribunal {
 export interface Proyecto {
   id: number;
   titulo: string;
+  cuerpo_html: string;
   fecha_creacion: string;
   estudiantes?: Estudiante[];
   asesor?: Asesor;
   documentos?: Documento[];
-  propuestas_tema?: PropuestaTema[];
   reuniones?: Reunion[];
   observaciones?: Observacion[];
   etapa_actual: EtapaProyecto;
@@ -255,16 +236,6 @@ export interface CronogramaProyectoDto {
   etapa_actual: EtapaProyecto;
 }
 
-export interface PropuestaTimeline {
-  id: number;
-  numero_propuesta: number;
-  titulo: string;
-  estado: string;
-  fecha_creacion: Date;
-  fecha_revision?: Date;
-  comentario_asesor?: string | null;
-}
-
 export interface ReunionTimeline {
   id: number;
   titulo: string;
@@ -326,7 +297,6 @@ export interface TimelineCompletoDto {
     etapa_actual: EtapaProyecto;
     fecha_creacion: Date;
   };
-  propuestas: PropuestaTimeline[];
   perfil: {
     aprobado: boolean;
     fecha_aprobacion?: Date;

@@ -7,12 +7,10 @@ import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
 import { AsesoresModule } from '../asesores/asesores.modulo';
 import { GruposModule } from '../grupos/grupos.modulo';
 import { PeriodosModule } from '../periodos/periodos.modulo';
-import { PropuestasTemaModule } from '../propuestas-tema/propuestas-tema.modulo';
 import { ReunionesModule } from '../reuniones/reuniones.modulo';
 import { DocumentosModule } from '../documentos/documentos.modulo';
 import { ObservacionesModule } from '../observaciones/observaciones.modulo';
 import { UsuariosModule } from '../usuarios/usuarios.modulo';
-import { PropuestaTema } from '../propuestas-tema/entidades/propuesta-tema.entidad';
 import { Reunion } from '../reuniones/entidades/reunion.entidad';
 import { Documento } from '../documentos/entidades/documento.entidad';
 import { Observacion } from '../observaciones/entidades/observacion.entidad';
@@ -24,7 +22,6 @@ import { Asesor } from '../asesores/entidades/asesor.entidad';
   imports: [
     TypeOrmModule.forFeature([
       Proyecto,
-      PropuestaTema,
       Reunion,
       Documento,
       Observacion,
@@ -36,7 +33,6 @@ import { Asesor } from '../asesores/entidades/asesor.entidad';
     AsesoresModule,
     GruposModule,
     PeriodosModule,
-    PropuestasTemaModule,
     ReunionesModule,
     DocumentosModule,
     ObservacionesModule,

@@ -92,9 +92,8 @@ const MiProgreso = () => {
   } else {
     contenido_pagina = (
       <Tabs defaultValue="timeline" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="timeline">Línea de Tiempo</TabsTrigger>
-          <TabsTrigger value="propuestas">Propuestas</TabsTrigger>
           <TabsTrigger value="perfil">Perfil</TabsTrigger>
           <TabsTrigger value="proyecto">Proyecto</TabsTrigger>
           <TabsTrigger value="defensa">Defensa</TabsTrigger>
@@ -112,10 +111,6 @@ const MiProgreso = () => {
               <LineaTiempo eventos={timeline.linea_tiempo} />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="propuestas" className="mt-6">
-          <SeccionDetallada titulo="Propuestas de Tema" data={timeline.propuestas} />
         </TabsContent>
         
         <TabsContent value="perfil" className="mt-6 space-y-6">

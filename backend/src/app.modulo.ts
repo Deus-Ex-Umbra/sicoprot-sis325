@@ -14,7 +14,6 @@ import { GruposModule } from './modulos/grupos/grupos.modulo';
 import { SolicitudesRegistroModule } from './modulos/solicitudes-registro/solicitudes-registro.modulo';
 import { AdministracionModule } from './modulos/administracion/administracion.modulo';
 import { SemillaModule } from './modulos/semilla/semilla.modulo';
-import { PropuestasTemaModule } from './modulos/propuestas-tema/propuestas-tema.modulo';
 import { ReunionesModule } from './modulos/reuniones/reuniones.modulo';
 
 console.log({
@@ -53,7 +52,6 @@ console.log({
     GruposModule,
     SolicitudesRegistroModule,
     AdministracionModule,
-    PropuestasTemaModule,
     ReunionesModule,
   ],
   controllers: [],

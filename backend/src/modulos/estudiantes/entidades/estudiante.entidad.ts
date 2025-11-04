@@ -3,7 +3,6 @@ import { Usuario } from '../../usuarios/entidades/usuario.entidad';
 import { Proyecto } from '../../proyectos/entidades/proyecto.endidad';
 import { Grupo } from '../../grupos/entidades/grupo.entidad';
 import { Correccion } from '../../correcciones/entidades/correccion.entidad';
-import { PropuestaTema } from '../../propuestas-tema/entidades/propuesta-tema.entidad';
 
 @Entity('estudiantes')
 export class Estudiante {
@@ -37,7 +36,4 @@ export class Estudiante {
 
   @OneToMany(() => Correccion, (correccion) => correccion.estudiante)
   correcciones: Correccion[]
-
-  @OneToMany(() => PropuestaTema, (propuesta) => propuesta.estudiante)
-  propuestas_tema: PropuestaTema[];
 }
