@@ -113,7 +113,7 @@ export class ObservacionesService {
         crear_obs_proyecto_dto.descripcion_corta ||
         crear_obs_proyecto_dto.titulo,
       proyecto,
-      documento: undefined,
+      documento: null,
       autor: asesor,
       etapa_observada: proyecto.etapa_actual,
       estado: EstadoObservacion.PENDIENTE,
