@@ -126,6 +126,9 @@ export class ProyectosService {
       }
 
       query.andWhere('asesor.id = :asesorId', { asesorId: asesor.id });
+      query.andWhere('proyecto.etapa_actual != :etapaTerminado', { 
+        etapaTerminado: EtapaProyecto.TERMINADO 
+      });
     }
 
     return query.getMany();
@@ -152,7 +155,33 @@ export class ProyectosService {
     }
 
     if (proyecto.etapa_actual === EtapaProyecto.TERMINADO) {
-      return proyecto;
+      const esActorInvolucrado = 
+        (rol === Rol.Estudiante && proyecto.estudiantes?.some(e => e.usuario?.id === id_usuario)) ||
+        (rol === Rol.Asesor && proyecto.asesor?.usuario?.id === id_usuario) ||
+        rol === Rol.Administrador;
+
+      if (!esActorInvolucrado) {
+        const proyectoPublico = await this.repositorio_proyecto.findOne({
+          where: { id: id, etapa_actual: EtapaProyecto.TERMINADO },
+          relations: [
+            'estudiantes', 
+            'estudiantes.usuario',
+            'asesor', 
+            'asesor.usuario', 
+            'documentos'
+          ],
+        });
+        
+        if (!proyectoPublico) {
+            throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
+        }
+
+        proyectoPublico.documentos = proyectoPublico.documentos?.filter(
+            doc => doc.ruta_archivo !== proyectoPublico.ruta_memorial
+        );
+        
+        return proyectoPublico;
+      }
     }
 
     if (rol === Rol.Estudiante) {
@@ -179,10 +208,10 @@ export class ProyectosService {
   }
 
   
-  async aprobarEtapa(id_proyecto: number, aprobarEtapaDto: AprobarEtapaDto, id_usuario_asesor: number) {
+  async aprobarEtapa(id_proyecto: number, aprobar_etapa_dto: AprobarEtapaDto, id_usuario_asesor: number) {
     const proyecto = await this.repositorio_proyecto.findOne({
       where: { id: id_proyecto },
-      relations: ['asesor', 'asesor.usuario', 'estudiantes', 'estudiantes.usuario']
+      relations: ['asesor', 'asesor.usuario', 'estudiantes', 'estudiantes.usuario', 'documentos']
     });
 
     if (!proyecto) {
@@ -202,7 +231,7 @@ export class ProyectosService {
         throw new BadRequestException(`No se puede aprobar la etapa. Existen ${observaciones_pendientes} observaciones pendientes.`);
     }
 
-    const { etapa, comentarios } = aprobarEtapaDto;
+    const { etapa, comentarios } = aprobar_etapa_dto;
     const ahora = new Date();
 
     switch (etapa) {
@@ -223,6 +252,12 @@ export class ProyectosService {
         if (proyecto.perfil_aprobado) {
           throw new BadRequestException('El perfil ya ha sido aprobado');
         }
+        
+        const tiene_documentos = proyecto.documentos && proyecto.documentos.length > 0;
+        if (!tiene_documentos) {
+          throw new BadRequestException('No se puede aprobar un perfil sin un documento subido.');
+        }
+
         proyecto.perfil_aprobado = true;
         proyecto.fecha_aprobacion_perfil = ahora;
         proyecto.comentario_aprobacion_perfil = comentarios;
@@ -261,7 +296,7 @@ export class ProyectosService {
   }
 
 
-  async gestionarTemaPropuesto(id_proyecto: number, accionTemaDto: AccionTemaDto, id_usuario_asesor: number) {
+  async gestionarTemaPropuesto(id_proyecto: number, accion_tema_dto: AccionTemaDto, id_usuario_asesor: number) {
     const proyecto = await this.repositorio_proyecto.findOne({
       where: { id: id_proyecto },
       relations: ['asesor', 'asesor.usuario', 'estudiantes', 'estudiantes.usuario']
@@ -275,7 +310,7 @@ export class ProyectosService {
       throw new ForbiddenException('Solo el asesor asignado puede gestionar el tema propuesto');
     }
 
-    const { accion, comentarios } = accionTemaDto;
+    const { accion, comentarios } = accion_tema_dto;
     const ahora = new Date();
 
     if (accion === AccionTema.APROBAR) {
@@ -497,7 +532,7 @@ export class ProyectosService {
   }
 
   async buscarProyectos(
-    buscarDto: BuscarProyectosDto,
+    buscar_dto: BuscarProyectosDto,
     id_usuario: number,
     rol: Rol
   ): Promise<ResultadoBusqueda[]> {
@@ -511,34 +546,34 @@ export class ProyectosService {
       .leftJoin('estudiante.grupos', 'grupo')
       .leftJoin('grupo.periodo', 'periodo');
 
-    if (buscarDto.soloAprobados === true) {
+    if (buscar_dto.soloAprobados === true) {
       query.andWhere('proyecto.etapa_actual = :etapaTerminado', { 
         etapaTerminado: EtapaProyecto.TERMINADO
       });
     }
 
-    if (buscarDto.etapa) {
-      query.andWhere('proyecto.etapa_actual = :etapa', { etapa: buscarDto.etapa });
+    if (buscar_dto.etapa) {
+      query.andWhere('proyecto.etapa_actual = :etapa', { etapa: buscar_dto.etapa });
     }
 
-    if (buscarDto.periodoId) {
-      query.andWhere('periodo.id = :periodoId', { periodoId: buscarDto.periodoId });
+    if (buscar_dto.periodoId) {
+      query.andWhere('periodo.id = :periodoId', { periodoId: buscar_dto.periodoId });
     }
 
-    if (buscarDto.anio) {
-      query.andWhere('EXTRACT(YEAR FROM proyecto.fecha_creacion) = :anio', { anio: parseInt(buscarDto.anio, 10) });
+    if (buscar_dto.anio) {
+      query.andWhere('EXTRACT(YEAR FROM proyecto.fecha_creacion) = :anio', { anio: parseInt(buscar_dto.anio, 10) });
     }
 
-    if (buscarDto.carrera) {
-      query.andWhere('LOWER(grupo.carrera) LIKE :carrera', { carrera: `%${buscarDto.carrera.toLowerCase()}%` });
+    if (buscar_dto.carrera) {
+      query.andWhere('LOWER(grupo.carrera) LIKE :carrera', { carrera: `%${buscar_dto.carrera.toLowerCase()}%` });
     }
     
-    if (buscarDto.asesorId) {
-      query.andWhere('asesor_busqueda.id = :asesorId', { asesorId: parseInt(buscarDto.asesorId, 10) });
+    if (buscar_dto.asesorId) {
+      query.andWhere('asesor_busqueda.id = :asesorId', { asesorId: parseInt(buscar_dto.asesorId, 10) });
     }
 
-    if (buscarDto.termino) {
-      const termino = `%${buscarDto.termino.toLowerCase()}%`;
+    if (buscar_dto.termino) {
+      const termino = `%${buscar_dto.termino.toLowerCase()}%`;
       query.andWhere(new Brackets(qb => {
         qb.where('LOWER(proyecto.titulo) LIKE :termino', { termino })
           .orWhere('LOWER(proyecto.resumen) LIKE :termino', { termino })
