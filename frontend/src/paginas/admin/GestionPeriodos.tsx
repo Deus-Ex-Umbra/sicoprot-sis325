@@ -39,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '../../componentes/ui/select';
+import { ScrollArea } from '../../componentes/ui/scroll-area';
 
 const GestionPeriodos = () => {
   const [periodos, set_periodos] = useState<Periodo[]>([]);
@@ -55,11 +56,17 @@ const GestionPeriodos = () => {
     fecha_inicio_inscripciones: '',
     fecha_fin_inscripciones: '',
     activo: false,
+    // REQ 5: CAMPOS AÑADIDOS
+    fecha_limite_propuesta: '',
+    fecha_limite_perfil: '',
+    fecha_limite_proyecto: '',
+    dias_revision_asesor: 7,
+    dias_correccion_estudiante: 14,
   });
 
   const [filtros, set_filtros] = useState({
     busqueda: '',
-    estado: '', // 'activos', 'inactivos', ''
+    estado: '', 
   });
 
   const { usuario } = useAutenticacion();
@@ -117,6 +124,11 @@ const GestionPeriodos = () => {
     });
   };
 
+  const formatDate = (dateString?: string | Date) => {
+    if (!dateString) return '';
+    return new Date(dateString).toISOString().split('T')[0];
+  }
+
   const abrirModalCrear = () => {
     set_periodo_editando(null);
     set_form_periodo({
@@ -127,6 +139,11 @@ const GestionPeriodos = () => {
       fecha_inicio_inscripciones: '',
       fecha_fin_inscripciones: '',
       activo: false,
+      fecha_limite_propuesta: '',
+      fecha_limite_perfil: '',
+      fecha_limite_proyecto: '',
+      dias_revision_asesor: 7,
+      dias_correccion_estudiante: 14,
     });
     set_mostrar_modal(true);
   };
@@ -136,22 +153,33 @@ const GestionPeriodos = () => {
     set_form_periodo({
       nombre: periodo.nombre,
       descripcion: periodo.descripcion || '',
-      fecha_inicio_semestre: periodo.fecha_inicio_semestre.split('T')[0],
-      fecha_fin_semestre: periodo.fecha_fin_semestre.split('T')[0],
-      fecha_inicio_inscripciones: periodo.fecha_inicio_inscripciones.split('T')[0],
-      fecha_fin_inscripciones: periodo.fecha_fin_inscripciones.split('T')[0],
+      fecha_inicio_semestre: formatDate(periodo.fecha_inicio_semestre),
+      fecha_fin_semestre: formatDate(periodo.fecha_fin_semestre),
+      fecha_inicio_inscripciones: formatDate(periodo.fecha_inicio_inscripciones),
+      fecha_fin_inscripciones: formatDate(periodo.fecha_fin_inscripciones),
       activo: periodo.activo,
+      fecha_limite_propuesta: formatDate(periodo.fecha_limite_propuesta),
+      fecha_limite_perfil: formatDate(periodo.fecha_limite_perfil),
+      fecha_limite_proyecto: formatDate(periodo.fecha_limite_proyecto),
+      dias_revision_asesor: (periodo as any).dias_revision_asesor || 7,
+      dias_correccion_estudiante: (periodo as any).dias_correccion_estudiante || 14,
     });
     set_mostrar_modal(true);
   };
 
   const manejarGuardar = async () => {
     try {
+      const datos_a_enviar = {
+        ...form_periodo,
+        dias_revision_asesor: Number(form_periodo.dias_revision_asesor),
+        dias_correccion_estudiante: Number(form_periodo.dias_correccion_estudiante),
+      };
+
       if (periodo_editando) {
-        await periodosApi.actualizar(periodo_editando.id, form_periodo);
+        await periodosApi.actualizar(periodo_editando.id, datos_a_enviar);
         toast.success('Período actualizado exitosamente');
       } else {
-        await periodosApi.crear(form_periodo);
+        await periodosApi.crear(datos_a_enviar);
         toast.success('Período creado exitosamente');
       }
       set_mostrar_modal(false);
@@ -252,7 +280,6 @@ const GestionPeriodos = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>Descripción</TableHead>
                   <TableHead>Semestre</TableHead>
                   <TableHead>Inscripciones</TableHead>
                   <TableHead>Estado</TableHead>
@@ -271,7 +298,6 @@ const GestionPeriodos = () => {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell>{periodo.descripcion || '-'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(periodo.fecha_inicio_semestre).toLocaleDateString()} - 
                       {new Date(periodo.fecha_fin_semestre).toLocaleDateString()}
@@ -348,91 +374,146 @@ const GestionPeriodos = () => {
           {contenido_pagina}
 
           <Dialog open={mostrar_modal} onOpenChange={set_mostrar_modal}>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-3xl">
               <DialogHeader>
                 <DialogTitle>{periodo_editando ? 'Editar' : 'Crear'} Período</DialogTitle>
               </DialogHeader>
-              <div className="py-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre">Nombre</Label>
-                    <Input
-                      id="nombre"
-                      value={form_periodo.nombre}
-                      onChange={(e) => set_form_periodo({ ...form_periodo, nombre: e.target.value })}
-                      placeholder="Ej: 2025-1"
-                    />
-                  </div>
-                  <div className="space-y-2 pt-6">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="activo"
-                        checked={form_periodo.activo}
-                        onCheckedChange={(checked) => set_form_periodo({ ...form_periodo, activo: checked })}
+              <ScrollArea className="max-h-[80vh]">
+                <div className="py-4 px-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nombre">Nombre</Label>
+                      <Input
+                        id="nombre"
+                        value={form_periodo.nombre}
+                        onChange={(e) => set_form_periodo({ ...form_periodo, nombre: e.target.value })}
+                        placeholder="Ej: 2025-1"
                       />
-                      <Label htmlFor="activo">Período Activo</Label>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Solo puede haber un período activo a la vez.
-                    </p>
+                    <div className="space-y-2 pt-6">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="activo"
+                          checked={form_periodo.activo}
+                          onCheckedChange={(checked) => set_form_periodo({ ...form_periodo, activo: checked })}
+                        />
+                        <Label htmlFor="activo">Período Activo</Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Solo puede haber un período activo a la vez.
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="descripcion">Descripción</Label>
-                  <Textarea
-                    id="descripcion"
-                    value={form_periodo.descripcion}
-                    onChange={(e) => set_form_periodo({ ...form_periodo, descripcion: e.target.value })}
-                    placeholder="Descripción del período"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="descripcion">Descripción</Label>
+                    <Textarea
+                      id="descripcion"
+                      value={form_periodo.descripcion}
+                      onChange={(e) => set_form_periodo({ ...form_periodo, descripcion: e.target.value })}
+                      placeholder="Descripción del período"
+                    />
+                  </div>
 
-                <h6 className="font-semibold">Fechas del Semestre</h6>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fecha_inicio_semestre">Inicio Semestre</Label>
-                    <Input
-                      id="fecha_inicio_semestre"
-                      type="date"
-                      value={form_periodo.fecha_inicio_semestre}
-                      onChange={(e) => set_form_periodo({ ...form_periodo, fecha_inicio_semestre: e.target.value })}
-                    />
+                  <h6 className="font-semibold pt-2">Fechas del Semestre</h6>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_inicio_semestre">Inicio Semestre</Label>
+                      <Input
+                        id="fecha_inicio_semestre"
+                        type="date"
+                        value={form_periodo.fecha_inicio_semestre}
+                        onChange={(e) => set_form_periodo({ ...form_periodo, fecha_inicio_semestre: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_fin_semestre">Fin Semestre</Label>
+                      <Input
+                        id="fecha_fin_semestre"
+                        type="date"
+                        value={form_periodo.fecha_fin_semestre}
+                        onChange={(e) => set_form_periodo({ ...form_periodo, fecha_fin_semestre: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fecha_fin_semestre">Fin Semestre</Label>
-                    <Input
-                      id="fecha_fin_semestre"
-                      type="date"
-                      value={form_periodo.fecha_fin_semestre}
-                      onChange={(e) => set_form_periodo({ ...form_periodo, fecha_fin_semestre: e.target.value })}
-                    />
-                  </div>
-                </div>
 
-                <h6 className="font-semibold">Fechas de Inscripciones</h6>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fecha_inicio_inscripciones">Inicio Inscripciones</Label>
-                    <Input
-                      id="fecha_inicio_inscripciones"
-                      type="date"
-                      value={form_periodo.fecha_inicio_inscripciones}
-                      onChange={(e) => set_form_periodo({ ...form_periodo, fecha_inicio_inscripciones: e.target.value })}
-                    />
+                  <h6 className="font-semibold pt-2">Fechas de Inscripciones</h6>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_inicio_inscripciones">Inicio Inscripciones</Label>
+                      <Input
+                        id="fecha_inicio_inscripciones"
+                        type="date"
+                        value={form_periodo.fecha_inicio_inscripciones}
+                        onChange={(e) => set_form_periodo({ ...form_periodo, fecha_inicio_inscripciones: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_fin_inscripciones">Fin Inscripciones</Label>
+                      <Input
+                        id="fecha_fin_inscripciones"
+                        type="date"
+                        value={form_periodo.fecha_fin_inscripciones}
+                        onChange={(e) => set_form_periodo({ ...form_periodo, fecha_fin_inscripciones: e.target.value })}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fecha_fin_inscripciones">Fin Inscripciones</Label>
-                    <Input
-                      id="fecha_fin_inscripciones"
-                      type="date"
-                      value={form_periodo.fecha_fin_inscripciones}
-                      onChange={(e) => set_form_periodo({ ...form_periodo, fecha_fin_inscripciones: e.target.value })}
-                    />
+                  <h6 className="font-semibold pt-2">Fechas Límite (Taller I y II)</h6>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_limite_propuesta">Límite Propuesta</Label>
+                      <Input
+                        id="fecha_limite_propuesta"
+                        type="date"
+                        value={form_periodo.fecha_limite_propuesta}
+                        onChange={(e) => set_form_periodo({ ...form_periodo, fecha_limite_propuesta: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_limite_perfil">Límite Perfil</Label>
+                      <Input
+                        id="fecha_limite_perfil"
+                        type="date"
+                        value={form_periodo.fecha_limite_perfil}
+                        onChange={(e) => set_form_periodo({ ...form_periodo, fecha_limite_perfil: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fecha_limite_proyecto">Límite Proyecto Final</Label>
+                      <Input
+                        id="fecha_limite_proyecto"
+                        type="date"
+                        value={form_periodo.fecha_limite_proyecto}
+                        onChange={(e) => set_form_periodo({ ...form_periodo, fecha_limite_proyecto: e.target.value })}
+                      />
+                    </div>
                   </div>
+
+                  <h6 className="font-semibold pt-2">Tiempos de Revisión</h6>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="dias_revision_asesor">Días Revisión (Asesor)</Label>
+                      <Input
+                        id="dias_revision_asesor"
+                        type="number"
+                        value={form_periodo.dias_revision_asesor}
+                        onChange={(e) => set_form_periodo({ ...form_periodo, dias_revision_asesor: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dias_correccion_estudiante">Días Corrección (Estudiante)</Label>
+                      <Input
+                        id="dias_correccion_estudiante"
+                        type="number"
+                        value={form_periodo.dias_correccion_estudiante}
+                        onChange={(e) => set_form_periodo({ ...form_periodo, dias_correccion_estudiante: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+
                 </div>
-              </div>
-              <DialogFooter>
+              </ScrollArea>
+              <DialogFooter className="px-6 pb-4 pt-0">
                 <DialogClose asChild>
                   <Button variant="outline">Cancelar</Button>
                 </DialogClose>

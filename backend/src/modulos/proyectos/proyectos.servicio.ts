@@ -22,6 +22,7 @@ import { TimelineCompletoDto } from './dto/timeline-completo.dto';
 import { SolicitarDefensaDto } from './dto/solicitar-defensa.dto';
 import { ResponderSolicitudDefensaDto } from './dto/responder-solicitud-defensa.dto';
 import { Usuario } from '../usuarios/entidades/usuario.entidad';
+import { GruposService } from '../grupos/grupos.servicio';
 
 @Injectable()
 export class ProyectosService {
@@ -42,6 +43,7 @@ export class ProyectosService {
     private readonly repositorio_observacion: Repository<Observacion>,
     @InjectRepository(Usuario)
     private readonly repositorio_usuario: Repository<Usuario>,
+    private readonly servicio_grupos: GruposService,
   ) {}
 
   async crear(crear_proyecto_dto: CrearProyectoDto, id_usuario_estudiante: number) {
@@ -192,6 +194,11 @@ export class ProyectosService {
         proyecto.fecha_aprobacion_perfil = ahora;
         proyecto.comentario_aprobacion_perfil = comentarios;
         proyecto.etapa_actual = EtapaProyecto.PROYECTO;
+        if (proyecto.estudiantes && proyecto.estudiantes.length > 0) {
+          for (const estudiante of proyecto.estudiantes) {
+            await this.servicio_grupos.desinscribirEstudianteDeGrupoActivo(estudiante.id);
+          }
+        }
         break;
 
       case EtapaProyecto.PROYECTO:
@@ -230,10 +237,6 @@ export class ProyectosService {
       throw new ForbiddenException('Solo el asesor asignado puede gestionar el tema propuesto');
     }
 
-    if (proyecto.propuesta_aprobada) {
-      throw new BadRequestException('El tema ya ha sido aprobado, no se puede modificar');
-    }
-
     const { accion, comentarios } = accionTemaDto;
     const ahora = new Date();
 
@@ -243,7 +246,10 @@ export class ProyectosService {
       proyecto.comentario_aprobacion_propuesta = comentarios;
       proyecto.etapa_actual = EtapaProyecto.PERFIL;
     } else if (accion === AccionTema.RECHAZAR) {
+      proyecto.propuesta_aprobada = false;
+      proyecto.fecha_aprobacion_propuesta = null;
       proyecto.comentario_aprobacion_propuesta = comentarios;
+      proyecto.etapa_actual = EtapaProyecto.PROPUESTA;
     }
 
     return this.repositorio_proyecto.save(proyecto);
@@ -324,10 +330,6 @@ export class ProyectosService {
     if (!estudiante) {
         throw new NotFoundException('Estudiante no encontrado');
     }
-
-    if (!estudiante.proyecto) {
-        throw new NotFoundException('No tienes un proyecto asignado');
-    }
     
     const periodo_activo = estudiante.grupos.find(g => g.periodo.activo)?.periodo;
 
@@ -339,7 +341,7 @@ export class ProyectosService {
     const periodo = periodo_activo;
     const hoy = new Date();
 
-    const calcularDiasRestantes = (fechaLimite: Date | null): number | null => {
+    const calcularDiasRestantes = (fechaLimite: Date | string | null): number | null => {
       if (!fechaLimite) return null;
       const fecha_lim = new Date(fechaLimite);
       fecha_lim.setHours(23, 59, 59, 999);
@@ -351,7 +353,7 @@ export class ProyectosService {
       {
         nombre: 'propuesta',
         fecha_limite_entrega: periodo.fecha_limite_propuesta || null,
-        estado: proyecto.propuesta_aprobada 
+        estado: proyecto?.propuesta_aprobada 
           ? 'aprobado' 
           : (periodo.fecha_limite_propuesta && hoy > new Date(periodo.fecha_limite_propuesta)) 
             ? 'vencido' 
@@ -362,7 +364,7 @@ export class ProyectosService {
       {
         nombre: 'perfil',
         fecha_limite_entrega: periodo.fecha_limite_perfil || null,
-        estado: proyecto.perfil_aprobado 
+        estado: proyecto?.perfil_aprobado 
           ? 'aprobado' 
           : (periodo.fecha_limite_perfil && hoy > new Date(periodo.fecha_limite_perfil)) 
             ? 'vencido' 
@@ -373,7 +375,7 @@ export class ProyectosService {
       {
         nombre: 'proyecto',
         fecha_limite_entrega: periodo.fecha_limite_proyecto || null,
-        estado: proyecto.proyecto_aprobado 
+        estado: proyecto?.proyecto_aprobado 
           ? 'aprobado' 
           : (periodo.fecha_limite_proyecto && hoy > new Date(periodo.fecha_limite_proyecto)) 
             ? 'vencido' 
@@ -383,7 +385,7 @@ export class ProyectosService {
       }
     ];
 
-    const etapaActual = proyecto.etapa_actual;
+    const etapaActual = proyecto?.etapa_actual || EtapaProyecto.PROPUESTA;
     switch (etapaActual) {
       case EtapaProyecto.PROPUESTA:
         etapas[0].recomendaciones = [
@@ -434,7 +436,7 @@ export class ProyectosService {
       .leftJoin('estudiante.grupos', 'grupo')
       .leftJoin('grupo.periodo', 'periodo');
 
-    if (buscarDto.soloAprobados === true) {
+    if (buscarDto.soloAprobados === true || buscarDto.soloAprobados === 'true') {
       query.andWhere('proyecto.etapa_actual = :etapaTerminado', { 
         etapaTerminado: EtapaProyecto.TERMINADO
       });
@@ -493,6 +495,14 @@ export class ProyectosService {
       etapa_actual: proyecto.etapa_actual,
       proyecto_aprobado: proyecto.proyecto_aprobado
     }));
+  }
+
+  async obtenerSolicitudesDefensa(): Promise<Proyecto[]> {
+    return this.repositorio_proyecto.find({
+      where: { etapa_actual: EtapaProyecto.SOLICITUD_DEFENSA },
+      relations: ['estudiantes', 'asesor', 'asesor.usuario'],
+      order: { fecha_creacion: 'ASC' },
+    });
   }
 
   async solicitarDefensa(id_proyecto: number, dto: SolicitarDefensaDto, id_usuario_estudiante: number) {

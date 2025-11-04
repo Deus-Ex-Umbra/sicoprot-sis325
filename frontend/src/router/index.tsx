@@ -24,6 +24,7 @@ import Repositorio from '../paginas/Repositorio';
 import MiProgreso from '../paginas/estudiante/MiProgreso';
 import MiCronograma from '../paginas/estudiante/MiCronograma';
 import { Rol } from '../tipos/usuario';
+import SolicitudesDefensa from '../paginas/admin/SolicitudesDefensa';
 
 const router = createBrowserRouter([
   { path: '*', element: <Navigate to="/iniciar-sesion" replace /> },
@@ -179,6 +180,15 @@ const router = createBrowserRouter([
     element: (
       <RutaProtegida roles_permitidos={[Rol.Administrador]}>
         <SolicitudesRegistro />
+      </RutaProtegida>
+    ),
+  },
+  // REQ 9: NUEVA RUTA
+  {
+    path: '/panel/admin/solicitudes-defensa',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Administrador]}>
+        <SolicitudesDefensa />
       </RutaProtegida>
     ),
   },

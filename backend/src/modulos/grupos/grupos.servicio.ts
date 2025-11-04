@@ -98,7 +98,7 @@ export class GruposService {
   async obtenerGrupoDelEstudiante(id_usuario: number) {
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario } },
-      relations: ['grupos', 'grupos.asesor', 'grupos.asesor.usuario', 'grupos.periodo', 'grupos.estudiantes', 'grupos.estudiantes.usuario'],
+      relations: ['grupos', 'grupos.asesor', 'grupos.asesor.usuario', 'grupos.periodo', 'estudiantes', 'estudiantes.usuario'],
     });
 
     if (!estudiante) {
@@ -268,8 +268,8 @@ export class GruposService {
       throw new BadRequestException('Debes tener un perfil de proyecto aprobado para inscribirte a Taller de Grado II.');
     }
 
-    if (grupo.tipo === TipoGrupo.TALLER_GRADO_I && estudiante.proyecto) {
-        throw new BadRequestException('Ya tienes un proyecto iniciado, no puedes inscribirte a Taller de Grado I.');
+    if (grupo.tipo === TipoGrupo.TALLER_GRADO_I && estudiante.proyecto && estudiante.proyecto.perfil_aprobado) {
+        throw new BadRequestException('Ya tienes un perfil aprobado, no puedes inscribirte a Taller de Grado I.');
     }
 
     estudiante.grupos.push(grupo);
@@ -285,6 +285,26 @@ export class GruposService {
       message: 'Te has inscrito exitosamente al grupo.',
       grupo: await this.obtenerUno(id_grupo)
     };
+  }
+
+  async desinscribirEstudianteDeGrupoActivo(id_estudiante: number) {
+    const estudiante = await this.repositorio_estudiante.findOne({
+      where: { id: id_estudiante },
+      relations: ['grupos', 'grupos.periodo'],
+    });
+
+    if (!estudiante) {
+      throw new NotFoundException('Estudiante no encontrado.');
+    }
+    
+    const grupo_activo = estudiante.grupos.find(g => g.periodo && g.periodo.activo);
+    
+    if (grupo_activo) {
+      estudiante.grupos = estudiante.grupos.filter(g => g.id !== grupo_activo.id);
+      await this.repositorio_estudiante.save(estudiante);
+      return true;
+    }
+    return false;
   }
 
   async desinscribirEstudiante(id_grupo: number, id_usuario: number) {
