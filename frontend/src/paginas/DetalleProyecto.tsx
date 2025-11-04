@@ -18,12 +18,12 @@ import { Badge } from '../componentes/ui/badge';
 import { PestanaReuniones } from '../componentes/proyecto/pestania-reuniones';
 import { PestanaDefensa } from '../componentes/proyecto/pestania-defensa';
 import { PestanaAcciones } from '../componentes/proyecto/pestania-acciones';
-import { EstadoObservacion } from '../../tipos/estado-observacion';
+import { toast } from 'sonner';
 
 const DetalleProyecto = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { usuario } = useAutenticacion();
+  const { usuario, actualizarUsuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
 
   const [proyecto, set_proyecto] = useState<Proyecto | null>(null);
@@ -54,7 +54,7 @@ const DetalleProyecto = () => {
     }
   }, [id]);
 
-  const cargarDatos = async () => {
+  const cargarDatos = async (mostrar_toast = false) => {
     try {
       set_cargando(true);
       const proyecto_data = await proyectosApi.obtenerUno(parseInt(id!));
@@ -80,6 +80,18 @@ const DetalleProyecto = () => {
       set_observaciones(obs_data);
       set_correcciones(corr_data);
       set_asesores(asesores_data as Usuario[]);
+
+      if (mostrar_toast) {
+        if (proyecto_data.etapa_actual === EtapaProyecto.PROYECTO) {
+            toast.success('Perfil Aprobado', { description: 'Fuiste desinscrito de tu grupo de Taller I. Ahora debes inscribirte a un grupo de Taller II.' });
+            actualizarUsuario({ perfil: { grupo: null } });
+            navigate('/panel/inscripcion-grupos');
+        }
+        if (proyecto_data.etapa_actual === EtapaProyecto.LISTO_DEFENSA) {
+            toast.success('Proyecto Aprobado', { description: 'Tu asesor marcó tu proyecto como listo. Ya puedes solicitar tu defensa.' });
+            actualizarUsuario({ perfil: { grupo: null } });
+        }
+      }
       
     } catch (err: any) {
       console.error('Error al cargar datos:', err);
@@ -87,6 +99,10 @@ const DetalleProyecto = () => {
     } finally {
       set_cargando(false);
     }
+  };
+  
+  const onActualizarProyecto = () => {
+    cargarDatos(true);
   };
 
   const manejarSubidaArchivo = async () => {
@@ -246,7 +262,7 @@ const DetalleProyecto = () => {
                   proyecto={proyecto}
                   observaciones_pendientes={observaciones_pendientes_etapa_actual}
                   tipo_grupo_actual={tipo_grupo_actual}
-                  onActualizarProyecto={cargarDatos}
+                  onActualizarProyecto={onActualizarProyecto}
                 />
               )}
             </CardContent>
@@ -371,7 +387,7 @@ const DetalleProyecto = () => {
                   proyecto={proyecto}
                   observaciones_pendientes={observaciones_pendientes_etapa_actual}
                   tipo_grupo_actual={tipo_grupo_actual}
-                  onActualizarProyecto={cargarDatos}
+                  onActualizarProyecto={onActualizarProyecto}
                 />
               )}
             </div>
@@ -405,12 +421,12 @@ const DetalleProyecto = () => {
           <PestanaReuniones 
             proyecto={proyecto} 
             observaciones={observaciones_del_proyecto}
-            onActualizarProyecto={cargarDatos} 
+            onActualizarProyecto={onActualizarProyecto} 
           />
         </TabsContent>
 
         <TabsContent value="defensa">
-          <PestanaDefensa proyecto={proyecto} asesores={asesores} onActualizarProyecto={cargarDatos} />
+          <PestanaDefensa proyecto={proyecto} asesores={asesores} onActualizarProyecto={onActualizarProyecto} />
         </TabsContent>
       </Tabs>
     );

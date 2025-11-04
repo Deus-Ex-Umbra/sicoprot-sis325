@@ -246,6 +246,11 @@ export class ProyectosService {
         proyecto.comentario_aprobacion_proyecto = comentarios;
         proyecto.etapa_actual = EtapaProyecto.LISTO_DEFENSA;
         proyecto.listo_para_defender = true;
+        if (proyecto.estudiantes && proyecto.estudiantes.length > 0) {
+          for (const estudiante of proyecto.estudiantes) {
+            await this.servicio_grupos.desinscribirEstudianteDeGrupoActivo(estudiante.id);
+          }
+        }
         break;
 
       default:

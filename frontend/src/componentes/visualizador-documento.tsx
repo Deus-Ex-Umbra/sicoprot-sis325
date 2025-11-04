@@ -25,6 +25,7 @@ interface VisualizadorDocumentoProps {
   correcciones: Correccion[];
   observacion_seleccionada?: number | null;
   correccion_seleccionada?: number | null;
+  permitir_descarga?: boolean;
 }
 
 const VisualizadorDocumento = ({
@@ -33,6 +34,7 @@ const VisualizadorDocumento = ({
   correcciones,
   observacion_seleccionada,
   correccion_seleccionada,
+  permitir_descarga = true,
 }: VisualizadorDocumentoProps) => {
   const [num_paginas, setNumPaginas] = useState<number | null>(null);
   const [pagina_actual, setPaginaActual] = useState(1);
@@ -208,6 +210,12 @@ const VisualizadorDocumento = ({
     return elementos;
   };
 
+  const prevenirContexto = (e: React.MouseEvent) => {
+    if (!permitir_descarga) {
+      e.preventDefault();
+    }
+  };
+
   return (
     <Card className="h-full flex flex-col overflow-hidden">
       <div className="flex items-center justify-between gap-2 border-b p-3 flex-shrink-0">
@@ -266,7 +274,7 @@ const VisualizadorDocumento = ({
 
       <ScrollArea className="flex-1 h-[calc(100vh-12rem)] bg-muted/30">
         <div className="flex justify-center p-4 min-h-full">
-          <div ref={page_ref} className="relative inline-block shadow-2xl">
+          <div ref={page_ref} className="relative inline-block shadow-2xl" onContextMenu={prevenirContexto}>
             <Document
               file={url_documento}
               onLoadSuccess={onDocumentLoadSuccess}

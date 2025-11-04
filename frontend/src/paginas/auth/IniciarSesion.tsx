@@ -52,7 +52,7 @@ const IniciarSesion = () => {
       if (err.code === 'ERR_NETWORK') {
         mensaje_error = 'No se pudo conectar con el servidor. Verifica que el backend esté funcionando.';
       } else if (err.response?.status === 401) {
-        mensaje_error = 'Correo o contraseña incorrectos. Verifica tus credenciales.';
+        mensaje_error = err.response.data.message || 'Correo o contraseña incorrectos. Verifica tus credenciales.';
       } else if (err.response?.data?.message) {
         mensaje_error = err.response.data.message;
       } else {

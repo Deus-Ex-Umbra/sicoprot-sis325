@@ -96,8 +96,8 @@ const BarraLateral = ({ isOpen }: BarraLateralProps) => {
           <div className="border-b-2 border-border p-4 bg-gradient-to-br from-primary/5 to-transparent">
             <div className="flex items-center justify-between">
               <div className={cn("flex items-center gap-3", colapsado && "justify-center w-full")}>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 shadow-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-xl font-bold text-primary-foreground">S</span>
+                <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 p-1.5">
+                  <img src="/logo.svg" alt="SICOPROT Logo" className="h-full w-full" />
                 </div>
                 {!colapsado && (
                   <div>

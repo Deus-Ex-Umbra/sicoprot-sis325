@@ -61,7 +61,7 @@ export class GruposService {
     
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario } },
-      relations: ['proyecto']
+      relations: ['proyecto', 'usuario']
     });
 
     if (!estudiante) {
@@ -94,7 +94,7 @@ export class GruposService {
   async obtenerGrupoDelEstudiante(id_usuario: number) {
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { usuario: { id: id_usuario } },
-      relations: ['grupos', 'grupos.asesor', 'grupos.asesor.usuario', 'grupos.periodo', 'estudiantes', 'estudiantes.usuario'],
+      relations: ['usuario', 'grupos', 'grupos.asesor', 'grupos.asesor.usuario', 'grupos.periodo'],
     });
 
     if (!estudiante) {
@@ -106,7 +106,16 @@ export class GruposService {
     }
 
     const grupo_activo = estudiante.grupos.find(g => g.periodo && g.periodo.activo);
-    return grupo_activo || null;
+    
+    if (grupo_activo) {
+        const grupo_completo = await this.repositorio_grupo.findOne({
+            where: { id: grupo_activo.id },
+            relations: ['asesor', 'asesor.usuario', 'periodo', 'estudiantes', 'estudiantes.usuario']
+        });
+        return grupo_completo;
+    }
+
+    return null;
   }
 
   async obtenerPorPeriodo(id_periodo: number) {

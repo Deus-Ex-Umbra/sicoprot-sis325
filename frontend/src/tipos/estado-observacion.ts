@@ -10,22 +10,26 @@ export type EstadoObservacion = typeof EstadoObservacion[keyof typeof EstadoObse
 export const estadoConfig = {
     [EstadoObservacion.PENDIENTE]: {
         label: 'Pendiente',
-        className: 'badge bg-warning text-dark',
+        variant: 'outline',
+        className: 'text-yellow-600 border-yellow-500/50 bg-yellow-500/10',
         icon: 'clock'
     },
     [EstadoObservacion.EN_REVISION]: {
         label: 'En Revisión',
-        className: 'badge bg-info text-white',
+        variant: 'outline',
+        className: 'text-blue-600 border-blue-500/50 bg-blue-500/10',
         icon: 'eye'
     },
     [EstadoObservacion.CORREGIDA]: {
         label: 'Corregida',
-        className: 'badge bg-success text-white',
+        variant: 'default',
+        className: 'bg-green-600/10 text-green-700 border-green-500/20',
         icon: 'check-circle'
     },
     [EstadoObservacion.RECHAZADO]: {
         label: 'Rechazado',
-        className: 'badge bg-danger text-white',
+        variant: 'destructive',
+        className: 'bg-destructive/10 text-destructive border-destructive/20',
         icon: 'x-circle'
     }
 };

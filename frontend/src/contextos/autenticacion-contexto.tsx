@@ -74,7 +74,22 @@ export const ProveedorAutenticacion: React.FC<Props> = ({ children }) => {
   const estaAutenticado = () => !!usuario;
 
   const actualizarUsuario = (usuario_actualizado: Partial<Usuario>) => {
-    setUsuario(prev => prev ? { ...prev, ...usuario_actualizado } : null);
+    setUsuario(prev => {
+      if (!prev) return null;
+
+      const nuevo_perfil = usuario_actualizado.perfil
+        ? {
+            ...prev.perfil,
+            ...usuario_actualizado.perfil,
+          }
+        : prev.perfil;
+
+      return {
+        ...prev,
+        ...usuario_actualizado,
+        perfil: nuevo_perfil,
+      };
+    });
   };
 
   return (
