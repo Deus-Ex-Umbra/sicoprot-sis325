@@ -22,11 +22,11 @@ import {
 import { Button } from "../../componentes/ui/button";
 import { Input } from "../../componentes/ui/input";
 import { Label } from "../../componentes/ui/label";
+import { toast } from "sonner";
 
 const IniciarSesion = () => {
   const [correo, set_correo] = useState("");
   const [contrasena, set_contrasena] = useState("");
-  const [error, set_error] = useState("");
   const [cargando, set_cargando] = useState(false);
 
   const { iniciarSesion, estaAutenticado } = useAutenticacion();
@@ -48,26 +48,26 @@ const IniciarSesion = () => {
     } catch (err: any) {
       console.error('Error en inicio de sesión:', err);
       
+      let mensaje_error: string;
       if (err.code === 'ERR_NETWORK') {
-        set_error('No se pudo conectar con el servidor. Verifica que el backend esté funcionando.');
+        mensaje_error = 'No se pudo conectar con el servidor. Verifica que el backend esté funcionando.';
       } else if (err.response?.status === 401) {
-        set_error('Correo o contraseña incorrectos. Verifica tus credenciales.');
+        mensaje_error = 'Correo o contraseña incorrectos. Verifica tus credenciales.';
       } else if (err.response?.data?.message) {
-        set_error(err.response.data.message);
+        mensaje_error = err.response.data.message;
       } else {
-        set_error('Error al iniciar sesión. Por favor, intenta de nuevo.');
+        mensaje_error = 'Error al iniciar sesión. Por favor, intenta de nuevo.';
       }
-      
+      toast.error(mensaje_error);
       set_cargando(false);
     }
   };
 
   const manejarSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    set_error('');
 
     if (!correo || !contrasena) {
-      set_error('Todos los campos son obligatorios.');
+      toast.error('Todos los campos son obligatorios.');
       return;
     }
 
@@ -157,13 +157,6 @@ const IniciarSesion = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={manejarSubmit} className="space-y-4" noValidate>
-                {error && (
-                  <div className="flex items-center gap-2 rounded-lg bg-destructive/15 border border-destructive/30 p-3 text-sm text-destructive animate-in fade-in slide-in-from-top-2 duration-300">
-                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
                 <div className="space-y-2">
                   <Label htmlFor="correo">Correo Electrónico</Label>
                   <div className="relative">

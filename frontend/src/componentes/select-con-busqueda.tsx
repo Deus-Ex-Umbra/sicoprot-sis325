@@ -52,7 +52,7 @@ export function SelectConBusqueda({
             className
           )}
           style={{
-            backgroundColor: 'hsl(var(--background) / 1)', // fondo sólido, sin transparencia
+            backgroundColor: 'hsl(var(--background) / 1)',
           }}
         >
           <span className="truncate">{etiqueta_seleccionada}</span>
@@ -61,7 +61,10 @@ export function SelectConBusqueda({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-[--radix-popover-trigger-width] p-0 border border-border shadow-md"
+        className={cn(
+          "w-[--radix-popover-trigger-width] p-0 border border-border shadow-md",
+          className
+        )}
         style={{
           backgroundColor: 'hsl(var(--background) / 1)',
         }}
@@ -81,6 +84,9 @@ export function SelectConBusqueda({
                 onSelect={() => {
                   onChange('');
                   setOpen(false);
+                }}
+                style={{
+                  backgroundColor: 'hsl(var(--background) / 1)',
                 }}
               >
                 <Check

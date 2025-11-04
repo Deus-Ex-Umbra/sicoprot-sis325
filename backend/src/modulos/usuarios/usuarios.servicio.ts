@@ -150,7 +150,6 @@ export class UsuariosService {
       throw new NotFoundException(`Usuario con ID '${id}' no encontrado.`);
     }
 
-    // No permitir actualizar ruta_foto desde este DTO, usar actualizarFoto
     if (actualizar_perfil_dto.ruta_foto) {
       delete actualizar_perfil_dto.ruta_foto;
     }

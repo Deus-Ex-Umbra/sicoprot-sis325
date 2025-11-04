@@ -5,7 +5,7 @@ import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import BarraLateral from '../componentes/barra-lateral';
 import BarraLateralAdmin from '../componentes/barra-lateral-admin';
 import { SelectConBusqueda } from '../componentes/select-con-busqueda';
-import { Rol } from '../tipos/usuario';
+import { Rol, type Usuario } from '../tipos/usuario';
 import { cn } from '../lib/utilidades';
 import { Card, CardContent, CardHeader, CardTitle } from '../componentes/ui/card';
 import { Button } from '../componentes/ui/button';
@@ -50,7 +50,7 @@ const Repositorio = () => {
     solo_aprobados: true,
   });
 
-  const [asesores, set_asesores] = useState<Array<{ id: number; nombre: string; apellido: string }>>([]);
+  const [asesores, set_asesores] = useState<Usuario[]>([]);
   const [periodos, set_periodos] = useState<Array<{ id: number; nombre: string }>>([]);
   const [mostrar_filtros, set_mostrar_filtros] = useState(false);
 
@@ -110,8 +110,8 @@ const Repositorio = () => {
   const hay_filtros_activos = filtros.termino || filtros.anio || filtros.carrera || filtros.asesor_id;
 
   const opciones_asesores = asesores.map(a => ({
-    value: a.id.toString(),
-    label: `${a.nombre} ${a.apellido}`
+    value: String(a.perfil?.id_asesor),
+    label: `${a.perfil?.nombre} ${a.perfil?.apellido}`
   }));
 
   const anios_disponibles = Array.from(
