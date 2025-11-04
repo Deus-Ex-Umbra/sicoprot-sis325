@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../componentes/ui/tabs
 import { toast } from 'sonner';
 import { User, Palette, Lock, Upload, Sun, Moon, Droplet, Waves, Leaf, TreePine, Gem, Sparkles, Flame, FireExtinguisher, Save, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utilidades';
-import { usuariosApi } from '../servicios/api';
+import { usuariosApi, obtenerUrlFoto } from '../servicios/api';
 import { Alert, AlertDescription } from '../componentes/ui/alert';
 
 export default function Configuracion() {
@@ -26,6 +26,7 @@ export default function Configuracion() {
   const [apellido, set_apellido] = useState(usuario?.perfil?.apellido || '');
   const [correo, set_correo] = useState(usuario?.correo || '');
   const [preview_foto, set_preview_foto] = useState<string | null>(null);
+  const [archivo_foto, set_archivo_foto] = useState<File | null>(null);
   const input_archivo_ref = useRef<HTMLInputElement>(null);
   const [guardando_perfil, set_guardando_perfil] = useState(false);
   const [error_perfil, set_error_perfil] = useState('');
@@ -57,6 +58,8 @@ export default function Configuracion() {
         toast.error('Solo se permiten archivos de imagen');
         return;
       }
+      
+      set_archivo_foto(archivo);
       const reader = new FileReader();
       reader.onloadend = () => {
         set_preview_foto(reader.result as string);
@@ -72,24 +75,38 @@ export default function Configuracion() {
   const manejar_guardar_perfil = async () => {
     set_guardando_perfil(true);
     set_error_perfil('');
+    let cambios_realizados = false;
 
     try {
-      const datos_actualizacion: any = {};
-      if (nombre !== usuario?.perfil?.nombre) datos_actualizacion.nombre = nombre;
-      if (apellido !== usuario?.perfil?.apellido) datos_actualizacion.apellido = apellido;
-      if (correo !== usuario?.correo) datos_actualizacion.correo = correo;
-      if (preview_foto) datos_actualizacion.ruta_foto = preview_foto;
-
-      if (Object.keys(datos_actualizacion).length === 0) {
-        toast.info('No hay cambios para guardar');
-        set_guardando_perfil(false);
-        return;
+      // 1. Subir la foto si existe
+      if (archivo_foto) {
+        const form_data_foto = new FormData();
+        form_data_foto.append('foto', archivo_foto);
+        const usuario_actualizado_foto = await usuariosApi.actualizarFotoPerfil(form_data_foto);
+        actualizarUsuario(usuario_actualizado_foto);
+        set_preview_foto(null);
+        set_archivo_foto(null);
+        cambios_realizados = true;
       }
 
-      const usuario_actualizado = await usuariosApi.actualizarPerfil(datos_actualizacion);
-      actualizarUsuario(usuario_actualizado);
-      toast.success('Perfil actualizado correctamente');
-      set_preview_foto(null);
+      // 2. Actualizar datos de texto
+      const datos_actualizacion_texto: any = {};
+      if (nombre !== usuario?.perfil?.nombre) datos_actualizacion_texto.nombre = nombre;
+      if (apellido !== usuario?.perfil?.apellido) datos_actualizacion_texto.apellido = apellido;
+      if (correo !== usuario?.correo) datos_actualizacion_texto.correo = correo;
+
+      if (Object.keys(datos_actualizacion_texto).length > 0) {
+        const usuario_actualizado_texto = await usuariosApi.actualizarPerfil(datos_actualizacion_texto);
+        actualizarUsuario(usuario_actualizado_texto);
+        cambios_realizados = true;
+      }
+
+      if (cambios_realizados) {
+        toast.success('Perfil actualizado correctamente');
+      } else {
+        toast.info('No hay cambios para guardar');
+      }
+
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Error al guardar el perfil';
       set_error_perfil(msg);
@@ -152,7 +169,7 @@ export default function Configuracion() {
     { valor: 'dark-red', etiqueta: 'Rojo Oscuro', icono: <FireExtinguisher className="w-6 h-6" />, descripcion: 'Fuerte y apasionado.', colores: ['bg-red-900', 'bg-red-700', 'bg-red-500'] },
   ];
 
-  const ruta_foto_actual = usuario?.ruta_foto || usuario?.perfil?.ruta_foto;
+  const ruta_foto_actual = obtenerUrlFoto(usuario?.ruta_foto || usuario?.perfil?.ruta_foto);
 
   return (
     <div className="min-h-screen bg-background">

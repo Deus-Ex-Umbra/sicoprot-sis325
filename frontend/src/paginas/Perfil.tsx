@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
-import { usuariosApi } from '../servicios/api';
+import { usuariosApi, obtenerUrlFoto } from '../servicios/api';
 import { toast } from 'sonner';
 import { User, Mail, Lock, Save, Loader2, Camera, Upload } from 'lucide-react';
 import BarraLateral from '../componentes/barra-lateral';
@@ -30,6 +30,7 @@ const Perfil = () => {
   const [error, set_error] = useState('');
   const [guardando, set_guardando] = useState(false);
   const [preview_foto, set_preview_foto] = useState<string | null>(null);
+  const [archivo_foto, set_archivo_foto] = useState<File | null>(null);
   const input_archivo_ref = useRef<HTMLInputElement>(null);
 
   const es_admin = usuario?.rol === Rol.Administrador;
@@ -58,6 +59,7 @@ const Perfil = () => {
         return;
       }
 
+      set_archivo_foto(archivo);
       const reader = new FileReader();
       reader.onloadend = () => {
         set_preview_foto(reader.result as string);
@@ -85,61 +87,61 @@ const Perfil = () => {
     }
 
     set_guardando(true);
+    let cambios_realizados = false;
 
     try {
+      if (archivo_foto) {
+        const form_data_foto = new FormData();
+        form_data_foto.append('foto', archivo_foto);
+        const usuario_actualizado = await usuariosApi.actualizarFotoPerfil(form_data_foto);
+        actualizarUsuario(usuario_actualizado);
+        set_preview_foto(null);
+        set_archivo_foto(null);
+        cambios_realizados = true;
+      }
       const datos_actualizacion: any = {};
-
       if (form_data.correo !== usuario?.correo) {
         datos_actualizacion.correo = form_data.correo;
       }
-
       if (form_data.nombre !== usuario?.perfil?.nombre) {
         datos_actualizacion.nombre = form_data.nombre;
       }
-
       if (form_data.apellido !== usuario?.perfil?.apellido) {
         datos_actualizacion.apellido = form_data.apellido;
       }
-
       if (form_data.contrasena_nueva) {
         datos_actualizacion.contrasena_actual = form_data.contrasena_actual;
         datos_actualizacion.contrasena_nueva = form_data.contrasena_nueva;
       }
 
-      if (preview_foto) {
-        datos_actualizacion.ruta_foto = preview_foto;
+      if (Object.keys(datos_actualizacion).length > 0) {
+        const usuario_actualizado = await usuariosApi.actualizarPerfil(datos_actualizacion);
+        actualizarUsuario(usuario_actualizado);
+        cambios_realizados = true;
       }
 
-      if (Object.keys(datos_actualizacion).length === 0) {
-        set_error('No hay cambios para guardar.');
-        set_guardando(false);
-        return;
+      if (cambios_realizados) {
+        toast.success('Perfil actualizado exitosamente');
+        set_form_data({
+          ...form_data,
+          contrasena_actual: '',
+          contrasena_nueva: '',
+          confirmar_contrasena: '',
+        });
+      } else {
+        toast.info('No se detectaron cambios para guardar.');
       }
-
-      const usuario_actualizado = await usuariosApi.actualizarPerfil(datos_actualizacion);
-
-      actualizarUsuario(usuario_actualizado);
-
-      toast.success('Perfil actualizado exitosamente');
-
-      set_form_data({
-        ...form_data,
-        contrasena_actual: '',
-        contrasena_nueva: '',
-        confirmar_contrasena: '',
-      });
-
-      set_preview_foto(null);
 
     } catch (err: any) {
-      set_error(err.response?.data?.message || 'Error al actualizar el perfil');
-      toast.error('Error al actualizar el perfil');
+      const msg = err.response?.data?.message || 'Error al actualizar el perfil';
+      set_error(msg);
+      toast.error(msg);
     } finally {
       set_guardando(false);
     }
   };
 
-  const ruta_foto_actual = usuario?.ruta_foto || usuario?.perfil?.ruta_foto;
+  const ruta_foto_actual = obtenerUrlFoto(usuario?.ruta_foto || usuario?.perfil?.ruta_foto);
 
   return (
     <div className="min-h-screen bg-background">

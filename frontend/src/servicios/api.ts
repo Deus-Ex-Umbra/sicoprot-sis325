@@ -47,6 +47,16 @@ export const verificarConexion = async (): Promise<boolean> => {
   }
 };
 
+export const obtenerUrlFoto = (ruta?: string) => {
+  if (!ruta) return undefined;
+  if (ruta.startsWith('data:') || ruta.startsWith('http')) {
+    return ruta;
+  }
+  // Asume que la ruta es algo como 'uploads/perfiles/imagen.png'
+  // y la API la sirve en '/api/uploads/perfiles/imagen.png'
+  return `${api.defaults.baseURL}/${ruta}`;
+};
+
 export const autenticacionApi = {
   iniciarSesion: async (credenciales: any) => {
     const respuesta = await api.post('/autenticacion/iniciar-sesion', credenciales);
@@ -108,6 +118,14 @@ export const usuariosApi = {
   },
   actualizarPerfil: async (datos: any) => {
     const respuesta = await api.patch('/usuarios/perfil/actualizar', datos);
+    return respuesta.data;
+  },
+  actualizarFotoPerfil: async (formData: FormData) => {
+    const respuesta = await api.patch('/usuarios/perfil/actualizar-foto', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return respuesta.data;
   },
   eliminar: async (id: number) => {
