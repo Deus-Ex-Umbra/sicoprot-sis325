@@ -54,6 +54,15 @@ export class ProyectosController {
     return this.servicio_proyectos.buscarProyectos(buscarDto, req.user.id_usuario, req.user.rol);
   }
 
+  @Get('solicitudes/defensa')
+  @Roles(Rol.Administrador)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Obtener todas las solicitudes de defensa pendientes (Admin)' })
+  @ApiResponse({ status: 200, description: 'Lista de solicitudes de defensa.' })
+  obtenerSolicitudesDefensa() {
+    return this.servicio_proyectos.obtenerSolicitudesDefensa();
+  }
+
   @Get('historial-progreso')
   @Roles(Rol.Estudiante)
   @UseGuards(RolesGuard)

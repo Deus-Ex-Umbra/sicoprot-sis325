@@ -9,6 +9,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '../lib/utilidades';
 import { ScrollArea } from './ui/scroll-area';
@@ -142,6 +143,11 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
                     to="/panel/admin/solicitudes"
                     icon={<UserCog />}
                     label={colapsado ? '' : 'Solicitudes'}
+                  />
+                  <NavItem
+                    to="/panel/admin/solicitudes-defensa"
+                    icon={<ShieldCheck />}
+                    label={colapsado ? '' : 'Solicitudes Defensa'}
                   />
                   <NavItem
                     to="/panel/admin/periodos"
