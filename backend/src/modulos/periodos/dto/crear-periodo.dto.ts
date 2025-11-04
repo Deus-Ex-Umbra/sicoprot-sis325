@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsDateString, IsOptional, IsBoolean, IsNumber, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsDateString, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CrearPeriodoDto {
@@ -36,31 +36,4 @@ export class CrearPeriodoDto {
   @IsBoolean()
   @IsOptional()
   activo?: boolean;
-
-  @ApiProperty({ description: 'Fecha límite para la propuesta', example: '2025-03-15', required: false })
-  @IsDateString()
-  @IsOptional()
-  fecha_limite_propuesta?: string;
-
-  @ApiProperty({ description: 'Fecha límite para el perfil', example: '2025-05-15', required: false })
-  @IsDateString()
-  @IsOptional()
-  fecha_limite_perfil?: string;
-
-  @ApiProperty({ description: 'Fecha límite para el proyecto final', example: '2025-06-15', required: false })
-  @IsDateString()
-  @IsOptional()
-  fecha_limite_proyecto?: string;
-
-  @ApiProperty({ description: 'Días que el asesor tiene para revisar', example: 7, required: false, default: 7 })
-  @IsNumber()
-  @Min(1)
-  @IsOptional()
-  dias_revision_asesor?: number;
-
-  @ApiProperty({ description: 'Días que el estudiante tiene para corregir', example: 14, required: false, default: 14 })
-  @IsNumber()
-  @Min(1)
-  @IsOptional()
-  dias_correccion_estudiante?: number;
 }

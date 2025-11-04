@@ -26,8 +26,6 @@ export class CorreccionesController {
         req.user.id_usuario,
       );
     }
-    //return this.servicio_correcciones.crear(crear_correccion_dto, req.user.id_usuario);
-
   }
 
   @Get('por-documento/:documentoId')

@@ -77,6 +77,7 @@ export class UsuariosService {
             'estudiante.grupos.periodo',
             'asesor',
             'asesor.grupos',
+            'asesor.grupos.periodo',
         ],
     });
 
@@ -97,12 +98,14 @@ export class UsuariosService {
         grupo: grupo_activo || null,
       };
     } else if (usuario.rol === Rol.Asesor && usuario.asesor) {
+      const grupo_activo = usuario.asesor.grupos?.find(g => g.periodo && g.periodo.activo);
       perfil_completo = {
         id_asesor: usuario.asesor.id,
         nombre: usuario.asesor.nombre,
         apellido: usuario.asesor.apellido,
         ruta_foto: usuario.asesor.ruta_foto,
         grupos: usuario.asesor.grupos,
+        tipo_grupo_activo: grupo_activo ? grupo_activo.tipo : null,
       };
     }
 

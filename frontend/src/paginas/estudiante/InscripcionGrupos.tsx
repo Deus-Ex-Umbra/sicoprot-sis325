@@ -149,7 +149,6 @@ const InscripcionGrupos = () => {
               )}
             </div>
             <div className="flex items-center justify-center md:justify-end">
-              {/* Botón de desinscribirse eliminado */}
             </div>
           </div>
 

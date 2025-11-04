@@ -14,12 +14,11 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      // fondo sólido, no transparente, adaptado al tema
       "flex h-10 w-full items-center justify-between rounded-md border border-border bg-background text-foreground px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 [&>span]:line-clamp-1",
       className
     )}
     style={{
-      backgroundColor: "hsl(var(--background) / 1)", // sólido, sin transparencia
+      backgroundColor: "hsl(var(--background) / 1)",
     }}
     {...props}
   >
@@ -72,7 +71,7 @@ const SelectContent = React.forwardRef<
         className
       )}
       style={{
-        backgroundColor: "hsl(var(--background) / 1)", // sólido
+        backgroundColor: "hsl(var(--background) / 1)",
       }}
       position={position}
       {...props}

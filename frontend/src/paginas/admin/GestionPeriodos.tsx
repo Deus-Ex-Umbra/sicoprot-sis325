@@ -56,7 +56,6 @@ const GestionPeriodos = () => {
     fecha_inicio_inscripciones: '',
     fecha_fin_inscripciones: '',
     activo: false,
-    // REQ 5: CAMPOS AÑADIDOS
     fecha_limite_propuesta: '',
     fecha_limite_perfil: '',
     fecha_limite_proyecto: '',

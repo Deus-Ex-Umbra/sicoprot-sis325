@@ -74,6 +74,9 @@ export class Observacion {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   descripcion_corta: string;
+  
+  @Column({ type: 'varchar', length: 7, nullable: true, default: '#FFD700' })
+  color: string;
 
   @Column({
     type: 'enum',

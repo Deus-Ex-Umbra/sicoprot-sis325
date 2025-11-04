@@ -70,6 +70,7 @@ export class ObservacionesService {
       version_observada: documento.version,
       etapa_observada: documento.proyecto.etapa_actual,
       estado: EstadoObservacion.PENDIENTE,
+      color: crear_observacion_dto.color || '#FFD700',
     });
 
     return this.repositorio_observacion.save(nueva_observacion);

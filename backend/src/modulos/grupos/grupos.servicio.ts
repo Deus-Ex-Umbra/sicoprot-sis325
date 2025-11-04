@@ -35,11 +35,7 @@ export class GruposService {
     }
 
     const nuevo_grupo = this.repositorio_grupo.create({
-      nombre: crear_grupo_dto.nombre,
-      descripcion: crear_grupo_dto.descripcion,
-      activo: crear_grupo_dto.activo ?? true,
-      tipo: crear_grupo_dto.tipo,
-      carrera: crear_grupo_dto.carrera,
+      ...crear_grupo_dto,
       asesor,
       periodo,
     });
@@ -156,11 +152,15 @@ export class GruposService {
       grupo.periodo = periodo;
     }
 
-    if (actualizar_grupo_dto.nombre !== undefined) grupo.nombre = actualizar_grupo_dto.nombre;
-    if (actualizar_grupo_dto.descripcion !== undefined) grupo.descripcion = actualizar_grupo_dto.descripcion;
-    if (actualizar_grupo_dto.activo !== undefined) grupo.activo = actualizar_grupo_dto.activo;
-    if (actualizar_grupo_dto.tipo !== undefined) grupo.tipo = actualizar_grupo_dto.tipo;
-    if (actualizar_grupo_dto.carrera !== undefined) grupo.carrera = actualizar_grupo_dto.carrera;
+    const { nombre, descripcion, activo, tipo, carrera, ...fechas_limite } = actualizar_grupo_dto;
+    
+    if (nombre !== undefined) grupo.nombre = nombre;
+    if (descripcion !== undefined) grupo.descripcion = descripcion;
+    if (activo !== undefined) grupo.activo = activo;
+    if (tipo !== undefined) grupo.tipo = tipo;
+    if (carrera !== undefined) grupo.carrera = carrera;
+
+    Object.assign(grupo, fechas_limite);
 
     return this.repositorio_grupo.save(grupo);
   }
@@ -168,7 +168,7 @@ export class GruposService {
   async asignarEstudiante(id_grupo: number, id_estudiante: number) {
     const grupo = await this.repositorio_grupo.findOne({
       where: { id: id_grupo },
-      relations: ['estudiantes', 'periodo'],
+      relations: ['estudiantes', 'periodo', 'asesor'],
     });
 
     if (!grupo) {
@@ -181,7 +181,7 @@ export class GruposService {
 
     const estudiante = await this.repositorio_estudiante.findOne({
       where: { id: id_estudiante },
-      relations: ['grupos', 'grupos.periodo'],
+      relations: ['grupos', 'grupos.periodo', 'proyecto'],
     });
 
     if (!estudiante) {
@@ -193,8 +193,22 @@ export class GruposService {
       throw new BadRequestException('El estudiante ya pertenece a otro grupo activo. Debes removerlo primero.');
     }
 
+    const perfil_aprobado = estudiante.proyecto?.perfil_aprobado || false;
+    if (grupo.tipo === TipoGrupo.TALLER_GRADO_II && !perfil_aprobado) {
+      throw new BadRequestException('El estudiante debe tener un perfil aprobado para Taller II.');
+    }
+    if (grupo.tipo === TipoGrupo.TALLER_GRADO_I && perfil_aprobado) {
+      throw new BadRequestException('El estudiante ya tiene perfil aprobado, no puede unirse a Taller I.');
+    }
+
     if (!estudiante.grupos.find(g => g.id === id_grupo)) {
       estudiante.grupos.push(grupo);
+      
+      if (grupo.tipo === TipoGrupo.TALLER_GRADO_II && estudiante.proyecto) {
+        estudiante.proyecto.asesor = grupo.asesor;
+        estudiante.proyecto.etapa_actual = EtapaProyecto.PROYECTO;
+      }
+      
       await this.repositorio_estudiante.save(estudiante);
     }
 

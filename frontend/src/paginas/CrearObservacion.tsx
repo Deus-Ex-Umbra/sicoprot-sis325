@@ -274,30 +274,32 @@ const CrearObservacion = () => {
                 </Button>
               </div>
 
-              <div
-                ref={page_ref}
-                className="relative inline-block cursor-crosshair"
-                onClick={manejarClickPagina}
-              >
-                <Document
-                  file={`${api.defaults.baseURL}/documentos/${documento_seleccionado.id}/archivo`}
-                  onLoadSuccess={onDocumentLoadSuccess}
-                  loading={
-                    <div className="flex justify-center items-center h-96">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  }
+              <div className="w-full overflow-x-auto rounded-md border bg-muted/20 p-2">
+                <div
+                  ref={page_ref}
+                  className="relative inline-block cursor-crosshair"
+                  onClick={manejarClickPagina}
                 >
-                  <Page
-                    pageNumber={pagina_actual}
-                    scale={escala}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                    onLoadSuccess={onPageLoadSuccess}
-                  />
-                </Document>
-                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                  {renderizarMarcadores()}
+                  <Document
+                    file={`${api.defaults.baseURL}/documentos/${documento_seleccionado.id}/archivo`}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    loading={
+                      <div className="flex justify-center items-center h-96">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    }
+                  >
+                    <Page
+                      pageNumber={pagina_actual}
+                      scale={escala}
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                      onLoadSuccess={onPageLoadSuccess}
+                    />
+                  </Document>
+                  <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                    {renderizarMarcadores()}
+                  </div>
                 </div>
               </div>
             </CardContent>

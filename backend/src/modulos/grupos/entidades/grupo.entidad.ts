@@ -39,4 +39,19 @@ export class Grupo {
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fecha_creacion: Date;
+
+  @Column({ name: 'fecha_limite_propuesta', type: 'date', nullable: true })
+  fecha_limite_propuesta?: Date;
+
+  @Column({ name: 'fecha_limite_perfil', type: 'date', nullable: true })
+  fecha_limite_perfil?: Date;
+
+  @Column({ name: 'fecha_limite_proyecto', type: 'date', nullable: true })
+  fecha_limite_proyecto?: Date;
+
+  @Column({ name: 'dias_revision_asesor', type: 'int', default: 7 })
+  dias_revision_asesor: number;
+
+  @Column({ name: 'dias_correccion_estudiante', type: 'int', default: 14 })
+  dias_correccion_estudiante: number;
 }
