@@ -108,10 +108,22 @@ const DetalleProyecto = () => {
   };
 
   const getPestanaPorDefecto = () => {
-    if (proyecto?.etapa_actual === EtapaProyecto.PROPUESTA) return 'propuestas';
-    if (proyecto?.etapa_actual === EtapaProyecto.PROYECTO) return 'reuniones';
-    if (proyecto?.etapa_actual === EtapaProyecto.LISTO_DEFENSA || proyecto?.etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA || proyecto?.etapa_actual === EtapaProyecto.TERMINADO) return 'defensa';
-    return 'visor';
+    if (!proyecto) return 'propuestas';
+
+    switch (proyecto.etapa_actual) {
+      case EtapaProyecto.PROPUESTA:
+        return 'propuestas';
+      case EtapaProyecto.PERFIL:
+        return 'visor';
+      case EtapaProyecto.PROYECTO:
+        return 'reuniones';
+      case EtapaProyecto.LISTO_DEFENSA:
+      case EtapaProyecto.SOLICITUD_DEFENSA:
+      case EtapaProyecto.TERMINADO:
+        return 'defensa';
+      default:
+        return 'propuestas';
+    }
   };
 
   let contenido_pagina;
@@ -135,14 +147,25 @@ const DetalleProyecto = () => {
     );
   } else {
 
-    const es_taller_2_o_superior = proyecto.etapa_actual === EtapaProyecto.PROYECTO || 
-                                     proyecto.etapa_actual === EtapaProyecto.LISTO_DEFENSA || 
-                                     proyecto.etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA || 
-                                     proyecto.etapa_actual === EtapaProyecto.TERMINADO;
+    const etapa_actual = proyecto.etapa_actual;
+    
+    const es_taller_1 = etapa_actual === EtapaProyecto.PROPUESTA || etapa_actual === EtapaProyecto.PERFIL;
+    
+    const es_taller_2_o_superior = etapa_actual === EtapaProyecto.PROYECTO || 
+                                     etapa_actual === EtapaProyecto.LISTO_DEFENSA || 
+                                     etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA || 
+                                     etapa_actual === EtapaProyecto.TERMINADO;
 
-    const documentos_para_mostrar = es_taller_2_o_superior && !es_admin
-      ? documentos.slice(0, 1) // Solo el último documento (perfil) para Taller II
-      : documentos; // Todos los documentos para Taller I o si es Admin
+    const mostrar_pestana_propuestas = es_taller_1;
+    const mostrar_pestana_visor = etapa_actual !== EtapaProyecto.PROPUESTA;
+    const mostrar_pestana_reuniones = es_taller_2_o_superior;
+    const mostrar_pestana_defensa = es_taller_2_o_superior;
+
+    const puede_subir_documento = es_estudiante && etapa_actual === EtapaProyecto.PERFIL;
+    
+    const documentos_para_mostrar = (es_taller_2_o_superior || etapa_actual === EtapaProyecto.PERFIL) && !es_admin
+      ? documentos.slice(0, 1)
+      : documentos;
 
     const observaciones_del_documento = documento_seleccionado
       ? observaciones.filter(obs => obs.documento && obs.documento.id === documento_seleccionado.id)
@@ -172,14 +195,14 @@ const DetalleProyecto = () => {
             </Button>
             <div>
               <h1 className="text-3xl font-bold tracking-tight">{proyecto.titulo}</h1>
-              <p className="text-muted-foreground">Etapa actual: <Badge>{proyecto.etapa_actual}</Badge></p>
+              <div className="text-muted-foreground">Etapa actual: <Badge>{proyecto.etapa_actual}</Badge></div>
             </div>
           </div>
           <TabsList>
-            <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Visor de Documentos</TabsTrigger>
-            <TabsTrigger value="propuestas"><Info className="h-4 w-4 mr-2" />Propuestas</TabsTrigger>
-            <TabsTrigger value="reuniones"><Users className="h-4 w-4 mr-2" />Reuniones y Obs. (Taller II)</TabsTrigger>
-            <TabsTrigger value="defensa"><Shield className="h-4 w-4 mr-2" />Defensa</TabsTrigger>
+            {mostrar_pestana_propuestas && <TabsTrigger value="propuestas"><Info className="h-4 w-4 mr-2" />Propuestas</TabsTrigger>}
+            {mostrar_pestana_visor && <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Visor (Perfil)</TabsTrigger>}
+            {mostrar_pestana_reuniones && <TabsTrigger value="reuniones"><Users className="h-4 w-4 mr-2" />Reuniones y Obs. (Taller II)</TabsTrigger>}
+            {mostrar_pestana_defensa && <TabsTrigger value="defensa"><Shield className="h-4 w-4 mr-2" />Defensa</TabsTrigger>}
           </TabsList>
         </div>
 
@@ -190,13 +213,13 @@ const DetalleProyecto = () => {
             <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
-                  <CardTitle>Documentos</CardTitle>
+                  <CardTitle>Documentos (Perfil)</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {es_estudiante && !es_taller_2_o_superior && (
+                  {puede_subir_documento && (
                     <div className="space-y-2">
                       <Label htmlFor="file-upload" className="cursor-pointer">
-                        Seleccionar Archivo PDF
+                        Seleccionar Archivo PDF (Perfil)
                       </Label>
                       <Input
                         id="file-upload"
@@ -226,7 +249,7 @@ const DetalleProyecto = () => {
                      <Alert>
                         <AlertTitle>Etapa de Proyecto (Taller II)</AlertTitle>
                         <AlertDescription>
-                          Ya no se suben nuevas versiones de documentos. Las observaciones se gestionan en la pestaña "Reuniones y Obs. (Taller II)".
+                          Ya no se suben nuevas versiones. Este es el perfil aprobado para consulta.
                         </AlertDescription>
                       </Alert>
                   )}

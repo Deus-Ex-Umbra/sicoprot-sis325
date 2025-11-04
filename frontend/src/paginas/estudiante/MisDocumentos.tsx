@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { proyectosApi } from '../../servicios/api';
 import { type Proyecto, Rol } from '../../tipos/usuario';
 import BarraLateral from '../../componentes/barra-lateral';
@@ -59,18 +59,42 @@ const MisDocumentos = () => {
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
-  } else {
+  } else if (proyectos.length === 0) {
     contenido_pagina = (
-      <Accordion type="single" collapsible defaultValue="item-0">
-        {proyectos.map((proyecto, index) => (
-          <AccordionItem value={`item-${index}`} key={proyecto.id}>
-            <AccordionTrigger className="text-lg font-medium">
-              {proyecto.titulo}
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="flex flex-col gap-2">
-                {proyecto.documentos?.length ? (
-                  proyecto.documentos.map(doc => (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Sin Documentos</AlertTitle>
+        <AlertDescription>
+          No tienes proyectos registrados o tus proyectos aún no tienen documentos.
+        </AlertDescription>
+      </Alert>
+    );
+  } else {
+    const proyectos_con_documentos = proyectos.filter(
+      (p) => p.documentos && p.documentos.length > 0
+    );
+
+    if (proyectos_con_documentos.length === 0) {
+      contenido_pagina = (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Sin Documentos</AlertTitle>
+          <AlertDescription>
+            Tus proyectos actuales no tienen ningún documento subido.
+          </AlertDescription>
+        </Alert>
+      );
+    } else {
+      contenido_pagina = (
+        <Accordion type="single" collapsible defaultValue="item-0">
+          {proyectos_con_documentos.map((proyecto, index) => (
+            <AccordionItem value={`item-${index}`} key={proyecto.id}>
+              <AccordionTrigger className="text-lg font-medium">
+                {proyecto.titulo}
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex flex-col gap-2">
+                  {proyecto.documentos?.map((doc) => (
                     <div
                       key={doc.id}
                       className="flex justify-between items-center p-3 rounded-md border hover:bg-accent cursor-pointer"
@@ -84,18 +108,14 @@ const MisDocumentos = () => {
                         </Badge>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-center py-4">
-                    No hay documentos en este proyecto.
-                  </p>
-                )}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    );
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      );
+    }
   }
 
   return (

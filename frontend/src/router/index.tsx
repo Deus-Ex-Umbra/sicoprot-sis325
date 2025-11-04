@@ -26,18 +26,10 @@ import MiCronograma from '../paginas/estudiante/MiCronograma';
 import { Rol } from '../tipos/usuario';
 
 const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <Navigate to="/panel" replace />,
-  },
-  {
-    path: 'iniciar-sesion',
-    element: <IniciarSesion />,
-  },
-  {
-    path: 'registrarse',
-    element: <Registro />,
-  },
+  { path: '*', element: <Navigate to="/iniciar-sesion" replace /> },
+  { path: '/', element: <Navigate to="/panel" replace /> },
+  { path: '/iniciar-sesion', element: <IniciarSesion /> },
+  { path: '/registrarse', element: <Registro /> },
   {
     path: '/panel',
     element: (

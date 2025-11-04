@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { Bold, Italic, Underline, Strikethrough, List, ListOrdered } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Bold, Italic, Underline, Palette } from 'lucide-react';
 import { cn } from '../../lib/utilidades';
 import { Button } from './button';
-import { Separator } from './separator';
+import { Input } from './input';
 
 interface EditorHtmlSimpleProps {
   value: string;
@@ -18,8 +18,15 @@ export const EditorHtmlSimple: React.FC<EditorHtmlSimpleProps> = ({
   className,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
-
   const [es_placeholder_visible, set_es_placeholder_visible] = useState(value === '');
+  const [color, set_color] = useState('#000000');
+
+  useEffect(() => {
+    if (editorRef.current && value !== editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = value;
+      set_es_placeholder_visible(value === '' || value === '<p><br></p>');
+    }
+  }, [value]);
 
   const manejarInput = (e: React.FormEvent<HTMLDivElement>) => {
     const nuevo_valor = e.currentTarget.innerHTML;
@@ -31,8 +38,14 @@ export const EditorHtmlSimple: React.FC<EditorHtmlSimpleProps> = ({
     document.execCommand(comando, false, valor);
     if (editorRef.current) {
       editorRef.current.focus();
-      onChange(editorRef.current.innerHTML);
+      set_es_placeholder_visible(editorRef.current.textContent === '');
     }
+  };
+
+  const manejarCambioColor = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value;
+    set_color(newColor);
+    ejecutarComando('foreColor', newColor);
   };
 
   const BotonToolbar = ({
@@ -70,23 +83,38 @@ export const EditorHtmlSimple: React.FC<EditorHtmlSimpleProps> = ({
         <BotonToolbar comando="bold" icono={<Bold className="h-4 w-4" />} etiqueta="Negrita" />
         <BotonToolbar comando="italic" icono={<Italic className="h-4 w-4" />} etiqueta="Cursiva" />
         <BotonToolbar comando="underline" icono={<Underline className="h-4 w-4" />} etiqueta="Subrayado" />
-        <BotonToolbar comando="strikeThrough" icono={<Strikethrough className="h-4 w-4" />} etiqueta="Tachado" />
-        <Separator orientation="vertical" className="h-6" />
-        <BotonToolbar comando="insertUnorderedList" icono={<List className="h-4 w-4" />} etiqueta="Lista" />
-        <BotonToolbar comando="insertOrderedList" icono={<ListOrdered className="h-4 w-4" />} etiqueta="Lista Numerada" />
-      </div>
-      <div
-        ref={editorRef}
-        contentEditable
-        onInput={manejarInput}
-        dangerouslySetInnerHTML={{ __html: value }}
-        className="relative min-h-[150px] w-full p-3 text-sm ring-offset-background placeholder:text-muted-foreground [&_p]:m-0"
-      />
-      {es_placeholder_visible && placeholder && (
-        <div className="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground pointer-events-none">
-          {placeholder}
+        
+        <div className="relative w-8 h-8 ml-2">
+          <Input
+            type="color"
+            value={color}
+            onChange={manejarCambioColor}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer p-0 border-none"
+            title="Cambiar color de texto"
+          />
+          <div
+            className="w-full h-full rounded-md flex items-center justify-center pointer-events-none border border-input"
+            style={{ backgroundColor: color }}
+          >
+            <Palette className="h-4 w-4 text-white mix-blend-difference" />
+          </div>
         </div>
-      )}
+      </div>
+      <div className="relative">
+        <div
+          ref={editorRef}
+          contentEditable
+          onInput={manejarInput}
+          onBlur={manejarInput}
+          className="min-h-[150px] w-full p-3 text-sm ring-offset-background [&_p]:m-0"
+        />
+        {es_placeholder_visible && placeholder && (
+          <div className="absolute top-3 left-3 text-muted-foreground pointer-events-none">
+            {placeholder}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
+
