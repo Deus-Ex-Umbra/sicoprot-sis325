@@ -228,7 +228,7 @@ export class ObservacionesService {
   async cambiarEstado(
     id: number,
     id_usuario: number,
-    cambiarEstadoDto: ActualizarObservacionDto,
+    cambiar_estado_dto: ActualizarObservacionDto,
   ): Promise<Observacion> {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id },
@@ -246,7 +246,7 @@ export class ObservacionesService {
       throw new NotFoundException(`Observación con ID '${id}' no encontrada.`);
     }
 
-    if (!cambiarEstadoDto.estado) {
+    if (!cambiar_estado_dto.estado) {
       throw new BadRequestException(
         'El nuevo estado de la observación es obligatorio.',
       );
@@ -262,18 +262,18 @@ export class ObservacionesService {
       );
     }
 
-    this.validarTransicionEstado(observacion.estado, cambiarEstadoDto.estado);
+    this.validarTransicionEstado(observacion.estado, cambiar_estado_dto.estado);
 
-    observacion.estado = cambiarEstadoDto.estado;
-    if (cambiarEstadoDto.comentarios_asesor_html) {
+    observacion.estado = cambiar_estado_dto.estado;
+    if (cambiar_estado_dto.comentarios_asesor_html) {
       observacion.comentarios_asesor_html =
-        cambiarEstadoDto.comentarios_asesor_html;
+        cambiar_estado_dto.comentarios_asesor_html;
     }
 
-    const observacionActualizada =
+    const observacion_actualizada =
       await this.repositorio_observacion.save(observacion);
 
-    return observacionActualizada;
+    return observacion_actualizada;
   }
 
   async listarPendientes(id_usuario: number): Promise<Observacion[]> {
@@ -362,24 +362,24 @@ export class ObservacionesService {
     });
   }
 
-  async obtenerObservacionesPorProyecto(proyectoId: number, id_usuario: number) {
+  async obtenerObservacionesPorProyecto(proyecto_id: number, id_usuario: number) {
     return await this.repositorio_observacion
       .createQueryBuilder('observacion')
       .leftJoinAndSelect('observacion.documento', 'documento')
       .leftJoinAndSelect('observacion.proyecto', 'proyecto')
       .leftJoinAndSelect('observacion.autor', 'autor')
       .leftJoinAndSelect('observacion.correcciones', 'correccion')
-      .where('documento.proyecto.id = :proyectoId OR proyecto.id = :proyectoId', { proyectoId })
+      .where('documento.proyecto.id = :proyecto_id OR proyecto.id = :proyecto_id', { proyecto_id })
       .orderBy('observacion.fecha_creacion', 'DESC')
       .getMany();
   }
 
   async obtenerEstadisticasPorDocumento(
-    documentoId: number,
+    documento_id: number,
     id_usuario: number,
   ) {
     const observaciones = await this.repositorio_observacion.find({
-      where: { documento: { id: documentoId } },
+      where: { documento: { id: documento_id } },
     });
 
     const estadisticas = {
@@ -399,7 +399,7 @@ export class ObservacionesService {
     };
 
     return {
-      documentoId,
+      documento_id,
       estadisticas,
       porcentaje_completado:
         estadisticas.total > 0
@@ -408,17 +408,17 @@ export class ObservacionesService {
     };
   }
 
-  async obtenerObservacionesPorRevisor(revisorId: number, id_usuario: number) {
+  async obtenerObservacionesPorRevisor(revisor_id: number, id_usuario: number) {
     const asesor = await this.repositorio_asesor.findOne({
-      where: { id: revisorId },
+      where: { id: revisor_id },
     });
 
     if (!asesor) {
-      throw new NotFoundException(`Asesor con ID ${revisorId} no encontrado`);
+      throw new NotFoundException(`Asesor con ID ${revisor_id} no encontrado`);
     }
 
     return await this.repositorio_observacion.find({
-      where: { autor: { id: revisorId } },
+      where: { autor: { id: revisor_id } },
       relations: ['documento', 'documento.proyecto', 'proyecto'],
       order: { fecha_creacion: 'DESC' },
     });
@@ -505,10 +505,10 @@ export class ObservacionesService {
   }
 
   private validarTransicionEstado(
-    estadoActual: EstadoObservacion,
-    nuevoEstado: EstadoObservacion,
+    estado_actual: EstadoObservacion,
+    nuevo_estado: EstadoObservacion,
   ): void {
-    const transicionesValidas: {
+    const transiciones_validas: {
       [key in EstadoObservacion]?: EstadoObservacion[];
     } = {
       [EstadoObservacion.PENDIENTE]: [
@@ -527,11 +527,11 @@ export class ObservacionesService {
       ],
     };
 
-    const transicionesPermitidas = transicionesValidas[estadoActual] || [];
+    const transiciones_permitidas = transiciones_validas[estado_actual] || [];
 
-    if (!transicionesPermitidas.includes(nuevoEstado)) {
+    if (!transiciones_permitidas.includes(nuevo_estado)) {
       throw new BadRequestException(
-        `Transición inválida de ${estadoActual} a ${nuevoEstado}`,
+        `Transición inválida de ${estado_actual} a ${nuevo_estado}`,
       );
     }
   }
