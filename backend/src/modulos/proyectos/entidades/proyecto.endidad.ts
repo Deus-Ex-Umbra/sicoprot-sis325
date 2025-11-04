@@ -5,6 +5,7 @@ import { Asesor } from '../../asesores/entidades/asesor.entidad';
 import { EtapaProyecto } from '../enums/etapa-proyecto.enum';
 import { PropuestaTema } from '../../propuestas-tema/entidades/propuesta-tema.entidad';
 import { Reunion } from '../../reuniones/entidades/reunion.entidad';
+import { Observacion } from '../../observaciones/entidades/observacion.entidad';
 
 @Entity('proyectos')
 export class Proyecto {
@@ -31,6 +32,9 @@ export class Proyecto {
 
   @OneToMany(() => Reunion, (reunion) => reunion.proyecto)
   reuniones: Reunion[];
+
+  @OneToMany(() => Observacion, (observacion) => observacion.proyecto)
+  observaciones: Observacion[];
 
   @Column({ type: 'enum', enum: EtapaProyecto, default: EtapaProyecto.PROPUESTA })
   etapa_actual: EtapaProyecto;

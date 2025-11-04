@@ -15,6 +15,8 @@ import { ActualizarObservacionDto } from './dto/actualizar-observacion.dto';
 import { VerificarObservacionDto } from './dto/verificar-observacion.dto';
 import { EstadoObservacion } from './enums/estado-observacion.enum';
 import { EtapaProyecto } from '../proyectos/enums/etapa-proyecto.enum';
+import { Proyecto } from '../proyectos/entidades/proyecto.endidad';
+import { CrearObservacionProyectoDto } from './dto/crear-observacion-proyecto.dto';
 
 @Injectable()
 export class ObservacionesService {
@@ -27,6 +29,8 @@ export class ObservacionesService {
     private readonly repositorio_asesor: Repository<Asesor>,
     @InjectRepository(Estudiante)
     private readonly repositorio_estudiante: Repository<Estudiante>,
+    @InjectRepository(Proyecto)
+    private readonly repositorio_proyecto: Repository<Proyecto>,
   ) {}
 
   async crear(
@@ -61,9 +65,56 @@ export class ObservacionesService {
         crear_observacion_dto.descripcion_corta ||
         crear_observacion_dto.titulo,
       documento,
+      proyecto: documento.proyecto,
       autor: asesor,
       version_observada: documento.version,
       etapa_observada: documento.proyecto.etapa_actual,
+      estado: EstadoObservacion.PENDIENTE,
+    });
+
+    return this.repositorio_observacion.save(nueva_observacion);
+  }
+
+  async crearParaProyecto(
+    id_proyecto: number,
+    crear_obs_proyecto_dto: CrearObservacionProyectoDto,
+    id_usuario: number,
+  ) {
+    const proyecto = await this.repositorio_proyecto.findOne({
+      where: { id: id_proyecto },
+    });
+    if (!proyecto) {
+      throw new NotFoundException(
+        `Proyecto con ID '${id_proyecto}' no encontrado.`,
+      );
+    }
+
+    const asesor = await this.repositorio_asesor.findOne({
+      where: { usuario: { id: id_usuario } },
+    });
+
+    if (!asesor) {
+      throw new ForbiddenException(
+        'Solo los asesores pueden crear observaciones.',
+      );
+    }
+    
+    if (proyecto.etapa_actual !== EtapaProyecto.PROYECTO) {
+      throw new BadRequestException(
+        'Solo se pueden crear observaciones de proyecto en la etapa de "PROYECTO" (Taller II).',
+      );
+    }
+
+    const nueva_observacion = this.repositorio_observacion.create({
+      ...crear_obs_proyecto_dto,
+      contenido_html: crear_obs_proyecto_dto.contenido_html,
+      descripcion_corta:
+        crear_obs_proyecto_dto.descripcion_corta ||
+        crear_obs_proyecto_dto.titulo,
+      proyecto,
+      documento: undefined,
+      autor: asesor,
+      etapa_observada: proyecto.etapa_actual,
       estado: EstadoObservacion.PENDIENTE,
     });
 
@@ -113,6 +164,10 @@ export class ObservacionesService {
     
     if (actualizar_observacion_dto.contenido_html) {
         observacion.contenido_html = actualizar_observacion_dto.contenido_html;
+    }
+
+    if (actualizar_observacion_dto.estado) {
+      delete actualizar_observacion_dto.estado;
     }
 
     Object.assign(observacion, actualizar_observacion_dto);
@@ -181,6 +236,8 @@ export class ObservacionesService {
         'documento',
         'documento.proyecto',
         'documento.proyecto.estudiantes',
+        'proyecto',
+        'proyecto.estudiantes'
       ],
     });
 
@@ -234,7 +291,7 @@ export class ObservacionesService {
         estado: EstadoObservacion.PENDIENTE,
         autor: { id: asesor.id },
       },
-      relations: ['documento', 'autor'],
+      relations: ['documento', 'autor', 'proyecto'],
       order: { fecha_creacion: 'ASC' },
     });
   }
@@ -246,7 +303,7 @@ export class ObservacionesService {
   ): Promise<Observacion> {
     const obs = await this.repositorio_observacion.findOne({
       where: { id },
-      relations: ['autor', 'documento', 'correcciones'],
+      relations: ['autor', 'documento', 'correcciones', 'proyecto'],
     });
 
     if (!obs) {
@@ -295,6 +352,10 @@ export class ObservacionesService {
         'documento.proyecto.estudiantes',
         'documento.proyecto.estudiantes.usuario',
         'documento.proyecto.asesor',
+        'proyecto',
+        'proyecto.estudiantes',
+        'proyecto.estudiantes.usuario',
+        'proyecto.asesor',
       ],
       order: { fecha_creacion: 'DESC' },
     });
@@ -303,10 +364,11 @@ export class ObservacionesService {
   async obtenerObservacionesPorProyecto(proyectoId: number, id_usuario: number) {
     return await this.repositorio_observacion
       .createQueryBuilder('observacion')
-      .innerJoinAndSelect('observacion.documento', 'documento')
-      .innerJoinAndSelect('observacion.autor', 'autor')
+      .leftJoinAndSelect('observacion.documento', 'documento')
+      .leftJoinAndSelect('observacion.proyecto', 'proyecto')
+      .leftJoinAndSelect('observacion.autor', 'autor')
       .leftJoinAndSelect('observacion.correcciones', 'correccion')
-      .where('documento.proyecto.id = :proyectoId', { proyectoId })
+      .where('documento.proyecto.id = :proyectoId OR proyecto.id = :proyectoId', { proyectoId })
       .orderBy('observacion.fecha_creacion', 'DESC')
       .getMany();
   }
@@ -356,7 +418,7 @@ export class ObservacionesService {
 
     return await this.repositorio_observacion.find({
       where: { autor: { id: revisorId } },
-      relations: ['documento', 'documento.proyecto'],
+      relations: ['documento', 'documento.proyecto', 'proyecto'],
       order: { fecha_creacion: 'DESC' },
     });
   }
@@ -364,7 +426,7 @@ export class ObservacionesService {
   async obtenerObservacionPorId(id: number, id_usuario: number) {
     const observacion = await this.repositorio_observacion.findOne({
       where: { id },
-      relations: ['autor', 'documento', 'documento.proyecto', 'correcciones'],
+      relations: ['autor', 'documento', 'documento.proyecto', 'correcciones', 'proyecto'],
     });
 
     if (!observacion) {
@@ -412,14 +474,20 @@ export class ObservacionesService {
     if (!estudiante.proyecto) {
       return [];
     }
+    
+    const id_proyecto = estudiante.proyecto.id;
 
     return this.repositorio_observacion.find({
-      where: {
-        documento: {
-          proyecto: { id: estudiante.proyecto.id },
+      where: [
+        {
+          documento: { proyecto: { id: id_proyecto } },
+          archivada: false,
         },
-        archivada: false,
-      },
+        {
+          proyecto: { id: id_proyecto },
+          archivada: false,
+        }
+      ],
       relations: [
         'autor',
         'autor.usuario',
@@ -428,6 +496,7 @@ export class ObservacionesService {
         'documento.proyecto.estudiantes',
         'documento.proyecto.estudiantes.usuario',
         'documento.proyecto.asesor',
+        'proyecto',
         'correcciones',
       ],
       order: { fecha_creacion: 'DESC' },
@@ -443,6 +512,7 @@ export class ObservacionesService {
     } = {
       [EstadoObservacion.PENDIENTE]: [
         EstadoObservacion.EN_REVISION,
+        EstadoObservacion.CORREGIDA,
       ],
       [EstadoObservacion.EN_REVISION]: [
         EstadoObservacion.CORREGIDA,
@@ -450,6 +520,9 @@ export class ObservacionesService {
       ],
       [EstadoObservacion.RECHAZADO]: [
           EstadoObservacion.EN_REVISION
+      ],
+      [EstadoObservacion.CORREGIDA]: [
+          EstadoObservacion.PENDIENTE 
       ],
     };
 
@@ -466,13 +539,15 @@ export class ObservacionesService {
     id_proyecto: number,
     etapa: EtapaProyecto,
   ): Promise<number> {
-    return this.repositorio_observacion.count({
-      where: {
-        documento: { proyecto: { id: id_proyecto } },
-        etapa_observada: etapa,
-        estado: In([EstadoObservacion.PENDIENTE, EstadoObservacion.RECHAZADO, EstadoObservacion.EN_REVISION]),
-        archivada: false,
-      },
-    });
+    const qb = this.repositorio_observacion.createQueryBuilder('observacion')
+      .leftJoin('observacion.documento', 'documento')
+      .where('observacion.etapa_observada = :etapa', { etapa })
+      .andWhere('observacion.archivada = false')
+      .andWhere('observacion.estado IN (:...estados)', { 
+        estados: [EstadoObservacion.PENDIENTE, EstadoObservacion.RECHAZADO, EstadoObservacion.EN_REVISION] 
+      })
+      .andWhere('(documento.proyecto.id = :id_proyecto OR observacion.proyecto.id = :id_proyecto)', { id_proyecto });
+
+    return qb.getCount();
   }
 }

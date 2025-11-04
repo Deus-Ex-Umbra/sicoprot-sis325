@@ -169,6 +169,7 @@ export interface Proyecto {
   documentos?: Documento[];
   propuestas_tema?: PropuestaTema[];
   reuniones?: Reunion[];
+  observaciones?: Observacion[];
   etapa_actual: EtapaProyecto;
   propuesta_aprobada: boolean;
   perfil_aprobado: boolean;
@@ -210,7 +211,8 @@ export interface Observacion {
   fecha_creacion: string;
   fecha_actualizacion: string;
   autor: Asesor;
-  documento: Documento;
+  documento?: Documento | null;
+  proyecto?: Proyecto | null;
   correcciones?: Correccion[];
 }
 

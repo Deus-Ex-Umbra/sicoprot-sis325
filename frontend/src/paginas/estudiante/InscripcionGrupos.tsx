@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   UserPlus,
-  UserMinus,
   Users,
   Briefcase,
   Calendar,
@@ -85,27 +84,6 @@ const InscripcionGrupos = () => {
     }
   };
 
-  const manejarDesinscripcion = async () => {
-    if (!mi_grupo || procesando) return;
-    if (!window.confirm('¿Estás seguro de que deseas desinscribirte de este grupo?')) {
-      return;
-    }
-    set_procesando(true);
-    try {
-      const respuesta = await gruposApi.desinscribirseDeGrupo(mi_grupo.id);
-      toast.success('Te has desinscrito exitosamente del grupo.');
-      if (respuesta.usuario_actualizado) {
-        actualizarUsuario(respuesta.usuario_actualizado);
-      }
-      await cargarDatos();
-    } catch (err: any) {
-      const mensaje = err.response?.data?.message || 'Error al desinscribirse del grupo';
-      toast.error(mensaje);
-    } finally {
-      set_procesando(false);
-    }
-  };
-
   let contenido_pagina;
 
   if (cargando) {
@@ -171,15 +149,7 @@ const InscripcionGrupos = () => {
               )}
             </div>
             <div className="flex items-center justify-center md:justify-end">
-              <Button
-                variant="destructive"
-                size="lg"
-                onClick={manejarDesinscripcion}
-                disabled={procesando}
-              >
-                <UserMinus className="mr-2 h-4 w-4" />
-                {procesando ? 'Procesando...' : 'Desinscribirme del Grupo'}
-              </Button>
+              {/* Botón de desinscribirse eliminado */}
             </div>
           </div>
 

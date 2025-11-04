@@ -315,6 +315,10 @@ export const observacionesApi = {
     const respuesta = await api.post(`/observaciones/${documentoId}/crear`, datos);
     return respuesta.data;
   },
+  crearParaProyecto: async (proyectoId: number, datos: any) => {
+    const respuesta = await api.post(`/observaciones/proyecto/${proyectoId}/crear`, datos);
+    return respuesta.data;
+  },
   obtenerPorDocumento: async (documentoId: number, params?: any) => {
     const respuesta = await api.get(`/observaciones/por-documento/${documentoId}`, { params });
     return respuesta.data;
