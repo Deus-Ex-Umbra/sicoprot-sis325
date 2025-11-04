@@ -15,7 +15,7 @@ import {
   asesoresApi,
   adminApi,
 } from '../../servicios/api';
-import { type Grupo, type Periodo, type Usuario, type Estudiante, Rol } from '../../tipos/usuario';
+import { type Grupo, type Periodo, type Usuario, type Estudiante, Rol, type Proyecto } from '../../tipos/usuario';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utilidades';
 import BarraLateralAdmin from '../../componentes/barra-lateral-admin';

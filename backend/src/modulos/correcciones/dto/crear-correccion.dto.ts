@@ -12,6 +12,15 @@ import { ApiProperty } from '@nestjs/swagger';
 export class CrearCorreccionDto {
   @ApiProperty({
     description:
+      'ID de la observación a la que responde esta corrección',
+    example: 1,
+  })
+  @IsNumber()
+  @IsNotEmpty({ message: 'El ID de la observación es obligatorio' })
+  id_observacion: number;
+
+  @ApiProperty({
+    description:
       'Descripción detallada en HTML de la corrección realizada por el estudiante',
     example:
       '<p>Se <b>corrigió</b> la redacción del capítulo 2 y se <i>ajustaron</i> las referencias.</p>',

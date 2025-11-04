@@ -110,7 +110,7 @@ export class CorreccionesService {
     let esEstudiante = false;
     let documento_correccion: Documento | undefined = undefined;
 
-    if (esTaller1) {
+    if (esTaller1 && observacion.documento) {
         esEstudiante = observacion.documento.proyecto.estudiantes?.some(
           (est) => est.id === estudiante.id,
         );
@@ -118,7 +118,7 @@ export class CorreccionesService {
         documento_correccion = await this.repositorio_documento.findOneBy({
             proyecto: { id: observacion.documento.proyecto.id },
             version: crear_correccion_dto.version_corregida,
-        });
+        }) || undefined;
 
         if (!documento_correccion) {
             throw new NotFoundException(`No se encontró el documento versión ${crear_correccion_dto.version_corregida} en el proyecto.`);

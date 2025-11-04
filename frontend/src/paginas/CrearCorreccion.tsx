@@ -149,7 +149,6 @@ const CrearCorreccion = () => {
         y_fin: punto_fin.y,
         pagina_fin: punto_fin.pagina,
         id_observacion: id_observacion_seleccionada,
-        id_documento: documento_seleccionado.id,
         version_corregida: documento_seleccionado.version,
         color
       });
@@ -400,7 +399,6 @@ const CrearCorreccion = () => {
                     <SelectValue placeholder="Seleccione una observación..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Seleccione una observación...</SelectItem>
                     {observaciones_pendientes.map((obs: any) => (
                       <SelectItem key={obs.id} value={String(obs.id)}>
                         Pág. {obs.pagina_inicio}: {obs.titulo}

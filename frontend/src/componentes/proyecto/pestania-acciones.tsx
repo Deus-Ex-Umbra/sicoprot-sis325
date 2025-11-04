@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui
 interface PestanaAccionesProps {
   proyecto: Proyecto;
   observaciones_pendientes: number;
-  tipo_grupo_actual: typeof TipoGrupo[keyof typeof TipoGrupo] | null;
+  tipo_grupo_actual: TipoGrupo | null;
   onActualizarProyecto: () => void;
 }
 

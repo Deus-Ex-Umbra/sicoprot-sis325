@@ -45,6 +45,13 @@ export const EstadoReunion = {
 
 export type EstadoReunion = typeof EstadoReunion[keyof typeof EstadoReunion];
 
+export const TipoGrupo = {
+  TALLER_GRADO_I: 'taller_grado_i',
+  TALLER_GRADO_II: 'taller_grado_ii',
+} as const;
+
+export type TipoGrupo = typeof TipoGrupo[keyof typeof TipoGrupo];
+
 export interface Estudiante {
   id: number;
   nombre: string;
@@ -75,12 +82,13 @@ export interface Usuario {
   perfil?: {
     id_estudiante?: number;
     id_asesor?: number;
-    nombre: string;
-    apellido: string;
+    nombre?: string;
+    apellido?: string;
     ruta_foto?: string;
     foto_url?: string;
     grupo?: Grupo | null;
     grupos?: Grupo[];
+    proyecto?: Proyecto | null;
   };
 }
 

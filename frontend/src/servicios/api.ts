@@ -285,8 +285,8 @@ export const proyectosApi = {
     const respuesta = await api.get('/proyectos/buscar', { params });
     return respuesta.data;
   },
-  obtenerSolicitudesDefensa: async () => {
-    const respuesta = await api.get('/proyectos/solicitudes/defensa');
+  obtenerSolicitudesDefensa: async (estado?: string) => {
+    const respuesta = await api.get('/proyectos/solicitudes/defensa', { params: { estado } });
     return respuesta.data;
   },
   solicitarDefensa: async (id: number, datos: any) => {

@@ -175,7 +175,7 @@ const ChecklistObservaciones: React.FC<Props> = ({ observaciones }) => {
                     <AccordionTrigger>
                       <div className="flex items-center gap-2">
                          <Badge
-                            variant="outline"
+                            variant={config?.variant as any || 'outline'}
                             className={cn("flex items-center gap-1.5", config?.className)}
                           >
                             <Icono className="h-3 w-3" />
