@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search, X } from 'lucide-react';
 import { proyectosApi } from '../../servicios/api';
 import { type Proyecto, Rol } from '../../tipos/usuario';
 import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
@@ -19,11 +19,15 @@ import BarraLateral from '../../componentes/barra-lateral';
 import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { cn } from '../../lib/utilidades';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
+import { Input } from '../../componentes/ui/input';
+import { Label } from '../../componentes/ui/label';
 
 const RevisarDocumentos = () => {
   const [proyectos, set_proyectos] = useState<Proyecto[]>([]);
+  const [proyectos_filtrados, set_proyectos_filtrados] = useState<Proyecto[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
+  const [filtro_busqueda, set_filtro_busqueda] = useState('');
   const navigate = useNavigate();
   const { usuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
@@ -35,18 +39,42 @@ const RevisarDocumentos = () => {
   };
 
   useEffect(() => {
-    const cargarProyectos = async () => {
-      try {
-        const data = await proyectosApi.obtenerTodos();
-        set_proyectos(data.filter((p: Proyecto) => p.documentos && p.documentos.length > 0));
-      } catch (err) {
-        set_error('No se pudo cargar la lista de documentos a revisar.');
-      } finally {
-        set_cargando(false);
-      }
-    };
     cargarProyectos();
   }, []);
+
+  useEffect(() => {
+    aplicarFiltros();
+  }, [filtro_busqueda, proyectos]);
+
+  const cargarProyectos = async () => {
+    try {
+      const data = await proyectosApi.obtenerTodos();
+      const proyectos_con_documentos = data.filter((p: Proyecto) => p.documentos && p.documentos.length > 0);
+      set_proyectos(proyectos_con_documentos);
+      set_proyectos_filtrados(proyectos_con_documentos);
+    } catch (err) {
+      set_error('No se pudo cargar la lista de documentos a revisar.');
+    } finally {
+      set_cargando(false);
+    }
+  };
+
+  const aplicarFiltros = () => {
+    let resultado = [...proyectos];
+    const busqueda_lower = filtro_busqueda.toLowerCase();
+
+    if (busqueda_lower) {
+      resultado = resultado.filter(p => {
+        const estudiante = p.estudiantes?.[0];
+        const nombre_estudiante = estudiante ? `${estudiante.nombre} ${estudiante.apellido}` : '';
+        return (
+          p.titulo.toLowerCase().includes(busqueda_lower) ||
+          nombre_estudiante.toLowerCase().includes(busqueda_lower)
+        );
+      });
+    }
+    set_proyectos_filtrados(resultado);
+  };
 
   let contenido_pagina;
 
@@ -68,6 +96,20 @@ const RevisarDocumentos = () => {
       <Card>
         <CardHeader>
           <CardTitle>Revisar Documentos</CardTitle>
+          <div className="mt-4">
+            <Label htmlFor="busqueda-proyecto">Buscar Proyecto o Estudiante</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="busqueda-proyecto"
+                type="text"
+                placeholder="Nombre de proyecto, estudiante..."
+                value={filtro_busqueda}
+                onChange={(e) => set_filtro_busqueda(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -81,8 +123,8 @@ const RevisarDocumentos = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {proyectos.map((proyecto) => {
-                const ultimo_documento = proyecto.documentos?.[0];
+              {proyectos_filtrados.map((proyecto) => {
+                const ultimo_documento = proyecto.documentos?.sort((a, b) => b.version - a.version)[0];
                 return (
                   <TableRow key={proyecto.id}>
                     <TableCell className="font-medium">{proyecto.titulo}</TableCell>
@@ -107,9 +149,9 @@ const RevisarDocumentos = () => {
               })}
             </TableBody>
           </Table>
-          {proyectos.length === 0 && (
+          {proyectos_filtrados.length === 0 && (
             <p className="text-muted-foreground text-center py-10">
-              No hay documentos pendientes de revisión.
+              {filtro_busqueda ? 'No se encontraron proyectos.' : 'No hay documentos pendientes de revisión.'}
             </p>
           )}
         </CardContent>

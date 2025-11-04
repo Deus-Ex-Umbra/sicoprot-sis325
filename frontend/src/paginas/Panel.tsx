@@ -6,11 +6,12 @@ import {
   FolderKanban,
   FileText,
   MessageSquare,
+  Users,
   GraduationCap,
   AlertCircle,
   BookOpen,
-  Users,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../componentes/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '../componentes/ui/alert';
@@ -31,6 +32,8 @@ const Panel = () => {
 
   const tiene_grupo = !!(es_estudiante && usuario?.perfil?.grupo);
   const grupo = usuario?.perfil?.grupo;
+
+  const [mostrar_alerta_grupo, set_mostrar_alerta_grupo] = useState(es_estudiante && !tiene_grupo);
 
   useEffect(() => {
     if (es_admin) {
@@ -137,24 +140,36 @@ const Panel = () => {
               </p>
             </div>
 
-            {es_estudiante && !tiene_grupo && (
+            {mostrar_alerta_grupo && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Importante: No estás inscrito en ningún grupo</AlertTitle>
-                <AlertDescription className="mt-2 space-y-2">
-                  <p>
-                    Para crear proyectos y recibir orientación, debes inscribirte en un grupo de asesoría.
-                  </p>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <AlertTitle>Importante: No estás inscrito en ningún grupo</AlertTitle>
+                    <AlertDescription className="mt-2 space-y-2">
+                      <p>
+                        Para crear proyectos y recibir orientación, debes inscribirte en un grupo de asesoría.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate('/panel/inscripcion-grupos')}
+                        className="mt-2"
+                      >
+                        Inscribirme en un Grupo
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </AlertDescription>
+                  </div>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/panel/inscripcion-grupos')}
-                    className="mt-2"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => set_mostrar_alerta_grupo(false)}
                   >
-                    Inscribirme en un Grupo
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <X className="h-4 w-4" />
                   </Button>
-                </AlertDescription>
+                </div>
               </Alert>
             )}
 
