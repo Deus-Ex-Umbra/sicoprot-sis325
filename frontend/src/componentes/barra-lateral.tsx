@@ -24,6 +24,7 @@ import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { Rol } from '../tipos/usuario';
 import { useState } from 'react';
+import { obtenerUrlFoto } from '../servicios/api';
 
 interface BarraLateralProps {
   isOpen: boolean;
@@ -81,7 +82,7 @@ const BarraLateral = ({ isOpen }: BarraLateralProps) => {
     return usuario?.correo || '';
   };
 
-  const ruta_foto = usuario?.ruta_foto || usuario?.perfil?.ruta_foto;
+  const ruta_foto = obtenerUrlFoto(usuario?.ruta_foto || usuario?.perfil?.ruta_foto);
 
   return (
     <aside

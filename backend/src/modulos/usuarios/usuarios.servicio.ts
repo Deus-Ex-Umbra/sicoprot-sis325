@@ -88,7 +88,7 @@ export class UsuariosService {
 
     let perfil_completo: any = null;
     if (usuario.rol === Rol.Estudiante && usuario.estudiante) {
-      const grupo_activo = usuario.estudiante.grupos?.find(g => g.periodo.activo);
+      const grupo_activo = usuario.estudiante.grupos?.find(g => g.periodo && g.periodo.activo);
       perfil_completo = {
         id_estudiante: usuario.estudiante.id,
         nombre: usuario.estudiante.nombre,
@@ -150,6 +150,11 @@ export class UsuariosService {
       throw new NotFoundException(`Usuario con ID '${id}' no encontrado.`);
     }
 
+    // No permitir actualizar ruta_foto desde este DTO, usar actualizarFoto
+    if (actualizar_perfil_dto.ruta_foto) {
+      delete actualizar_perfil_dto.ruta_foto;
+    }
+
     if (actualizar_perfil_dto.correo && actualizar_perfil_dto.correo !== usuario.correo) {
       const correo_existe = await this.repositorio_usuario.findOne({
         where: { correo: actualizar_perfil_dto.correo },
@@ -177,11 +182,7 @@ export class UsuariosService {
       usuario.contrasena = await bcrypt.hash(actualizar_perfil_dto.contrasena_nueva, 10);
     }
 
-    if (actualizar_perfil_dto.ruta_foto) {
-      usuario.ruta_foto = actualizar_perfil_dto.ruta_foto;
-    }
-
-    if (actualizar_perfil_dto.nombre || actualizar_perfil_dto.apellido || actualizar_perfil_dto.ruta_foto) {
+    if (actualizar_perfil_dto.nombre || actualizar_perfil_dto.apellido) {
       if (usuario.rol === Rol.Estudiante) {
         const estudiante = await this.repositorio_estudiante.findOne({
           where: { usuario: { id: usuario.id } },
@@ -189,7 +190,6 @@ export class UsuariosService {
         if (estudiante) {
           if (actualizar_perfil_dto.nombre) estudiante.nombre = actualizar_perfil_dto.nombre;
           if (actualizar_perfil_dto.apellido) estudiante.apellido = actualizar_perfil_dto.apellido;
-          if (actualizar_perfil_dto.ruta_foto) estudiante.ruta_foto = actualizar_perfil_dto.ruta_foto;
           await this.repositorio_estudiante.save(estudiante);
           usuario.estudiante = estudiante;
         }
@@ -200,40 +200,32 @@ export class UsuariosService {
         if (asesor) {
           if (actualizar_perfil_dto.nombre) asesor.nombre = actualizar_perfil_dto.nombre;
           if (actualizar_perfil_dto.apellido) asesor.apellido = actualizar_perfil_dto.apellido;
-          if (actualizar_perfil_dto.ruta_foto) asesor.ruta_foto = actualizar_perfil_dto.ruta_foto;
           await this.repositorio_asesor.save(asesor);
           usuario.asesor = asesor;
         }
       }
     }
 
-    const usuario_actualizado = await this.repositorio_usuario.save(usuario);
-    const { contrasena: _, ...usuario_para_retornar } = usuario_actualizado;
+    await this.repositorio_usuario.save(usuario);
+    return this.obtenerPerfilCompleto(usuario.id);
+  }
 
-    let perfil: { id_estudiante: number; nombre: string; apellido: string; ruta_foto?: string; grupo?: any } | { id_asesor: number; nombre: string; apellido: string; ruta_foto?: string; grupos?: any[] } | null = null;
-    if (usuario.rol === Rol.Estudiante && usuario.estudiante) {
-      const grupo_activo = usuario.estudiante.grupos?.find(g => g.periodo.activo);
-      perfil = {
-        id_estudiante: usuario.estudiante.id,
-        nombre: usuario.estudiante.nombre,
-        apellido: usuario.estudiante.apellido,
-        ruta_foto: usuario.estudiante.ruta_foto,
-        grupo: grupo_activo || null,
-      };
-    } else if (usuario.rol === Rol.Asesor && usuario.asesor) {
-      perfil = {
-        id_asesor: usuario.asesor.id,
-        nombre: usuario.asesor.nombre,
-        apellido: usuario.asesor.apellido,
-        ruta_foto: usuario.asesor.ruta_foto,
-        grupos: usuario.asesor.grupos,
-      };
+  async actualizarFoto(id_usuario: number, ruta_archivo: string) {
+    const usuario = await this.repositorio_usuario.findOneBy({ id: id_usuario });
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID '${id_usuario}' no encontrado.`);
     }
 
-    return {
-      ...usuario_para_retornar,
-      perfil,
-    };
+    usuario.ruta_foto = ruta_archivo;
+
+    if (usuario.rol === Rol.Estudiante) {
+      await this.repositorio_estudiante.update({ usuario: { id: id_usuario } }, { ruta_foto: ruta_archivo });
+    } else if (usuario.rol === Rol.Asesor) {
+      await this.repositorio_asesor.update({ usuario: { id: id_usuario } }, { ruta_foto: ruta_archivo });
+    }
+
+    await this.repositorio_usuario.save(usuario);
+    return this.obtenerPerfilCompleto(id_usuario);
   }
 
   async eliminar(id: number) {
