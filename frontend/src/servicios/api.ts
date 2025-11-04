@@ -52,8 +52,6 @@ export const obtenerUrlFoto = (ruta?: string) => {
   if (ruta.startsWith('data:') || ruta.startsWith('http')) {
     return ruta;
   }
-  // Asume que la ruta es algo como 'uploads/perfiles/imagen.png'
-  // y la API la sirve en '/api/uploads/perfiles/imagen.png'
   return `${api.defaults.baseURL}/${ruta}`;
 };
 
@@ -267,6 +265,10 @@ export const proyectosApi = {
     const respuesta = await api.patch(`/proyectos/${id}/tema`, datos);
     return respuesta.data;
   },
+  actualizarPropuesta: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/proyectos/${id}/propuesta`, datos);
+    return respuesta.data;
+  },
   obtenerHistorialProgreso: async () => {
     const respuesta = await api.get('/proyectos/historial-progreso');
     return respuesta.data;
@@ -281,6 +283,10 @@ export const proyectosApi = {
   },
   buscarProyectos: async (params: any) => {
     const respuesta = await api.get('/proyectos/buscar', { params });
+    return respuesta.data;
+  },
+  obtenerSolicitudesDefensa: async () => {
+    const respuesta = await api.get('/proyectos/solicitudes/defensa');
     return respuesta.data;
   },
   solicitarDefensa: async (id: number, datos: any) => {

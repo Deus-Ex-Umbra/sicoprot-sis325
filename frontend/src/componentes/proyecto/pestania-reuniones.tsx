@@ -154,12 +154,20 @@ export const PestanaReuniones = ({ proyecto, observaciones, onActualizarProyecto
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {reunion.descripcion && <p className="text-sm">{reunion.descripcion}</p>}
+              {reunion.descripcion && (
+                <div
+                  className="text-sm prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: reunion.descripcion }}
+                />
+              )}
               
               {reunion.notas_reunion_html && (
                 <Alert>
                   <AlertTitle>Notas de la Reunión</AlertTitle>
-                  <AlertDescription dangerouslySetInnerHTML={{ __html: reunion.notas_reunion_html }} />
+                  <AlertDescription 
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: reunion.notas_reunion_html }} 
+                  />
                 </Alert>
               )}
             </CardContent>
@@ -213,7 +221,10 @@ export const PestanaReuniones = ({ proyecto, observaciones, onActualizarProyecto
               {obs.comentarios_asesor_html && (
                 <Alert variant="default">
                   <AlertTitle>Último Comentario del Asesor</AlertTitle>
-                  <AlertDescription dangerouslySetInnerHTML={{ __html: obs.comentarios_asesor_html }} />
+                  <AlertDescription 
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: obs.comentarios_asesor_html }} 
+                  />
                 </Alert>
               )}
 

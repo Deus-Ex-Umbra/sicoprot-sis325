@@ -108,6 +108,8 @@ const VisualizadorDocumento = ({
     const alto = Math.abs(y2 - y1);
     const left = Math.min(x1, x2);
     const top = Math.min(y1, y2);
+    const cornerSize = Math.min(10, ancho * 0.2, alto * 0.2);
+    const borderWidth = 3;
 
     const es_hover = anotacion_hover === id;
 
@@ -117,21 +119,41 @@ const VisualizadorDocumento = ({
           <TooltipTrigger asChild>
             <div
               className={cn(
-                'absolute border-2 transition-all cursor-pointer',
-                esta_seleccionada && 'ring-4 ring-offset-2 ring-primary z-20',
-                es_hover && 'scale-105 shadow-lg z-10'
+                'absolute transition-all cursor-pointer pointer-events-auto',
+                esta_seleccionada && 'z-20',
+                es_hover && 'z-10'
               )}
               style={{
                 left: `${left}px`,
                 top: `${top}px`,
                 width: `${ancho}px`,
                 height: `${alto}px`,
-                borderColor: color,
-                backgroundColor: `${color}30`,
               }}
               onMouseEnter={() => setAnotacionHover(id)}
               onMouseLeave={() => setAnotacionHover(null)}
-            />
+            >
+              {[
+                { top: 0, left: 0, borderTop: `${borderWidth}px solid ${color}`, borderLeft: `${borderWidth}px solid ${color}` }, 
+                { top: 0, right: 0, borderTop: `${borderWidth}px solid ${color}`, borderRight: `${borderWidth}px solid ${color}` },
+                { bottom: 0, left: 0, borderBottom: `${borderWidth}px solid ${color}`, borderLeft: `${borderWidth}px solid ${color}` },
+                { bottom: 0, right: 0, borderBottom: `${borderWidth}px solid ${color}`, borderRight: `${borderWidth}px solid ${color}` },
+              ].map((style, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    'absolute w-2 h-2 transition-all',
+                    esta_seleccionada && 'ring-2 ring-offset-1 ring-primary',
+                    es_hover && 'scale-110'
+                  )}
+                  style={{
+                    ...style,
+                    width: `${cornerSize}px`,
+                    height: `${cornerSize}px`,
+                    backgroundColor: `${color}30`,
+                  }}
+                />
+              ))}
+            </div>
           </TooltipTrigger>
           <TooltipContent>
             <p className="font-semibold">

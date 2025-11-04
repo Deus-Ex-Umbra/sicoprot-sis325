@@ -12,6 +12,7 @@ import { ResponderSolicitudDefensaDto } from './dto/responder-solicitud-defensa.
 import { Rol } from '../usuarios/enums/rol.enum';
 import { Roles } from '../autenticacion/decorators/roles.decorator';
 import { RolesGuard } from '../autenticacion/guards/roles.guard';
+import { ActualizarPropuestaDto } from './dto/actualizar-propuesta.dto';
 
 @ApiTags('proyectos')
 @ApiBearerAuth('JWT-auth')
@@ -132,6 +133,20 @@ export class ProyectosController {
     @Request() req
   ) {
     return this.servicio_proyectos.gestionarTemaPropuesto(id, accionTemaDto, req.user.id_usuario);
+  }
+
+  @Patch(':id/propuesta')
+  @Roles(Rol.Estudiante)
+  @UseGuards(RolesGuard)
+  @ApiOperation({ summary: 'Actualizar una propuesta rechazada (Estudiante)' })
+  @ApiParam({ name: 'id', description: 'ID del proyecto' })
+  @ApiResponse({ status: 200, description: 'Propuesta actualizada.' })
+  async actualizarPropuesta(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ActualizarPropuestaDto,
+    @Request() req,
+  ) {
+    return this.servicio_proyectos.actualizarPropuesta(id, dto, req.user.id_usuario);
   }
 
   @Patch(':id/solicitar-defensa')
