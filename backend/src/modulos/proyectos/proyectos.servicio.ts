@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Brackets } from 'typeorm';
 import { Proyecto } from './entidades/proyecto.endidad';
 import { CrearProyectoDto } from './dto/crear-proyecto.dto';
 import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
@@ -539,15 +539,14 @@ export class ProyectosService {
 
     if (buscarDto.termino) {
       const termino = `%${buscarDto.termino.toLowerCase()}%`;
-      query.andWhere(
-        `(LOWER(proyecto.titulo) LIKE :termino OR 
-          LOWER(proyecto.resumen) LIKE :termino OR 
-          EXISTS (
-            SELECT 1 FROM unnest(proyecto.palabras_clave) AS palabra 
+      query.andWhere(new Brackets(qb => {
+        qb.where('LOWER(proyecto.titulo) LIKE :termino', { termino })
+          .orWhere('LOWER(proyecto.resumen) LIKE :termino', { termino })
+          .orWhere(`EXISTS (
+            SELECT 1 FROM unnest(COALESCE(proyecto.palabras_clave, ARRAY[]::text[])) AS palabra 
             WHERE LOWER(palabra) LIKE :termino
-          ))`,
-        { termino }
-      );
+          )`, { termino });
+      }));
     }
 
     query.orderBy('proyecto.etapa_actual', 'DESC')

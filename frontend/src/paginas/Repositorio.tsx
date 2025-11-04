@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from '../componentes/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '../componentes/ui/alert';
-import { Separator } from '../componentes/ui/separator';
 
 interface ResultadoBusqueda {
   id: number;
@@ -43,13 +42,10 @@ const Repositorio = () => {
   const [proyectos, set_proyectos] = useState<ResultadoBusqueda[]>([]);
   const [cargando, set_cargando] = useState(false);
   const [error, set_error] = useState('');
-
   const [filtros, set_filtros] = useState({
     termino: '',
     anio: '',
-    carrera: '',
     asesor_id: '',
-    solo_aprobados: true,
   });
 
   const [asesores, set_asesores] = useState<Usuario[]>([]);
@@ -75,19 +71,16 @@ const Repositorio = () => {
       console.error('Error cargando datos:', err);
     }
   };
-
   const buscar_proyectos = async () => {
     try {
       set_cargando(true);
       set_error('');
-      
       const params: any = {
-        soloAprobados: filtros.solo_aprobados,
+        soloAprobados: true,
       };
 
       if (filtros.termino.trim()) params.termino = filtros.termino.trim();
       if (filtros.anio) params.anio = filtros.anio;
-      if (filtros.carrera.trim()) params.carrera = filtros.carrera.trim();
       if (filtros.asesor_id) params.asesorId = filtros.asesor_id;
 
       const resultados = await proyectosApi.buscarProyectos(params);
@@ -98,19 +91,15 @@ const Repositorio = () => {
       set_cargando(false);
     }
   };
-
   const limpiar_filtros = () => {
     set_filtros({
       termino: '',
       anio: '',
-      carrera: '',
       asesor_id: '',
-      solo_aprobados: true,
     });
+    buscar_proyectos();
   };
-
-  const hay_filtros_activos = filtros.termino || filtros.anio || filtros.carrera || filtros.asesor_id;
-
+  const hay_filtros_activos = filtros.termino || filtros.anio || filtros.asesor_id;
   const opciones_asesores = asesores.map(a => ({
     value: String(a.perfil?.id_asesor),
     label: `${a.perfil?.nombre} ${a.perfil?.apellido}`
@@ -160,7 +149,7 @@ const Repositorio = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="termino">Término de búsqueda</Label>
+                    <Label htmlFor="termino">Título del Proyecto</Label>
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -176,7 +165,7 @@ const Repositorio = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="anio">Año</Label>
+                    <Label htmlFor="anio">Año de Aprobación</Label>
                     <Select
                       value={filtros.anio}
                       onValueChange={(value) => set_filtros({ ...filtros, anio: value === 'todos' ? '' : value })}
@@ -194,18 +183,6 @@ const Repositorio = () => {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="carrera">Carrera</Label>
-                    <Input
-                      id="carrera"
-                      type="text"
-                      placeholder="Ej: Ingeniería de Sistemas"
-                      value={filtros.carrera}
-                      onChange={(e) => set_filtros({ ...filtros, carrera: e.target.value })}
-                    />
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="asesor">Asesor</Label>
                     <SelectConBusqueda
@@ -217,24 +194,7 @@ const Repositorio = () => {
                       emptyMessage="No se encontró el asesor."
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="solo_aprobados">Estado</Label>
-                    <Select
-                      value={filtros.solo_aprobados ? 'aprobados' : 'todos'}
-                      onValueChange={(value) => set_filtros({ ...filtros, solo_aprobados: value === 'aprobados' })}
-                    >
-                      <SelectTrigger id="solo_aprobados">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background">
-                        <SelectItem value="aprobados">Solo Aprobados</SelectItem>
-                        <SelectItem value="todos">Todos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
-
                 <div className="flex items-center gap-2 mt-4">
                   <Button onClick={buscar_proyectos} disabled={cargando}>
                     <Search className="mr-2 h-4 w-4" />

@@ -73,14 +73,16 @@ const DetalleProyecto = () => {
         set_documento_seleccionado(null);
       }
 
-      const [obs_data, corr_data, asesores_data] = await Promise.all([
-        observacionesApi.obtenerObservacionesPorProyecto(parseInt(id!)),
-        correccionesApi.obtenerPorProyecto(parseInt(id!)),
-        es_admin ? asesoresApi.obtenerTodos() : Promise.resolve([]),
-      ]);
-      set_observaciones(obs_data);
-      set_correcciones(corr_data);
-      set_asesores(asesores_data as Usuario[]);
+      if (proyecto_data.etapa_actual !== EtapaProyecto.TERMINADO) {
+        const [obs_data, corr_data, asesores_data] = await Promise.all([
+          observacionesApi.obtenerObservacionesPorProyecto(parseInt(id!)),
+          correccionesApi.obtenerPorProyecto(parseInt(id!)),
+          es_admin ? asesoresApi.obtenerTodos() : Promise.resolve([]),
+        ]);
+        set_observaciones(obs_data);
+        set_correcciones(corr_data);
+        set_asesores(asesores_data as Usuario[]);
+      }
 
       if (mostrar_toast) {
         if (proyecto_data.etapa_actual === EtapaProyecto.PROYECTO) {
@@ -141,6 +143,10 @@ const DetalleProyecto = () => {
 
   const getPestanaPorDefecto = () => {
     if (!proyecto) return 'propuesta-info';
+    
+    if (proyecto.etapa_actual === EtapaProyecto.TERMINADO) {
+      return 'visor';
+    }
 
     switch (proyecto.etapa_actual) {
       case EtapaProyecto.PROPUESTA:
@@ -151,7 +157,6 @@ const DetalleProyecto = () => {
         return 'reuniones';
       case EtapaProyecto.LISTO_DEFENSA:
       case EtapaProyecto.SOLICITUD_DEFENSA:
-      case EtapaProyecto.TERMINADO:
         return 'defensa';
       default:
         return 'propuesta-info';
@@ -171,311 +176,379 @@ const DetalleProyecto = () => {
       <Alert variant="destructive">
         <AlertTitle>Proyecto no encontrado</AlertTitle>
         <AlertDescription>
-          <Button variant="link" onClick={() => navigate('/panel/proyectos')}>
-            Volver a proyectos
+          <Button variant="link" onClick={() => navigate(-1)}>
+            Volver
           </Button>
         </AlertDescription>
       </Alert>
     );
   } else {
 
-    const estudiante_principal = proyecto.estudiantes?.[0];
-    const grupo_activo_estudiante = estudiante_principal?.grupos?.find(g => g.periodo?.activo);
+    const es_proyecto_terminado = proyecto.etapa_actual === EtapaProyecto.TERMINADO;
 
-    const necesita_grupo_taller_ii = es_estudiante &&
-                                      proyecto.perfil_aprobado &&
-                                      !grupo_activo_estudiante &&
-                                      proyecto.etapa_actual !== EtapaProyecto.TERMINADO;
-
-    if (necesita_grupo_taller_ii) {
-      contenido_pagina = (
-        <Card>
-          <CardHeader>
-            <CardTitle>¡Felicidades! Has completado Taller de Grado I</CardTitle>
-            <CardDescription>Tu perfil de proyecto ha sido aprobado.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="default">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Acción Requerida</AlertTitle>
-              <AlertDescription>
-                <p>Para continuar con la etapa de "Proyecto" (Taller de Grado II), debes inscribirte a un grupo de Taller de Grado II.</p>
-                <Button
-                  variant="default"
-                  className="mt-4"
-                  onClick={() => navigate('/panel/inscripcion-grupos')}
-                >
-                  Ir a Inscripción de Grupos
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      );
-    } else {
-      const etapa_actual = proyecto.etapa_actual;
-      
-      const es_taller_1 = etapa_actual === EtapaProyecto.PROPUESTA || etapa_actual === EtapaProyecto.PERFIL;
-      
-      const es_taller_2_o_superior = etapa_actual === EtapaProyecto.PROYECTO || 
-                                      etapa_actual === EtapaProyecto.LISTO_DEFENSA || 
-                                      etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA || 
-                                      etapa_actual === EtapaProyecto.TERMINADO;
-
-      const mostrar_pestana_visor = etapa_actual !== EtapaProyecto.PROPUESTA;
-      const mostrar_pestana_reuniones = es_taller_2_o_superior;
-      const mostrar_pestana_defensa = es_taller_2_o_superior;
-
-      const puede_subir_documento = es_estudiante && etapa_actual === EtapaProyecto.PERFIL;
-      
-      const documentos_para_mostrar = (es_taller_2_o_superior || etapa_actual === EtapaProyecto.PERFIL)
-        ? documentos
-        : [];
-
-      const observaciones_del_documento = documento_seleccionado
-        ? observaciones.filter(obs => obs.documento && obs.documento.id === documento_seleccionado.id)
-        : [];
-        
-      const observaciones_del_proyecto = observaciones.filter(obs => !obs.documento);
-
-      const correcciones_del_documento = documento_seleccionado
-        ? correcciones.filter(corr => (corr as any).documento?.id === documento_seleccionado.id)
-        : [];
-
-      const observaciones_pendientes = observaciones.filter(obs =>
-        (obs.estado === 'pendiente' || obs.estado === 'rechazado')
-      ).length;
-
-      const observaciones_pendientes_etapa_actual = observaciones.filter(obs =>
-        obs.etapa_observada === proyecto?.etapa_actual &&
-        (obs.estado === 'pendiente' || obs.estado === 'en_revision' || obs.estado === 'rechazado')
-      ).length;
-
-      const comentario_propuesta = (proyecto as any).comentario_aprobacion_propuesta;
-      const comentario_perfil = (proyecto as any).comentario_aprobacion_perfil;
-      
-      const tipo_grupo_actual = grupo_activo_estudiante?.tipo || null;
+    if (es_proyecto_terminado) {
+      const documento_perfil = documentos.length > 0 ? documentos[0] : null;
 
       contenido_pagina = (
-        <Tabs defaultValue={getPestanaPorDefecto()} className="w-full">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => navigate('/panel/proyectos')}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">{proyecto.titulo}</h1>
-                <div className="text-muted-foreground">Etapa actual: <Badge>{proyecto.etapa_actual}</Badge></div>
-              </div>
+        <>
+          <div className="flex items-center gap-2 mb-6">
+            <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">{proyecto.titulo}</h1>
+              <div className="text-muted-foreground">Etapa actual: <Badge>{proyecto.etapa_actual}</Badge></div>
             </div>
+          </div>
+          
+          <Tabs defaultValue={documento_perfil ? "visor" : "propuesta-info"} className="w-full">
             <TabsList>
               <TabsTrigger value="propuesta-info"><Info className="h-4 w-4 mr-2" />Propuesta</TabsTrigger>
-              {mostrar_pestana_visor && <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Visor (Perfil)</TabsTrigger>}
-              {mostrar_pestana_reuniones && <TabsTrigger value="reuniones"><Users className="h-4 w-4 mr-2" />Reuniones y Obs. (Taller II)</TabsTrigger>}
-              {mostrar_pestana_defensa && <TabsTrigger value="defensa"><Shield className="h-4 w-4 mr-2" />Defensa</TabsTrigger>}
+              {documento_perfil && <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Documento de Perfil</TabsTrigger>}
+              {proyecto.ruta_memorial && <TabsTrigger value="defensa"><Shield className="h-4 w-4 mr-2" />Memorial</TabsTrigger>}
             </TabsList>
-          </div>
-
-          {error && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
-          
-          <TabsContent value="propuesta-info">
-            <Card>
-              <CardHeader>
-                <CardTitle>Descripción de la Propuesta</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {comentario_propuesta && (
-                  <Alert variant={proyecto.propuesta_aprobada ? 'default' : 'destructive'}>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>Comentarios del Asesor sobre la Propuesta</AlertTitle>
-                    <AlertDescription
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: comentario_propuesta }}
-                    />
-                  </Alert>
-                )}
-                <div 
-                  className="prose prose-sm max-w-none"
+            
+            <TabsContent value="propuesta-info">
+              <Card>
+                <CardHeader><CardTitle>Descripción de la Propuesta</CardTitle></CardHeader>
+                <CardContent className="prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ __html: proyecto.cuerpo_html || '<p><em>No se proporcionó descripción.</em></p>' }} 
                 />
-                {es_asesor && (
-                  <PestanaAcciones
-                    proyecto={proyecto}
-                    observaciones_pendientes={observaciones_pendientes_etapa_actual}
-                    tipo_grupo_actual={tipo_grupo_actual}
-                    onActualizarProyecto={onActualizarProyecto}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </Card>
+            </TabsContent>
+            
+            {documento_perfil && (
+              <TabsContent value="visor">
+                <VisualizadorDocumento
+                  key={documento_perfil.id}
+                  url_documento={`${api.defaults.baseURL}/documentos/${documento_perfil.id}/archivo`}
+                  observaciones={[]}
+                  correcciones={[]}
+                />
+              </TabsContent>
+            )}
 
-          <TabsContent value="visor">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-1 space-y-4">
+            {proyecto.ruta_memorial && (
+              <TabsContent value="defensa">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Documentos (Perfil)</CardTitle>
+                    <CardTitle>Memorial de Defensa</CardTitle>
+                    <CardDescription>Documento final presentado para la defensa.</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {puede_subir_documento && (
-                      <div className="space-y-2">
-                        <Label htmlFor="file-upload" className="cursor-pointer">
-                          Seleccionar Archivo PDF (Perfil)
-                        </Label>
-                        <Input
-                          id="file-upload"
-                          type="file"
-                          accept=".pdf"
-                          onChange={(e: any) => set_archivo(e.target.files[0])}
-                          disabled={subiendo_archivo}
-                        />
-                        {archivo && <p className="text-sm text-muted-foreground">{archivo.name}</p>}
-                        <Button
-                          variant="default"
-                          className="w-full"
-                          onClick={manejarSubidaArchivo}
-                          disabled={!archivo || subiendo_archivo}
-                        >
-                          {subiendo_archivo ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <FileUp className="mr-2 h-4 w-4" />
-                          )}
-                          {subiendo_archivo ? 'Subiendo...' : 'Subir Documento'}
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {es_estudiante && es_taller_2_o_superior && (
-                      <Alert>
-                          <AlertTitle>Etapa de Proyecto (Taller II)</AlertTitle>
-                          <AlertDescription>
-                            Ya no se suben nuevas versiones. Este es el perfil aprobado para consulta.
-                          </AlertDescription>
-                        </Alert>
-                    )}
-
-                    <div className="space-y-2">
-                      {documentos_para_mostrar.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className={cn(
-                            'p-3 rounded-md border cursor-pointer transition-colors',
-                            documento_seleccionado?.id === doc.id
-                              ? 'bg-primary/10 border-primary'
-                              : 'hover:bg-accent'
-                          )}
-                          onClick={() => {
-                            set_documento_seleccionado(doc);
-                            set_observacion_seleccionada(null);
-                            set_correccion_seleccionada(null);
-                          }}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium">Versión {doc.version}</span>
-                          </div>
-                          <small className="text-muted-foreground">
-                            {new Date(doc.fecha_subida).toLocaleDateString()}
-                          </small>
-                        </div>
-                      ))}
-                    </div>
-
-                    {documentos.length === 0 && (
-                      <p className="text-muted-foreground text-center pt-4">
-                        No hay documentos cargados
-                      </p>
-                    )}
+                  <CardContent>
+                    <VisualizadorDocumento
+                      key="memorial"
+                      url_documento={documentosApi.obtenerArchivoPorRutaUrl(proyecto.ruta_memorial)}
+                      observaciones={[]}
+                      correcciones={[]}
+                    />
                   </CardContent>
                 </Card>
+              </TabsContent>
+            )}
+          </Tabs>
+        </>
+      );
 
-                {comentario_perfil && (
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>Comentarios del Asesor sobre el Perfil</AlertTitle>
-                    <AlertDescription
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: comentario_perfil }}
-                    />
-                  </Alert>
-                )}
+    } else {
+      const estudiante_principal = proyecto.estudiantes?.[0];
+      const grupo_activo_estudiante = estudiante_principal?.grupos?.find(g => g.periodo?.activo);
 
-                {es_asesor && documento_seleccionado && (
+      const necesita_grupo_taller_ii = es_estudiante &&
+                                        proyecto.perfil_aprobado &&
+                                        !grupo_activo_estudiante &&
+                                        proyecto.etapa_actual !== EtapaProyecto.TERMINADO;
+
+      if (necesita_grupo_taller_ii) {
+        contenido_pagina = (
+          <Card>
+            <CardHeader>
+              <CardTitle>¡Felicidades! Has completado Taller de Grado I</CardTitle>
+              <CardDescription>Tu perfil de proyecto ha sido aprobado.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="default">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Acción Requerida</AlertTitle>
+                <AlertDescription>
+                  <p>Para continuar con la etapa de "Proyecto" (Taller de Grado II), debes inscribirte a un grupo de Taller de Grado II.</p>
                   <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => navigate(`/panel/proyecto/${proyecto.id}/crear-observacion`)}
+                    variant="default"
+                    className="mt-4"
+                    onClick={() => navigate('/panel/inscripcion-grupos')}
                   >
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    Crear Observación
+                    Ir a Inscripción de Grupos
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                )}
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        );
+      } else {
+        const etapa_actual = proyecto.etapa_actual;
+        
+        const es_taller_1 = etapa_actual === EtapaProyecto.PROPUESTA || etapa_actual === EtapaProyecto.PERFIL;
+        
+        const es_taller_2_o_superior = etapa_actual === EtapaProyecto.PROYECTO || 
+                                        etapa_actual === EtapaProyecto.LISTO_DEFENSA || 
+                                        etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA || 
+                                        etapa_actual === EtapaProyecto.TERMINADO;
 
-                {es_estudiante && observaciones_pendientes > 0 && etapa_actual === EtapaProyecto.PERFIL && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => navigate(`/panel/proyecto/${proyecto.id}/crear-correccion`)}
-                  >
-                    <Wrench className="mr-2 h-4 w-4" />
-                    Registrar Corrección
-                  </Button>
-                )}
+        const mostrar_pestana_visor = etapa_actual !== EtapaProyecto.PROPUESTA;
+        const mostrar_pestana_reuniones = es_taller_2_o_superior;
+        const mostrar_pestana_defensa = es_taller_2_o_superior;
 
-                {es_asesor && (
-                  <PestanaAcciones
-                    proyecto={proyecto}
-                    observaciones_pendientes={observaciones_pendientes_etapa_actual}
-                    tipo_grupo_actual={tipo_grupo_actual}
-                    onActualizarProyecto={onActualizarProyecto}
-                  />
-                )}
+        const puede_subir_documento = es_estudiante && etapa_actual === EtapaProyecto.PERFIL;
+        
+        const documentos_para_mostrar = (es_taller_2_o_superior || etapa_actual === EtapaProyecto.PERFIL)
+          ? documentos
+          : [];
+
+        const observaciones_del_documento = documento_seleccionado
+          ? observaciones.filter(obs => obs.documento && obs.documento.id === documento_seleccionado.id)
+          : [];
+          
+        const observaciones_del_proyecto = observaciones.filter(obs => !obs.documento);
+
+        const correcciones_del_documento = documento_seleccionado
+          ? correcciones.filter(corr => (corr as any).documento?.id === documento_seleccionado.id)
+          : [];
+
+        const observaciones_pendientes = observaciones.filter(obs =>
+          (obs.estado === 'pendiente' || obs.estado === 'rechazado')
+        ).length;
+
+        const observaciones_pendientes_etapa_actual = observaciones.filter(obs =>
+          obs.etapa_observada === proyecto?.etapa_actual &&
+          (obs.estado === 'pendiente' || obs.estado === 'en_revision' || obs.estado === 'rechazado')
+        ).length;
+
+        const comentario_propuesta = (proyecto as any).comentario_aprobacion_propuesta;
+        const comentario_perfil = (proyecto as any).comentario_aprobacion_perfil;
+        
+        const tipo_grupo_actual = grupo_activo_estudiante?.tipo || null;
+
+        contenido_pagina = (
+          <Tabs defaultValue={getPestanaPorDefecto()} className="w-full">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigate('/panel/proyectos')}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight">{proyecto.titulo}</h1>
+                  <div className="text-muted-foreground">Etapa actual: <Badge>{proyecto.etapa_actual}</Badge></div>
+                </div>
               </div>
+              <TabsList>
+                <TabsTrigger value="propuesta-info"><Info className="h-4 w-4 mr-2" />Propuesta</TabsTrigger>
+                {mostrar_pestana_visor && <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Visor (Perfil)</TabsTrigger>}
+                {mostrar_pestana_reuniones && <TabsTrigger value="reuniones"><Users className="h-4 w-4 mr-2" />Reuniones y Obs. (Taller II)</TabsTrigger>}
+                {mostrar_pestana_defensa && <TabsTrigger value="defensa"><Shield className="h-4 w-4 mr-2" />Defensa</TabsTrigger>}
+              </TabsList>
+            </div>
 
-              <div className="lg:col-span-3">
-                {documento_seleccionado ? (
-                  <VisualizadorDocumento
-                    key={documento_seleccionado.id}
-                    url_documento={`${api.defaults.baseURL}/documentos/${documento_seleccionado.id}/archivo`}
-                    observaciones={observaciones_del_documento}
-                    correcciones={correcciones_del_documento}
-                    observacion_seleccionada={observacion_seleccionada}
-                    correccion_seleccionada={correccion_seleccionada}
+            {error && <Alert variant="destructive" className="mb-4"><AlertDescription>{error}</AlertDescription></Alert>}
+            
+            <TabsContent value="propuesta-info">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Descripción de la Propuesta</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {comentario_propuesta && (
+                    <Alert variant={proyecto.propuesta_aprobada ? 'default' : 'destructive'}>
+                      <CheckCircle className="h-4 w-4" />
+                      <AlertTitle>Comentarios del Asesor sobre la Propuesta</AlertTitle>
+                      <AlertDescription
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: comentario_propuesta }}
+                      />
+                    </Alert>
+                  )}
+                  <div 
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: proyecto.cuerpo_html || '<p><em>No se proporcionó descripción.</em></p>' }} 
                   />
-                ) : (
-                  <Card className="h-[80vh]">
-                    <CardContent className="flex justify-center items-center h-full">
-                      <p className="text-muted-foreground">
-                        {documentos.length === 0
-                          ? 'No hay documentos cargados en este proyecto.'
-                          : 'Seleccione un documento para visualizar.'}
-                      </p>
+                  {es_asesor && (
+                    <PestanaAcciones
+                      proyecto={proyecto}
+                      observaciones_pendientes={observaciones_pendientes_etapa_actual}
+                      tipo_grupo_actual={tipo_grupo_actual}
+                      onActualizarProyecto={onActualizarProyecto}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="visor">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-1 space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Documentos (Perfil)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {puede_subir_documento && (
+                        <div className="space-y-2">
+                          <Label htmlFor="file-upload" className="cursor-pointer">
+                            Seleccionar Archivo PDF (Perfil)
+                          </Label>
+                          <Input
+                            id="file-upload"
+                            type="file"
+                            accept=".pdf"
+                            onChange={(e: any) => set_archivo(e.target.files[0])}
+                            disabled={subiendo_archivo}
+                          />
+                          {archivo && <p className="text-sm text-muted-foreground">{archivo.name}</p>}
+                          <Button
+                            variant="default"
+                            className="w-full"
+                            onClick={manejarSubidaArchivo}
+                            disabled={!archivo || subiendo_archivo}
+                          >
+                            {subiendo_archivo ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <FileUp className="mr-2 h-4 w-4" />
+                            )}
+                            {subiendo_archivo ? 'Subiendo...' : 'Subir Documento'}
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {es_estudiante && es_taller_2_o_superior && (
+                        <Alert>
+                            <AlertTitle>Etapa de Proyecto (Taller II)</AlertTitle>
+                            <AlertDescription>
+                              Ya no se suben nuevas versiones. Este es el perfil aprobado para consulta.
+                            </AlertDescription>
+                          </Alert>
+                      )}
+
+                      <div className="space-y-2">
+                        {documentos_para_mostrar.map((doc) => (
+                          <div
+                            key={doc.id}
+                            className={cn(
+                              'p-3 rounded-md border cursor-pointer transition-colors',
+                              documento_seleccionado?.id === doc.id
+                                ? 'bg-primary/10 border-primary'
+                                : 'hover:bg-accent'
+                            )}
+                            onClick={() => {
+                              set_documento_seleccionado(doc);
+                              set_observacion_seleccionada(null);
+                              set_correccion_seleccionada(null);
+                            }}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">Versión {doc.version}</span>
+                            </div>
+                            <small className="text-muted-foreground">
+                              {new Date(doc.fecha_subida).toLocaleDateString()}
+                            </small>
+                          </div>
+                        ))}
+                      </div>
+
+                      {documentos.length === 0 && (
+                        <p className="text-muted-foreground text-center pt-4">
+                          No hay documentos cargados
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="reuniones">
-            <PestanaReuniones 
-              proyecto={proyecto} 
-              observaciones={observaciones_del_proyecto}
-              onActualizarProyecto={onActualizarSimple} 
-            />
-          </TabsContent>
 
-          <TabsContent value="defensa">
-            <PestanaDefensa proyecto={proyecto} asesores={asesores} onActualizarProyecto={onActualizarSimple} />
-          </TabsContent>
-        </Tabs>
-      );
+                  {comentario_perfil && (
+                    <Alert>
+                      <CheckCircle className="h-4 w-4" />
+                      <AlertTitle>Comentarios del Asesor sobre el Perfil</AlertTitle>
+                      <AlertDescription
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: comentario_perfil }}
+                      />
+                    </Alert>
+                  )}
+
+                  {es_asesor && documento_seleccionado && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigate(`/panel/proyecto/${proyecto.id}/crear-observacion`)}
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Crear Observación
+                    </Button>
+                  )}
+
+                  {es_estudiante && observaciones_pendientes > 0 && etapa_actual === EtapaProyecto.PERFIL && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigate(`/panel/proyecto/${proyecto.id}/crear-correccion`)}
+                    >
+                      <Wrench className="mr-2 h-4 w-4" />
+                      Registrar Corrección
+                    </Button>
+                  )}
+
+                  {es_asesor && (
+                    <PestanaAcciones
+                      proyecto={proyecto}
+                      observaciones_pendientes={observaciones_pendientes_etapa_actual}
+                      tipo_grupo_actual={tipo_grupo_actual}
+                      onActualizarProyecto={onActualizarProyecto}
+                    />
+                  )}
+                </div>
+
+                <div className="lg:col-span-3">
+                  {documento_seleccionado ? (
+                    <VisualizadorDocumento
+                      key={documento_seleccionado.id}
+                      url_documento={`${api.defaults.baseURL}/documentos/${documento_seleccionado.id}/archivo`}
+                      observaciones={observaciones_del_documento}
+                      correcciones={correcciones_del_documento}
+                      observacion_seleccionada={observacion_seleccionada}
+                      correccion_seleccionada={correccion_seleccionada}
+                    />
+                  ) : (
+                    <Card className="h-[80vh]">
+                      <CardContent className="flex justify-center items-center h-full">
+                        <p className="text-muted-foreground">
+                          {documentos.length === 0
+                            ? 'No hay documentos cargados en este proyecto.'
+                            : 'Seleccione un documento para visualizar.'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="reuniones">
+              <PestanaReuniones 
+                proyecto={proyecto} 
+                observaciones={observaciones_del_proyecto}
+                onActualizarProyecto={onActualizarSimple} 
+              />
+            </TabsContent>
+
+            <TabsContent value="defensa">
+              <PestanaDefensa proyecto={proyecto} asesores={asesores} onActualizarProyecto={onActualizarSimple} />
+            </TabsContent>
+          </Tabs>
+        );
+      }
     }
   }
 
