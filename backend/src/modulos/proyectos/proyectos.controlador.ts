@@ -54,6 +54,7 @@ export class ProyectosController {
     @Query() buscar_dto: BuscarProyectosDto,
     @Request() req
   ) {
+    buscar_dto.soloAprobados = true;
     return this.servicio_proyectos.buscarProyectos(buscar_dto, req.user.id_usuario, req.user.rol);
   }
 
