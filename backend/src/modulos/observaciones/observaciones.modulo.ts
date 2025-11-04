@@ -7,10 +7,11 @@ import { DocumentosModule } from '../documentos/documentos.modulo';
 import { AsesoresModule } from '../asesores/asesores.modulo';
 import { EstudiantesModule } from '../estudiantes/estudiantes.modulo';
 import { CorreccionesModule } from '../correcciones/correcciones.modulo';
+import { Proyecto } from '../proyectos/entidades/proyecto.endidad';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Observacion]),
+    TypeOrmModule.forFeature([Observacion, Proyecto]),
     DocumentosModule,
     AsesoresModule,
     EstudiantesModule,

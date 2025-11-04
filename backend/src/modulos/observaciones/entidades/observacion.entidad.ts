@@ -7,12 +7,14 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Documento } from '../../documentos/entidades/documento.entidad';
 import { Asesor } from '../../asesores/entidades/asesor.entidad';
 import { EstadoObservacion } from '../enums/estado-observacion.enum';
 import { Correccion } from '../../correcciones/entidades/correccion.entidad';
 import { EtapaProyecto } from '../../proyectos/enums/etapa-proyecto.enum';
+import { Proyecto } from '../../proyectos/entidades/proyecto.endidad';
 
 @Entity('observaciones')
 @Index(['documento', 'version_observada'])
@@ -37,22 +39,22 @@ export class Observacion {
   @Column({ nullable: true, type: 'text' })
   comentarios_asesor_html?: string;
 
-  @Column({ type: 'float' })
+  @Column({ type: 'float', nullable: true })
   x_inicio: number;
 
-  @Column({ type: 'float' })
+  @Column({ type: 'float', nullable: true })
   y_inicio: number;
 
-  @Column({ type: 'float' })
+  @Column({ type: 'float', nullable: true })
   x_fin: number;
 
-  @Column({ type: 'float' })
+  @Column({ type: 'float', nullable: true })
   y_fin: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: true })
   pagina_inicio: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: true })
   pagina_fin: number;
 
   @Column({ type: 'boolean', default: false })
@@ -93,8 +95,17 @@ export class Observacion {
 
   @ManyToOne(() => Documento, (documento) => documento.observaciones, {
     eager: true,
+    nullable: true,
   })
-  documento: Documento;
+  @JoinColumn({ name: 'id_documento' })
+  documento: Documento | null;
+
+  @ManyToOne(() => Proyecto, (proyecto) => proyecto.observaciones, {
+    eager: true,
+    nullable: true,
+  })
+  @JoinColumn({ name: 'id_proyecto' })
+  proyecto: Proyecto;
 
   @OneToMany(() => Correccion, (correccion) => correccion.observacion, {
     nullable: true,

@@ -285,7 +285,10 @@ export class ProyectosService {
     ];
 
     const observaciones = await this.repositorio_observacion.find({
-      where: { documento: { proyecto: { id: proyecto.id } } },
+      where: [
+        { documento: { proyecto: { id: proyecto.id } } },
+        { proyecto: { id: proyecto.id } }
+      ],
       relations: ['documento', 'autor', 'correcciones'],
       order: { fecha_creacion: 'ASC' }
     });
@@ -297,7 +300,7 @@ export class ProyectosService {
       etapa_observada: obs.etapa_observada,
       fecha_creacion: obs.fecha_creacion,
       fecha_verificacion: obs.fecha_verificacion,
-      documento: obs.documento.nombre_archivo,
+      documento: obs.documento ? obs.documento.nombre_archivo : 'Observación de Proyecto',
       version_observada: obs.version_observada,
       version_corregida: obs.version_corregida,
       comentarios_asesor: obs.comentarios_asesor_html,
@@ -574,7 +577,10 @@ export class ProyectosService {
       this.repositorio_reunion.find({ where: { proyecto: { id: id_proyecto } }, order: { fecha_programada: 'ASC' } }),
       this.repositorio_documento.find({ where: { proyecto: { id: id_proyecto } }, order: { version: 'ASC' } }),
       this.repositorio_observacion.find({ 
-        where: { documento: { proyecto: { id: id_proyecto } } }, 
+        where: [
+          { documento: { proyecto: { id: id_proyecto } } },
+          { proyecto: { id: id_proyecto } }
+        ], 
         relations: ['correcciones', 'documento'], 
         order: { fecha_creacion: 'ASC' } 
       })
@@ -613,7 +619,7 @@ export class ProyectosService {
     const observaciones_proyecto: any[] = [];
 
     for (const doc of documentos) {
-      const obs_doc = observaciones.filter(o => o.documento.id === doc.id);
+      const obs_doc = observaciones.filter(o => o.documento && o.documento.id === doc.id);
       
       const version_item = {
         id: doc.id,
@@ -678,6 +684,31 @@ export class ProyectosService {
         observaciones_proyecto.push(...obs_timeline);
       }
     }
+    
+    const obs_proyecto_t2 = observaciones
+      .filter(o => !o.documento && o.etapa_observada === EtapaProyecto.PROYECTO)
+      .map(o => {
+         linea_tiempo.push({
+          tipo: 'observacion',
+          fecha: o.fecha_creacion,
+          titulo: `Observación (Proyecto): ${o.titulo}`,
+          descripcion: `Estado: ${o.estado}. ${o.comentarios_asesor_html || ''}`,
+          icono: 'search'
+        });
+        return {
+          id: o.id,
+          titulo: o.titulo,
+          estado: o.estado,
+          fecha_creacion: o.fecha_creacion,
+          fecha_verificacion: o.fecha_verificacion,
+          documento: 'Observación de Proyecto',
+          version_observada: undefined,
+          tiene_correccion: false,
+          correcciones: [],
+        };
+      });
+    
+    observaciones_proyecto.push(...obs_proyecto_t2);
 
     const reuniones_timeline = reuniones.map(r => {
       linea_tiempo.push({

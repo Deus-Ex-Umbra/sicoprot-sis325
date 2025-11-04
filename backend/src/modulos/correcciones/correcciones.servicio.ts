@@ -75,6 +75,12 @@ export class CorreccionesService {
         `Observación con ID ${observacionId} no encontrada`,
       );
     }
+    
+    if (!observacion.documento || !observacion.documento.proyecto) {
+      throw new BadRequestException(
+        'Esta observación no está asociada a un documento válido (Taller I).',
+      );
+    }
 
     if (
       observacion.estado !== EstadoObservacion.PENDIENTE &&
@@ -95,7 +101,7 @@ export class CorreccionesService {
       );
     }
 
-    const esEstudiante = observacion.documento?.proyecto?.estudiantes?.some(
+    const esEstudiante = observacion.documento.proyecto.estudiantes?.some(
       (est) => est.id === estudiante.id,
     );
 

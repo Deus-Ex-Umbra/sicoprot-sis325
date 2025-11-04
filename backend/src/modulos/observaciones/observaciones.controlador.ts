@@ -27,6 +27,7 @@ import { JwtGuard } from '../autenticacion/guards/jwt.guard';
 import { CrearObservacionDto } from './dto/crear-observacion.dto';
 import { ActualizarObservacionDto } from './dto/actualizar-observacion.dto';
 import { VerificarObservacionDto } from './dto/verificar-observacion.dto';
+import { CrearObservacionProyectoDto } from './dto/crear-observacion-proyecto.dto';
 
 @ApiTags('observaciones')
 @ApiBearerAuth('JWT-auth')
@@ -36,7 +37,7 @@ export class ObservacionesController {
   constructor(private readonly servicio_observaciones: ObservacionesService) {}
 
   @Post(':documentoId/crear')
-  @ApiOperation({ summary: 'Crear una nueva observación para un documento' })
+  @ApiOperation({ summary: 'Crear una nueva observación para un documento (Taller I)' })
   @ApiParam({
     name: 'documentoId',
     description: 'ID numérico del documento a comentar',
@@ -55,6 +56,30 @@ export class ObservacionesController {
     return this.servicio_observaciones.crear(
       documentoId,
       crear_observacion_dto,
+      req.user.id_usuario,
+    );
+  }
+
+  @Post('proyecto/:proyectoId/crear')
+  @ApiOperation({ summary: 'Crear una nueva observación para un proyecto (Taller II)' })
+  @ApiParam({
+    name: 'proyectoId',
+    description: 'ID numérico del proyecto a comentar',
+  })
+  @ApiResponse({ status: 201, description: 'Observación creada exitosamente.' })
+  @ApiResponse({ status: 404, description: 'El proyecto no fue encontrado.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Solo los asesores pueden crear observaciones.',
+  })
+  crearParaProyecto(
+    @Param('proyectoId', ParseIntPipe) proyectoId: number,
+    @Body() crear_obs_proyecto_dto: CrearObservacionProyectoDto,
+    @Request() req,
+  ) {
+    return this.servicio_observaciones.crearParaProyecto(
+      proyectoId,
+      crear_obs_proyecto_dto,
       req.user.id_usuario,
     );
   }
@@ -102,7 +127,7 @@ export class ObservacionesController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar una observación' })
+  @ApiOperation({ summary: 'Actualizar una observación (solo texto)' })
   @ApiParam({
     name: 'id',
     description: 'ID numérico de la observación a actualizar',

@@ -107,19 +107,6 @@ const DetalleProyecto = () => {
     }
   };
 
-  const observaciones_del_documento = documento_seleccionado
-    ? observaciones.filter(obs => (obs as any).documento.id === documento_seleccionado.id)
-    : [];
-
-  const correcciones_del_documento = documento_seleccionado
-    ? correcciones.filter(corr => (corr as any).documento.id === documento_seleccionado.id)
-    : [];
-
-  const observaciones_pendientes_etapa_actual = observaciones.filter(obs =>
-    obs.etapa_observada === proyecto?.etapa_actual &&
-    (obs.estado === 'pendiente' || obs.estado === 'en_revision' || obs.estado === 'rechazado')
-  ).length;
-
   const getPestanaPorDefecto = () => {
     if (proyecto?.etapa_actual === EtapaProyecto.PROPUESTA) return 'propuestas';
     if (proyecto?.etapa_actual === EtapaProyecto.PROYECTO) return 'reuniones';
@@ -147,6 +134,31 @@ const DetalleProyecto = () => {
       </Alert>
     );
   } else {
+
+    const es_taller_2_o_superior = proyecto.etapa_actual === EtapaProyecto.PROYECTO || 
+                                     proyecto.etapa_actual === EtapaProyecto.LISTO_DEFENSA || 
+                                     proyecto.etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA || 
+                                     proyecto.etapa_actual === EtapaProyecto.TERMINADO;
+
+    const documentos_para_mostrar = es_taller_2_o_superior && !es_admin
+      ? documentos.slice(0, 1) // Solo el último documento (perfil) para Taller II
+      : documentos; // Todos los documentos para Taller I o si es Admin
+
+    const observaciones_del_documento = documento_seleccionado
+      ? observaciones.filter(obs => obs.documento && obs.documento.id === documento_seleccionado.id)
+      : [];
+      
+    const observaciones_del_proyecto = observaciones.filter(obs => !obs.documento);
+
+    const correcciones_del_documento = documento_seleccionado
+      ? correcciones.filter(corr => (corr as any).documento?.id === documento_seleccionado.id)
+      : [];
+
+    const observaciones_pendientes_etapa_actual = observaciones.filter(obs =>
+      obs.etapa_observada === proyecto?.etapa_actual &&
+      (obs.estado === 'pendiente' || obs.estado === 'en_revision' || obs.estado === 'rechazado')
+    ).length;
+
     contenido_pagina = (
       <Tabs defaultValue={getPestanaPorDefecto()} className="w-full">
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
@@ -166,7 +178,7 @@ const DetalleProyecto = () => {
           <TabsList>
             <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Visor de Documentos</TabsTrigger>
             <TabsTrigger value="propuestas"><Info className="h-4 w-4 mr-2" />Propuestas</TabsTrigger>
-            <TabsTrigger value="reuniones"><Users className="h-4 w-4 mr-2" />Reuniones</TabsTrigger>
+            <TabsTrigger value="reuniones"><Users className="h-4 w-4 mr-2" />Reuniones y Obs. (Taller II)</TabsTrigger>
             <TabsTrigger value="defensa"><Shield className="h-4 w-4 mr-2" />Defensa</TabsTrigger>
           </TabsList>
         </div>
@@ -181,7 +193,7 @@ const DetalleProyecto = () => {
                   <CardTitle>Documentos</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {es_estudiante && (
+                  {es_estudiante && !es_taller_2_o_superior && (
                     <div className="space-y-2">
                       <Label htmlFor="file-upload" className="cursor-pointer">
                         Seleccionar Archivo PDF
@@ -209,9 +221,18 @@ const DetalleProyecto = () => {
                       </Button>
                     </div>
                   )}
+                  
+                  {es_estudiante && es_taller_2_o_superior && (
+                     <Alert>
+                        <AlertTitle>Etapa de Proyecto (Taller II)</AlertTitle>
+                        <AlertDescription>
+                          Ya no se suben nuevas versiones de documentos. Las observaciones se gestionan en la pestaña "Reuniones y Obs. (Taller II)".
+                        </AlertDescription>
+                      </Alert>
+                  )}
 
                   <div className="space-y-2">
-                    {documentos.map((doc) => (
+                    {documentos_para_mostrar.map((doc) => (
                       <div
                         key={doc.id}
                         className={cn(
@@ -283,7 +304,11 @@ const DetalleProyecto = () => {
         </TabsContent>
 
         <TabsContent value="reuniones">
-          <PestanaReuniones proyecto={proyecto} onActualizarProyecto={cargarDatos} />
+          <PestanaReuniones 
+            proyecto={proyecto} 
+            observaciones={observaciones_del_proyecto}
+            onActualizarProyecto={cargarDatos} 
+          />
         </TabsContent>
 
         <TabsContent value="defensa">
