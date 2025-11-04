@@ -235,7 +235,7 @@ const GestionUsuarios = () => {
                   <SelectContent>
                     <SelectItem value="todos-estados">Todos los estados</SelectItem>
                     <SelectItem value={EstadoUsuario.Activo}>Activo</SelectItem>
-                    <SelectItem value={EstadoUsuario.Pendiente}>Pendiente</SelectItem>
+                    {/* <SelectItem value={EstadoUsuario.Pendiente}>Pendiente</SelectItem> */}
                     <SelectItem value={EstadoUsuario.Inactivo}>Inactivo</SelectItem>
                     <SelectItem value={EstadoUsuario.Eliminado}>Eliminado</SelectItem>
                   </SelectContent>

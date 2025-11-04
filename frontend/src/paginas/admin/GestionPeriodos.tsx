@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash, CheckCircle, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash, CheckCircle, Loader2, Search, X } from 'lucide-react';
 import { periodosApi } from '../../servicios/api';
 import { type Periodo } from '../../tipos/usuario';
 import { toast } from 'sonner';
@@ -32,9 +32,17 @@ import { Switch } from '../../componentes/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
 import { Textarea } from '../../componentes/ui/textarea';
 import BarraLateral from '../../componentes/barra-lateral';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../../componentes/ui/select';
 
 const GestionPeriodos = () => {
   const [periodos, set_periodos] = useState<Periodo[]>([]);
+  const [periodos_filtrados, set_periodos_filtrados] = useState<Periodo[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
   const [mostrar_modal, set_mostrar_modal] = useState(false);
@@ -49,6 +57,11 @@ const GestionPeriodos = () => {
     activo: false,
   });
 
+  const [filtros, set_filtros] = useState({
+    busqueda: '',
+    estado: '', // 'activos', 'inactivos', ''
+  });
+
   const { usuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
   const es_admin = usuario?.rol === Rol.Administrador;
@@ -61,15 +74,47 @@ const GestionPeriodos = () => {
     cargarPeriodos();
   }, []);
 
+  useEffect(() => {
+    aplicarFiltros();
+  }, [filtros, periodos]);
+
   const cargarPeriodos = async () => {
     try {
       const data = await periodosApi.obtenerTodos();
       set_periodos(data);
+      set_periodos_filtrados(data);
     } catch (err) {
       set_error('Error al cargar los períodos');
     } finally {
       set_cargando(false);
     }
+  };
+
+  const aplicarFiltros = () => {
+    let resultado = [...periodos];
+
+    if (filtros.busqueda) {
+      const busqueda_lower = filtros.busqueda.toLowerCase();
+      resultado = resultado.filter(p =>
+        p.nombre.toLowerCase().includes(busqueda_lower) ||
+        (p.descripcion && p.descripcion.toLowerCase().includes(busqueda_lower))
+      );
+    }
+
+    if (filtros.estado === 'activo') {
+      resultado = resultado.filter(p => p.activo);
+    } else if (filtros.estado === 'inactivo') {
+      resultado = resultado.filter(p => !p.activo);
+    }
+
+    set_periodos_filtrados(resultado);
+  };
+
+  const limpiarFiltros = () => {
+    set_filtros({
+      busqueda: '',
+      estado: '',
+    });
   };
 
   const abrirModalCrear = () => {
@@ -128,6 +173,8 @@ const GestionPeriodos = () => {
     }
   };
 
+  const hay_filtros_activos = filtros.busqueda || filtros.estado;
+
   let contenido_pagina;
 
   if (cargando) {
@@ -140,81 +187,138 @@ const GestionPeriodos = () => {
     contenido_pagina = <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
   } else {
     contenido_pagina = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Períodos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead>Semestre</TableHead>
-                <TableHead>Inscripciones</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Grupos</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {periodos.map((periodo) => (
-                <TableRow key={periodo.id}>
-                  <TableCell className="font-medium">
-                    {periodo.nombre}
-                    {periodo.activo && (
-                      <Badge className="ml-2">
-                        <CheckCircle className="h-3 w-3 mr-1" /> Activo
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>{periodo.descripcion || '-'}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(periodo.fecha_inicio_semestre).toLocaleDateString()} - 
-                    {new Date(periodo.fecha_fin_semestre).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(periodo.fecha_inicio_inscripciones).toLocaleDateString()} - 
-                    {new Date(periodo.fecha_fin_inscripciones).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={periodo.activo ? 'default' : 'secondary'}>
-                      {periodo.activo ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{periodo.grupos?.length || 0}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => abrirModalEditar(periodo)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => manejarEliminar(periodo.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      <>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Filtros</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="busqueda">Buscar por Nombre</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="busqueda"
+                    type="text"
+                    placeholder="Nombre o descripción..."
+                    value={filtros.busqueda}
+                    onChange={(e) => set_filtros({ ...filtros, busqueda: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="estado">Estado</Label>
+                <Select
+                  value={filtros.estado}
+                  onValueChange={(value) => set_filtros({ ...filtros, estado: value === 'todos' ? '' : value })}
+                >
+                  <SelectTrigger id="estado">
+                    <SelectValue placeholder="Todos los estados" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los estados</SelectItem>
+                    <SelectItem value="activo">Activo</SelectItem>
+                    <SelectItem value="inactivo">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {hay_filtros_activos && (
+              <div className="mt-4 flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={limpiarFiltros}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Limpiar Filtros
+                </Button>
+                <span className="text-muted-foreground text-sm">
+                  Mostrando {periodos_filtrados.length} de {periodos.length} períodos
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {periodos.length === 0 && (
-            <p className="text-muted-foreground text-center py-10">
-              No hay períodos registrados.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista de Períodos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead>Semestre</TableHead>
+                  <TableHead>Inscripciones</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Grupos</TableHead>
+                  <TableHead>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {periodos_filtrados.map((periodo) => (
+                  <TableRow key={periodo.id}>
+                    <TableCell className="font-medium">
+                      {periodo.nombre}
+                      {periodo.activo && (
+                        <Badge className="ml-2">
+                          <CheckCircle className="h-3 w-3 mr-1" /> Activo
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>{periodo.descripcion || '-'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(periodo.fecha_inicio_semestre).toLocaleDateString()} - 
+                      {new Date(periodo.fecha_fin_semestre).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(periodo.fecha_inicio_inscripciones).toLocaleDateString()} - 
+                      {new Date(periodo.fecha_fin_inscripciones).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={periodo.activo ? 'default' : 'secondary'}>
+                        {periodo.activo ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{periodo.grupos?.length || 0}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => abrirModalEditar(periodo)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => manejarEliminar(periodo.id)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            {periodos_filtrados.length === 0 && (
+              <p className="text-muted-foreground text-center py-10">
+                {hay_filtros_activos ? 'No se encontraron períodos con los filtros aplicados.' : 'No hay períodos registrados.'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </>
     );
   }
 

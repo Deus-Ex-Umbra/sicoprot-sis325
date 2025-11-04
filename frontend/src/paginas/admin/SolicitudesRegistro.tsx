@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, X, Loader2 } from 'lucide-react';
+import { Check, X, Loader2, Search } from 'lucide-react';
 import { solicitudesRegistroApi } from '../../servicios/api';
 import { type SolicitudRegistro, Rol } from '../../tipos/usuario';
 import { toast } from 'sonner';
@@ -7,7 +7,7 @@ import { cn } from '../../lib/utilidades';
 import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { Button } from '../../componentes/ui/button';
-import { Card, CardContent } from '../../componentes/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
 import {
   Table,
   TableBody,
@@ -29,15 +29,29 @@ import { Label } from '../../componentes/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
 import { Textarea } from '../../componentes/ui/textarea';
 import BarraLateral from '../../componentes/barra-lateral';
+import { Input } from '../../componentes/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../../componentes/ui/select';
 
 const SolicitudesRegistro = () => {
   const [solicitudes, set_solicitudes] = useState<SolicitudRegistro[]>([]);
+  const [solicitudes_filtradas, set_solicitudes_filtradas] = useState<SolicitudRegistro[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
   const [mostrar_modal, set_mostrar_modal] = useState(false);
   const [solicitud_seleccionada, set_solicitud_seleccionada] = useState<SolicitudRegistro | null>(null);
   const [respuesta, set_respuesta] = useState<'aprobada' | 'rechazada'>('aprobada');
   const [comentarios, set_comentarios] = useState('');
+
+  const [filtros, set_filtros] = useState({
+    busqueda: '',
+    rol: '',
+  });
 
   const { usuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
@@ -51,15 +65,46 @@ const SolicitudesRegistro = () => {
     cargarSolicitudes();
   }, []);
 
+  useEffect(() => {
+    aplicarFiltros();
+  }, [filtros, solicitudes]);
+
   const cargarSolicitudes = async () => {
     try {
       const data = await solicitudesRegistroApi.obtenerPendientes();
       set_solicitudes(data);
+      set_solicitudes_filtradas(data);
     } catch (err) {
       set_error('Error al cargar las solicitudes');
     } finally {
       set_cargando(false);
     }
+  };
+
+  const aplicarFiltros = () => {
+    let resultado = [...solicitudes];
+
+    if (filtros.busqueda) {
+      const busqueda_lower = filtros.busqueda.toLowerCase();
+      resultado = resultado.filter(s =>
+        s.nombre.toLowerCase().includes(busqueda_lower) ||
+        s.apellido.toLowerCase().includes(busqueda_lower) ||
+        s.correo.toLowerCase().includes(busqueda_lower)
+      );
+    }
+
+    if (filtros.rol) {
+      resultado = resultado.filter(s => s.rol === filtros.rol);
+    }
+
+    set_solicitudes_filtradas(resultado);
+  };
+
+  const limpiarFiltros = () => {
+    set_filtros({
+      busqueda: '',
+      rol: '',
+    });
   };
 
   const abrirModalResponder = (solicitud: SolicitudRegistro, tipo: 'aprobada' | 'rechazada') => {
@@ -97,6 +142,8 @@ const SolicitudesRegistro = () => {
     }
   };
 
+  const hay_filtros_activos = filtros.busqueda || filtros.rol;
+
   let contenido_pagina;
 
   if (cargando) {
@@ -109,62 +156,119 @@ const SolicitudesRegistro = () => {
     contenido_pagina = <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>;
   } else {
     contenido_pagina = (
-      <Card>
-        <CardContent className="pt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Correo</TableHead>
-                <TableHead>Rol Solicitado</TableHead>
-                <TableHead>Fecha Solicitud</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {solicitudes.map((solicitud) => (
-                <TableRow key={solicitud.id}>
-                  <TableCell>{solicitud.id}</TableCell>
-                  <TableCell>{solicitud.nombre} {solicitud.apellido}</TableCell>
-                  <TableCell>{solicitud.correo}</TableCell>
-                  <TableCell>{obtenerBadgeRol(solicitud.rol)}</TableCell>
-                  <TableCell>
-                    <span className="text-muted-foreground text-xs">
-                      {new Date(solicitud.fecha_solicitud).toLocaleDateString()}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => abrirModalResponder(solicitud, 'aprobada')}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <Check className="h-4 w-4 mr-1" /> Aprobar
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => abrirModalResponder(solicitud, 'rechazada')}
-                      >
-                        <X className="h-4 w-4 mr-1" /> Rechazar
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      <>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Filtros</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="busqueda">Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="busqueda"
+                    type="text"
+                    placeholder="Nombre, apellido o correo..."
+                    value={filtros.busqueda}
+                    onChange={(e) => set_filtros({ ...filtros, busqueda: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rol">Rol</Label>
+                <Select
+                  value={filtros.rol}
+                  onValueChange={(value) => set_filtros({ ...filtros, rol: value === 'todos-roles' ? '' : value })}
+                >
+                  <SelectTrigger id="rol">
+                    <SelectValue placeholder="Todos los roles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos-roles">Todos los roles</SelectItem>
+                    <SelectItem value={Rol.Estudiante}>Estudiante</SelectItem>
+                    <SelectItem value={Rol.Asesor}>Asesor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {hay_filtros_activos && (
+              <div className="mt-4 flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={limpiarFiltros}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Limpiar Filtros
+                </Button>
+                <span className="text-muted-foreground text-sm">
+                  Mostrando {solicitudes_filtradas.length} de {solicitudes.length} solicitudes
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {solicitudes.length === 0 && (
-            <p className="text-muted-foreground text-center py-10">
-              No hay solicitudes pendientes.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Correo</TableHead>
+                  <TableHead>Rol Solicitado</TableHead>
+                  <TableHead>Fecha Solicitud</TableHead>
+                  <TableHead>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {solicitudes_filtradas.map((solicitud) => (
+                  <TableRow key={solicitud.id}>
+                    <TableCell>{solicitud.id}</TableCell>
+                    <TableCell>{solicitud.nombre} {solicitud.apellido}</TableCell>
+                    <TableCell>{solicitud.correo}</TableCell>
+                    <TableCell>{obtenerBadgeRol(solicitud.rol)}</TableCell>
+                    <TableCell>
+                      <span className="text-muted-foreground text-xs">
+                        {new Date(solicitud.fecha_solicitud).toLocaleDateString()}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => abrirModalResponder(solicitud, 'aprobada')}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Check className="h-4 w-4 mr-1" /> Aprobar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => abrirModalResponder(solicitud, 'rechazada')}
+                        >
+                          <X className="h-4 w-4 mr-1" /> Rechazar
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            {solicitudes_filtradas.length === 0 && (
+              <p className="text-muted-foreground text-center py-10">
+                {hay_filtros_activos ? 'No se encontraron solicitudes con los filtros aplicados.' : 'No hay solicitudes pendientes.'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </>
     );
   }
   

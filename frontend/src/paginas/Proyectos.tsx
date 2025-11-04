@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, FileUp, Info, Loader2 } from 'lucide-react';
+import { Plus, Eye, FileUp, Info, Loader2, Search, X } from 'lucide-react';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import { proyectosApi } from '../servicios/api';
-import { type Proyecto, Rol } from '../tipos/usuario';
+import { type Proyecto, Rol, EtapaProyecto } from '../tipos/usuario';
 import BarraLateral from '../componentes/barra-lateral';
 import BarraLateralAdmin from '../componentes/barra-lateral-admin';
 import { cn } from '../lib/utilidades';
-import { Card, CardContent } from '../componentes/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../componentes/ui/card';
 import { Button } from '../componentes/ui/button';
 import {
   Table,
@@ -29,9 +29,17 @@ import {
 } from '../componentes/ui/dialog';
 import { Input } from '../componentes/ui/input';
 import { Label } from '../componentes/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../componentes/ui/select';
 
 const Proyectos = () => {
   const [proyectos, set_proyectos] = useState<Proyecto[]>([]);
+  const [proyectos_filtrados, set_proyectos_filtrados] = useState<Proyecto[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
   const [mostrar_modal, set_mostrar_modal] = useState(false);
@@ -39,11 +47,17 @@ const Proyectos = () => {
     titulo: '',
   });
 
+  const [filtros, set_filtros] = useState({
+    busqueda: '',
+    etapa: '',
+  });
+
   const { usuario } = useAutenticacion();
   const navigate = useNavigate();
   const [sidebar_open, set_sidebar_open] = useState(true);
 
   const es_estudiante = usuario?.rol === Rol.Estudiante;
+  const es_asesor = usuario?.rol === Rol.Asesor;
   const es_admin = usuario?.rol === Rol.Administrador;
   const tiene_grupo = !!(es_estudiante && usuario?.perfil?.grupo);
   const grupo = usuario?.perfil?.grupo;
@@ -56,16 +70,50 @@ const Proyectos = () => {
     cargarProyectos();
   }, []);
 
+  useEffect(() => {
+    aplicarFiltros();
+  }, [filtros, proyectos]);
+
   const cargarProyectos = async () => {
     try {
       set_cargando(true);
       const data = await proyectosApi.obtenerTodos();
       set_proyectos(data);
+      set_proyectos_filtrados(data);
     } catch (err: any) {
       set_error('Error al cargar los proyectos');
     } finally {
       set_cargando(false);
     }
+  };
+
+  const aplicarFiltros = () => {
+    let resultado = [...proyectos];
+    const busqueda_lower = filtros.busqueda.toLowerCase();
+
+    if (busqueda_lower) {
+      resultado = resultado.filter(p => {
+        const estudiante = p.estudiantes?.[0];
+        const nombre_estudiante = estudiante ? `${estudiante.nombre} ${estudiante.apellido}` : '';
+        return (
+          p.titulo.toLowerCase().includes(busqueda_lower) ||
+          (es_asesor && nombre_estudiante.toLowerCase().includes(busqueda_lower))
+        );
+      });
+    }
+
+    if (filtros.etapa) {
+      resultado = resultado.filter(p => p.etapa_actual === filtros.etapa);
+    }
+
+    set_proyectos_filtrados(resultado);
+  };
+
+  const limpiarFiltros = () => {
+    set_filtros({
+      busqueda: '',
+      etapa: '',
+    });
   };
 
   const manejarCrearProyecto = async () => {
@@ -98,6 +146,8 @@ const Proyectos = () => {
     set_nuevo_proyecto({ titulo: '' });
     set_mostrar_modal(true);
   };
+
+  const hay_filtros_activos = filtros.busqueda || filtros.etapa;
 
   let contenido_pagina;
 
@@ -144,13 +194,73 @@ const Proyectos = () => {
           </Alert>
         )}
 
-        {proyectos.length === 0 ? (
+        {es_asesor && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Filtros</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="busqueda">Buscar por Título o Estudiante</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="busqueda"
+                      type="text"
+                      placeholder="Título, estudiante..."
+                      value={filtros.busqueda}
+                      onChange={(e) => set_filtros({ ...filtros, busqueda: e.target.value })}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="etapa">Etapa Actual</Label>
+                  <Select
+                    value={filtros.etapa}
+                    onValueChange={(value) => set_filtros({ ...filtros, etapa: value === 'todas' ? '' : value })}
+                  >
+                    <SelectTrigger id="etapa">
+                      <SelectValue placeholder="Todas las etapas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas las etapas</SelectItem>
+                      {Object.values(EtapaProyecto).map(etapa => (
+                        <SelectItem key={etapa} value={etapa} className="capitalize">{etapa}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {hay_filtros_activos && (
+                <div className="mt-4 flex items-center gap-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={limpiarFiltros}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Limpiar Filtros
+                  </Button>
+                  <span className="text-muted-foreground text-sm">
+                    Mostrando {proyectos_filtrados.length} de {proyectos.length} proyectos
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {proyectos_filtrados.length === 0 ? (
           <Card>
             <CardContent className="text-center py-10">
               <p className="text-muted-foreground mb-4">
-                {es_estudiante ? 'No tienes proyectos registrados' : 'No tienes proyectos asignados'}
+                {hay_filtros_activos 
+                  ? 'No se encontraron proyectos con los filtros aplicados.'
+                  : (es_estudiante ? 'No tienes proyectos registrados' : 'No tienes proyectos asignados')}
               </p>
-              {es_estudiante && tiene_grupo && grupo?.asesor && (
+              {es_estudiante && tiene_grupo && grupo?.asesor && !hay_filtros_activos && (
                 <Button onClick={abrirModalCrear}>
                   <Plus className="mr-2 h-4 w-4" />
                   Crear mi primer proyecto
@@ -167,13 +277,13 @@ const Proyectos = () => {
                     <TableHead>Título</TableHead>
                     <TableHead>Estudiante</TableHead>
                     <TableHead>Asesor</TableHead>
+                    <TableHead>Etapa</TableHead>
                     <TableHead>Documentos</TableHead>
-                    <TableHead>Fecha de Creación</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {proyectos.map((proyecto) => (
+                  {proyectos_filtrados.map((proyecto) => (
                     <TableRow key={proyecto.id}>
                       <TableCell className="font-medium">{proyecto.titulo}</TableCell>
                       <TableCell>
@@ -183,10 +293,10 @@ const Proyectos = () => {
                         {proyecto.asesor?.nombre} {proyecto.asesor?.apellido}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{proyecto.documentos?.length || 0}</Badge>
+                        <Badge variant="outline" className="capitalize">{proyecto.etapa_actual}</Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(proyecto.fecha_creacion).toLocaleDateString()}
+                        <Badge variant="secondary">{proyecto.documentos?.length || 0}</Badge>
                       </TableCell>
                       <TableCell className="flex gap-2">
                         <Button
