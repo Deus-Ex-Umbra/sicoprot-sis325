@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Loader2 } from 'lucide-react';
+import { Eye, Loader2, Users, GraduationCap, Briefcase } from 'lucide-react';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
-import { proyectosApi } from '../../servicios/api';
-import { type Proyecto, Rol } from '../../tipos/usuario';
+import { asesoresApi } from '../../servicios/api';
+import { type Proyecto, Rol, type Estudiante } from '../../tipos/usuario';
 import BarraLateral from '../../componentes/barra-lateral';
 import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { cn } from '../../lib/utilidades';
-import { Card, CardContent } from '../../componentes/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
 import {
   Table,
   TableBody,
@@ -19,9 +19,28 @@ import {
 import { Badge } from '../../componentes/ui/badge';
 import { Button } from '../../componentes/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
+import { Separator } from '../../componentes/ui/separator';
+
+interface EstudianteGrupo {
+  id: number;
+  nombre: string;
+  apellido: string;
+  correo: string;
+  proyecto: string;
+}
+
+interface GrupoAsesor {
+  id: number;
+  nombre: string;
+  tipo: 'taller_grado_i' | 'taller_grado_ii';
+  descripcion?: string;
+  activo: boolean;
+  periodo: any;
+  estudiantes: EstudianteGrupo[];
+}
 
 const MisEstudiantes = () => {
-  const [proyectos, set_proyectos] = useState<Proyecto[]>([]);
+  const [grupos_data, set_grupos_data] = useState<GrupoAsesor[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
   const navigate = useNavigate();
@@ -35,19 +54,72 @@ const MisEstudiantes = () => {
   };
 
   useEffect(() => {
-    cargarProyectos();
+    cargarDatos();
   }, []);
 
-  const cargarProyectos = async () => {
+  const cargarDatos = async () => {
     try {
-      const data = await proyectosApi.obtenerTodos();
-      set_proyectos(data);
+      const data = await asesoresApi.obtenerEstudiantesDeMiGrupo();
+      set_grupos_data(data.grupos || []);
     } catch (err) {
       set_error('No se pudo cargar la lista de estudiantes.');
     } finally {
       set_cargando(false);
     }
   };
+
+  const grupos_taller_i = grupos_data.filter(g => g.tipo === 'taller_grado_i' && g.activo);
+  const grupos_taller_ii = grupos_data.filter(g => g.tipo === 'taller_grado_ii' && g.activo);
+
+  const renderTablaGrupo = (grupo: GrupoAsesor) => (
+    <Card key={grupo.id} className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          <span>{grupo.nombre}</span>
+          <Badge variant="outline">{grupo.periodo?.nombre}</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {grupo.estudiantes.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Estudiante</TableHead>
+                <TableHead>Correo</TableHead>
+                <TableHead>Proyecto</TableHead>
+                <TableHead>Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {grupo.estudiantes.map((estudiante) => (
+                <TableRow key={estudiante.id}>
+                  <TableCell className="font-medium">
+                    {estudiante.nombre} {estudiante.apellido}
+                  </TableCell>
+                  <TableCell>{estudiante.correo}</TableCell>
+                  <TableCell>{estudiante.proyecto || 'Sin proyecto'}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/panel/proyectos`)}
+                    >
+                      <Eye className="mr-1 h-4 w-4" />
+                      Ver Proyectos
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <p className="text-muted-foreground text-center py-4">
+            No hay estudiantes inscritos en este grupo.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   let contenido_pagina;
 
@@ -64,57 +136,38 @@ const MisEstudiantes = () => {
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
+  } else if (grupos_data.length === 0) {
+    contenido_pagina = (
+       <Alert>
+          <AlertTitle>Sin Estudiantes</AlertTitle>
+          <AlertDescription>
+            No tienes estudiantes asignados a ningún grupo activo en este momento.
+          </AlertDescription>
+        </Alert>
+    );
   } else {
     contenido_pagina = (
-      <Card>
-        <CardContent className="pt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Estudiante</TableHead>
-                <TableHead>Proyecto</TableHead>
-                <TableHead>Documentos</TableHead>
-                <TableHead>Fecha de Inicio</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {proyectos.map((proyecto) => (
-                <TableRow key={proyecto.id}>
-                  <TableCell className="font-medium">
-                    {proyecto.estudiantes?.[0]?.nombre} {proyecto.estudiantes?.[0]?.apellido}
-                  </TableCell>
-                  <TableCell>{proyecto.titulo}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {proyecto.documentos?.length || 0} documento(s)
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(proyecto.fecha_creacion).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/panel/proyecto/${proyecto.id}`)}
-                    >
-                      <Eye className="mr-1 h-4 w-4" />
-                      Ver Proyecto
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {proyectos.length === 0 && (
-            <p className="text-muted-foreground text-center py-10">
-              No tienes estudiantes asignados.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <div className="space-y-8">
+        {grupos_taller_i.length > 0 && (
+          <section>
+            <h2 className="text-2xl font-semibold flex items-center gap-2 mb-4">
+              <GraduationCap className="h-6 w-6 text-primary" />
+              Taller de Grado I (Propuesta / Perfil)
+            </h2>
+            {grupos_taller_i.map(renderTablaGrupo)}
+          </section>
+        )}
+        
+        {grupos_taller_ii.length > 0 && (
+          <section>
+            <h2 className="text-2xl font-semibold flex items-center gap-2 mb-4">
+              <Briefcase className="h-6 w-6 text-primary" />
+              Taller de Grado II (Proyecto)
+            </h2>
+            {grupos_taller_ii.map(renderTablaGrupo)}
+          </section>
+        )}
+      </div>
     );
   }
 

@@ -7,10 +7,11 @@ import {
   Calendar,
   User,
   Loader2,
+  GraduationCap,
 } from 'lucide-react';
 import { gruposApi } from '../../servicios/api';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
-import { type Grupo, Rol } from '../../tipos/usuario';
+import { type Grupo, Rol, EtapaProyecto } from '../../tipos/usuario';
 import { toast } from 'sonner';
 import BarraLateral from '../../componentes/barra-lateral';
 import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
@@ -30,7 +31,7 @@ import {
 import { Separator } from '../../componentes/ui/separator';
 
 const InscripcionGrupos = () => {
-  const [grupos, set_grupos] = useState<Grupo[]>([]);
+  const [grupos_disponibles, set_grupos_disponibles] = useState<Grupo[]>([]);
   const [mi_grupo, set_mi_grupo] = useState<Grupo | null>(null);
   const [cargando, set_cargando] = useState(true);
   const [procesando, set_procesando] = useState(false);
@@ -52,12 +53,12 @@ const InscripcionGrupos = () => {
   const cargarDatos = async () => {
     try {
       set_cargando(true);
-      const [grupo_actual, grupos_disponibles] = await Promise.all([
+      const [grupo_actual, grupos_disponibles_data] = await Promise.all([
         gruposApi.obtenerMiGrupo(),
         gruposApi.obtenerDisponibles(),
       ]);
       set_mi_grupo(grupo_actual);
-      set_grupos(grupos_disponibles);
+      set_grupos_disponibles(grupos_disponibles_data);
     } catch (err) {
       console.error('Error al cargar datos:', err);
       set_error('Error al cargar los grupos disponibles');
@@ -134,6 +135,9 @@ const InscripcionGrupos = () => {
               {mi_grupo.estudiantes?.length || 0} estudiantes
             </Badge>
           </div>
+          <Badge variant="outline" className="w-fit">
+            {mi_grupo.tipo === 'taller_grado_i' ? 'Taller de Grado I' : 'Taller de Grado II'}
+          </Badge>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -226,18 +230,28 @@ const InscripcionGrupos = () => {
       </Card>
     );
   } else {
+    
+    const perfil_aprobado = (usuario?.perfil as any)?.proyecto?.perfil_aprobado || false;
+    const tipo_buscado = perfil_aprobado ? 'Taller de Grado II' : 'Taller de Grado I';
+    const icono_buscado = perfil_aprobado ? <Briefcase className="h-4 w-4" /> : <GraduationCap className="h-4 w-4" />;
+
     contenido_pagina = (
       <>
         <Alert className="mb-4">
-          <AlertTitle>Información</AlertTitle>
+          <AlertTitle className="flex items-center gap-2">
+            {icono_buscado}
+            Grupos Disponibles para {tipo_buscado}
+          </AlertTitle>
           <AlertDescription>
-            Selecciona un grupo de asesoría para recibir orientación personalizada.
-            Una vez inscrito, podrás ver a tus compañeros de grupo.
+            {perfil_aprobado 
+              ? 'Felicidades por aprobar tu perfil. Selecciona un grupo de Taller de Grado II para continuar.'
+              : 'Selecciona un grupo de Taller de Grado I para recibir asesoría en tu propuesta y perfil.'
+            }
           </AlertDescription>
         </Alert>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {grupos.map((grupo) => (
+          {grupos_disponibles.map((grupo) => (
             <Card key={grupo.id} className="flex flex-col">
               <CardHeader>
                 <CardTitle>{grupo.nombre}</CardTitle>
@@ -277,12 +291,12 @@ const InscripcionGrupos = () => {
           ))}
         </div>
 
-        {grupos.length === 0 && (
+        {grupos_disponibles.length === 0 && (
           <Card>
             <CardContent className="text-center py-10">
               <Users className="h-16 w-16 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground">
-                No hay grupos disponibles para inscripción en este momento.
+                No hay grupos de {tipo_buscado} disponibles para inscripción en este momento.
               </p>
             </CardContent>
           </Card>

@@ -87,10 +87,15 @@ export class AutenticacionService {
     if (usuario.rol === Rol.Estudiante) {
       const estudiante = await this.repositorio_estudiante.findOne({
         where: { usuario: { id: usuario.id } },
-        relations: ['grupos', 'grupos.asesor', 'grupos.asesor.usuario', 'grupos.periodo'],
+        relations: [
+          'grupos',
+          'grupos.asesor',
+          'grupos.asesor.usuario',
+          'grupos.periodo',
+        ],
       });
       if (estudiante) {
-        const grupo_activo = estudiante.grupos?.find(g => g.periodo.activo);
+        const grupo_activo = estudiante.grupos?.find(g => g.periodo && g.periodo.activo);
         perfil_completo = {
           id_estudiante: estudiante.id,
           nombre: estudiante.nombre,

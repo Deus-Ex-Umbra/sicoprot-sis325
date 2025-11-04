@@ -34,8 +34,8 @@ export class GruposController {
   @Get('disponibles')
   @ApiOperation({ summary: 'Obtener grupos disponibles para inscripción' })
   @ApiResponse({ status: 200, description: 'Lista de grupos disponibles.' })
-  obtenerDisponibles() {
-    return this.servicio_grupos.obtenerGruposDisponibles();
+  obtenerDisponibles(@Request() req) {
+    return this.servicio_grupos.obtenerGruposDisponibles(req.user.id_usuario);
   }
 
   @Get('mi-grupo')
