@@ -7,6 +7,7 @@ import {
   User,
   Loader2,
   GraduationCap,
+  CheckCircle,
 } from 'lucide-react';
 import { gruposApi } from '../../servicios/api';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
@@ -40,14 +41,19 @@ const InscripcionGrupos = () => {
 
   const es_admin = usuario?.rol === Rol.Administrador;
   const mi_id_estudiante = usuario?.perfil?.id_estudiante;
+  const proyecto_terminado = usuario?.perfil?.proyecto?.etapa_actual === EtapaProyecto.TERMINADO;
 
   const toggleSidebar = () => {
     set_sidebar_open(!sidebar_open);
   };
 
   useEffect(() => {
+    if (proyecto_terminado) {
+      set_cargando(false);
+      return;
+    }
     cargarDatos();
-  }, []);
+  }, [proyecto_terminado]);
 
   const cargarDatos = async () => {
     try {
@@ -97,6 +103,16 @@ const InscripcionGrupos = () => {
       <Alert variant="destructive">
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  } else if (proyecto_terminado) {
+    contenido_pagina = (
+      <Alert variant="default">
+        <CheckCircle className="h-4 w-4" />
+        <AlertTitle>Proyecto Concluido</AlertTitle>
+        <AlertDescription>
+          ¡Felicidades! Has concluido tu proyecto de titulación. Ya no necesitas inscribirte a más grupos.
+        </AlertDescription>
       </Alert>
     );
   } else if (mi_grupo) {
@@ -200,9 +216,7 @@ const InscripcionGrupos = () => {
     );
   } else {
     
-    const tipo_buscado = grupos_disponibles.length > 0
-      ? (grupos_disponibles[0].tipo === 'taller_grado_i' ? 'Taller de Grado I' : 'Taller de Grado II')
-      : (usuario?.perfil?.proyecto?.perfil_aprobado ? 'Taller de Grado II' : 'Taller de Grado I');
+    const tipo_buscado = (usuario?.perfil?.proyecto?.perfil_aprobado ? 'Taller de Grado II' : 'Taller de Grado I');
       
     const icono_buscado = tipo_buscado === 'Taller de Grado I'
       ? <GraduationCap className="h-4 w-4" /> 

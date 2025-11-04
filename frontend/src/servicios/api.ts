@@ -289,8 +289,12 @@ export const proyectosApi = {
     const respuesta = await api.get('/proyectos/solicitudes/defensa', { params: { estado } });
     return respuesta.data;
   },
-  solicitarDefensa: async (id: number, datos: any) => {
-    const respuesta = await api.patch(`/proyectos/${id}/solicitar-defensa`, datos);
+  solicitarDefensa: async (id: number, formData: FormData) => {
+    const respuesta = await api.patch(`/proyectos/${id}/solicitar-defensa`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return respuesta.data;
   },
   responderSolicitudDefensa: async (id: number, datos: any) => {

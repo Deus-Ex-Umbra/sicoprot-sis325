@@ -41,6 +41,7 @@ export const PestanaReuniones = ({ proyecto, observaciones, onActualizarProyecto
         id_proyecto: proyecto.id
       });
       toast.success('Reunión programada exitosamente');
+      set_form_crear({ titulo: '', descripcion: '', fecha_programada: '' });
       set_mostrar_modal_crear(false);
       onActualizarProyecto();
     } catch (err: any) {

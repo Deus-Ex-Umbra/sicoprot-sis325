@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Search, X, Edit, Trash, MessageSquare } from 'lucide-react';
 import { observacionesApi } from '../../servicios/api';
-import { type Observacion, EstadoObservacion, Rol } from '../../tipos/usuario';
+import { type Observacion, EstadoObservacion, Rol, type Proyecto } from '../../tipos/usuario';
 import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
 import {
   Accordion,
@@ -36,6 +36,13 @@ import {
 } from '../../componentes/ui/dialog';
 import { EditorHtmlSimple } from '../../componentes/ui/editor-html-simple';
 import { estadoConfig } from '../../tipos/estado-observacion';
+
+interface GrupoObservaciones {
+  proyecto_id: number;
+  proyecto_titulo: string;
+  estudiante_nombre: string;
+  observaciones: Observacion[];
+}
 
 const ObservacionesAsesor = () => {
   const [observaciones, set_observaciones] = useState<Observacion[]>([]);
@@ -168,7 +175,34 @@ const ObservacionesAsesor = () => {
     return estadoConfig[estado as EstadoObservacion] || estadoConfig[EstadoObservacion.PENDIENTE];
   };
 
+  const agruparObservacionesPorProyecto = (): GrupoObservaciones[] => {
+    const grupos: { [key: number]: GrupoObservaciones } = {};
+
+    observaciones_filtradas.forEach(obs => {
+      const proyecto = (obs.documento?.proyecto || obs.proyecto) as Proyecto | null;
+      const proyecto_id = proyecto?.id || 0;
+      
+      if (!grupos[proyecto_id]) {
+        const estudiante = proyecto?.estudiantes?.[0];
+        grupos[proyecto_id] = {
+          proyecto_id: proyecto_id,
+          proyecto_titulo: proyecto?.titulo || 'Observaciones sin proyecto asignado',
+          estudiante_nombre: estudiante ? `${estudiante.nombre} ${estudiante.apellido}` : 'N/A',
+          observaciones: []
+        };
+      }
+      grupos[proyecto_id].observaciones.push(obs);
+    });
+
+    return Object.values(grupos).sort((a, b) => {
+      const fecha_a = Math.max(...a.observaciones.map(o => new Date(o.fecha_creacion).getTime()));
+      const fecha_b = Math.max(...b.observaciones.map(o => new Date(o.fecha_creacion).getTime()));
+      return fecha_b - fecha_a;
+    });
+  };
+
   const hay_filtros_activos = filtros.busqueda || filtros.estado;
+  const grupos_proyectos = agruparObservacionesPorProyecto();
 
   let contenido_pagina;
 
@@ -245,89 +279,91 @@ const ObservacionesAsesor = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Mis Observaciones a Estudiantes</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Observaciones realizadas: {observaciones_filtradas.length}
-            </p>
-          </CardHeader>
-          <CardContent>
-            {observaciones_filtradas.length === 0 ? (
+        {grupos_proyectos.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6">
               <Alert>
                 <AlertDescription>
                   {hay_filtros_activos ? 'No se encontraron observaciones con los filtros aplicados.' : 'No has creado observaciones todavía.'}
                 </AlertDescription>
               </Alert>
-            ) : (
-              <Accordion type="multiple" className="w-full">
-                {observaciones_filtradas.map((obs) => {
-                  const proyecto = obs.documento?.proyecto || obs.proyecto;
-                  const estudiante = proyecto?.estudiantes?.[0];
-                  const nombre_estudiante = estudiante
-                    ? `${estudiante.nombre} ${estudiante.apellido}`
-                    : '—';
-                  const titulo_proyecto = proyecto?.titulo || 'Sin proyecto';
-                  const config_estado = obtenerConfigEstado(obs.estado);
-                  
-                  return (
-                    <AccordionItem value={`obs-${obs.id}`} key={obs.id}>
-                      <AccordionTrigger>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between w-full pr-4">
-                          <div className="text-left">
-                            <Badge variant={config_estado.variant as any} className={cn(config_estado.className)}>
-                              {config_estado.label}
-                            </Badge>
-                            <span className="font-semibold ml-2">{obs.titulo}</span>
-                          </div>
-                          <div className="text-sm text-muted-foreground text-left md:text-right mt-1 md:mt-0">
-                            {titulo_proyecto} ({nombre_estudiante})
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-4">
-                        <div
-                          className="prose prose-sm max-w-none text-muted-foreground"
-                          dangerouslySetInnerHTML={{ __html: obs.contenido_html }}
-                        />
-                        {obs.comentarios_asesor_html && (
-                          <Alert>
-                            <AlertTitle>Comentario Adicional</AlertTitle>
-                            <AlertDescription
-                              dangerouslySetInnerHTML={{ __html: obs.comentarios_asesor_html }}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {grupos_proyectos.map((grupo) => (
+              <Card key={grupo.proyecto_id}>
+                <CardHeader>
+                  <CardTitle>{grupo.proyecto_titulo}</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Estudiante: {grupo.estudiante_nombre}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <Accordion type="multiple" className="w-full">
+                    {grupo.observaciones.map((obs) => {
+                      const config_estado = obtenerConfigEstado(obs.estado);
+                      
+                      return (
+                        <AccordionItem value={`obs-${obs.id}`} key={obs.id}>
+                          <AccordionTrigger>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between w-full pr-4">
+                              <div className="text-left">
+                                <Badge variant={config_estado.variant as any} className={cn(config_estado.className)}>
+                                  {config_estado.label}
+                                </Badge>
+                                <span className="font-semibold ml-2">{obs.titulo}</span>
+                              </div>
+                              <div className="text-sm text-muted-foreground text-left md:text-right mt-1 md:mt-0">
+                                {new Date(obs.fecha_creacion).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="space-y-4">
+                            <div
+                              className="prose prose-sm max-w-none text-muted-foreground"
+                              dangerouslySetInnerHTML={{ __html: obs.contenido_html }}
                             />
-                          </Alert>
-                        )}
-                        <div className="flex gap-2">
-                          <Select
-                            value={obs.estado}
-                            onValueChange={(value) => manejarCambioEstado(obs.id, value)}
-                          >
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={EstadoObservacion.PENDIENTE}>⏳ Pendiente</SelectItem>
-                              <SelectItem value={EstadoObservacion.EN_REVISION}>👀 En Revisión</SelectItem>
-                              <SelectItem value={EstadoObservacion.CORREGIDA}>✅ Corregida</SelectItem>
-                              <SelectItem value={EstadoObservacion.RECHAZADO}>❌ Rechazado</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button variant="outline" size="sm" onClick={() => abrirModalEditar(obs)}>
-                            <Edit className="h-4 w-4 mr-2" /> Editar
-                          </Button>
-                          <Button variant="destructive" size="icon" onClick={() => manejarEliminar(obs.id)}>
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  )
-                })}
-              </Accordion>
-            )}
-          </CardContent>
-        </Card>
+                            {obs.comentarios_asesor_html && (
+                              <Alert>
+                                <AlertTitle>Comentario Adicional</AlertTitle>
+                                <AlertDescription
+                                  dangerouslySetInnerHTML={{ __html: obs.comentarios_asesor_html }}
+                                />
+                              </Alert>
+                            )}
+                            <div className="flex gap-2">
+                              <Select
+                                value={obs.estado}
+                                onValueChange={(value) => manejarCambioEstado(obs.id, value)}
+                              >
+                                <SelectTrigger className="w-[180px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={EstadoObservacion.PENDIENTE}>⏳ Pendiente</SelectItem>
+                                  <SelectItem value={EstadoObservacion.EN_REVISION}>👀 En Revisión</SelectItem>
+                                  <SelectItem value={EstadoObservacion.CORREGIDA}>✅ Corregida</SelectItem>
+                                  <SelectItem value={EstadoObservacion.RECHAZADO}>❌ Rechazado</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button variant="outline" size="sm" onClick={() => abrirModalEditar(obs)}>
+                                <Edit className="h-4 w-4 mr-2" /> Editar
+                              </Button>
+                              <Button variant="destructive" size="icon" onClick={() => manejarEliminar(obs.id)}>
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      )
+                    })}
+                  </Accordion>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </>
     );
   }
@@ -347,6 +383,7 @@ const ObservacionesAsesor = () => {
         )}
       >
         <div className="container mx-auto p-6 max-w-7xl">
+          <h1 className="text-3xl font-bold tracking-tight mb-6">Gestión de Observaciones</h1>
           {contenido_pagina}
         </div>
 
