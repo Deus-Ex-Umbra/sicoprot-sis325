@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ShieldCheck, User, FileText, Calendar, Eye } from 'lucide-react';
+import { Loader2, ShieldCheck, User, FileText, Calendar, Eye, Filter } from 'lucide-react';
 import { proyectosApi, documentosApi } from '../../servicios/api';
 import { type Proyecto, Rol, type Asesor } from '../../tipos/usuario';
 import { toast } from 'sonner';
@@ -20,11 +20,15 @@ import {
 import { Badge } from '../../componentes/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
 import BarraLateral from '../../componentes/barra-lateral';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../componentes/ui/tabs';
+
+type FiltroEstado = 'pendientes' | 'aprobadas' | 'rechazadas';
 
 const SolicitudesDefensa = () => {
   const [solicitudes, set_solicitudes] = useState<Proyecto[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
+  const [filtro_estado, set_filtro_estado] = useState<FiltroEstado>('pendientes');
   
   const { usuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
@@ -37,18 +41,28 @@ const SolicitudesDefensa = () => {
 
   useEffect(() => {
     cargarSolicitudes();
-  }, []);
+  }, [filtro_estado]);
 
   const cargarSolicitudes = async () => {
     try {
       set_cargando(true);
-      const data = await proyectosApi.obtenerSolicitudesDefensa();
+      const data = await proyectosApi.obtenerSolicitudesDefensa(filtro_estado);
       set_solicitudes(data);
     } catch (err: any) {
       set_error(err.response?.data?.message || 'Error al cargar las solicitudes de defensa');
     } finally {
       set_cargando(false);
     }
+  };
+
+  const getBadgeEstado = (proyecto: Proyecto) => {
+    if (proyecto.etapa_actual === 'terminado') {
+      return <Badge variant="default" className="bg-green-600">Aprobada</Badge>;
+    }
+    if (proyecto.etapa_actual === 'listo_defensa' && proyecto.comentarios_defensa) {
+      return <Badge variant="destructive">Rechazada</Badge>;
+    }
+    return <Badge variant="secondary">Pendiente</Badge>;
   };
 
   let contenido_pagina;
@@ -73,6 +87,7 @@ const SolicitudesDefensa = () => {
                 <TableHead>Estudiante(s)</TableHead>
                 <TableHead>Asesor</TableHead>
                 <TableHead>Memorial</TableHead>
+                <TableHead>Estado</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -99,12 +114,16 @@ const SolicitudesDefensa = () => {
                     )}
                   </TableCell>
                   <TableCell>
+                    {getBadgeEstado(proyecto)}
+                  </TableCell>
+                  <TableCell>
                     <Button
                       variant="default"
                       size="sm"
                       onClick={() => navigate(`/panel/proyecto/${proyecto.id}`)}
                     >
-                      <Eye className="h-4 w-4 mr-1" /> Responder
+                      <Eye className="h-4 w-4 mr-1" /> 
+                      {filtro_estado === 'pendientes' ? 'Responder' : 'Ver'}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -114,7 +133,7 @@ const SolicitudesDefensa = () => {
 
           {solicitudes.length === 0 && (
             <p className="text-muted-foreground text-center py-10">
-              No hay solicitudes de defensa pendientes.
+              No hay solicitudes de defensa en estado "{filtro_estado}".
             </p>
           )}
         </CardContent>
@@ -142,10 +161,24 @@ const SolicitudesDefensa = () => {
       )}
     >
       <div className="container mx-auto p-6 max-w-7xl">
-        <h1 className="text-3xl font-bold tracking-tight mb-6">
-          Solicitudes de Defensa
-        </h1>
-        {contenido_pagina}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Solicitudes de Defensa
+          </h1>
+        </div>
+
+        <Tabs defaultValue="pendientes" onValueChange={(value) => set_filtro_estado(value as FiltroEstado)}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="pendientes">Pendientes</TabsTrigger>
+            <TabsTrigger value="aprobadas">Aprobadas</TabsTrigger>
+            <TabsTrigger value="rechazadas">Rechazadas</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="pendientes">{contenido_pagina}</TabsContent>
+          <TabsContent value="aprobadas">{contenido_pagina}</TabsContent>
+          <TabsContent value="rechazadas">{contenido_pagina}</TabsContent>
+        </Tabs>
+
       </div>
     </main>
   </div>

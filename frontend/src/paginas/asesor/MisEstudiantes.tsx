@@ -42,10 +42,9 @@ interface GrupoAsesor {
 
 const MisEstudiantes = () => {
   const [grupos_data, set_grupos_data] = useState<GrupoAsesor[]>([]);
-  const [grupos_filtrados, set_grupos_filtrados] = useState<GrupoAsesor[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
-  const [filtro_busqueda, set_filtro_busqueda] = useState('');
+  const [filtros_grupo, set_filtros_grupo] = useState<{ [key: number]: string }>({});
   const navigate = useNavigate();
   const { usuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
@@ -60,15 +59,10 @@ const MisEstudiantes = () => {
     cargarDatos();
   }, []);
 
-  useEffect(() => {
-    aplicarFiltros();
-  }, [filtro_busqueda, grupos_data]);
-
   const cargarDatos = async () => {
     try {
       const data = await asesoresApi.obtenerEstudiantesDeMiGrupo();
       set_grupos_data(data.grupos || []);
-      set_grupos_filtrados(data.grupos || []);
     } catch (err) {
       set_error('No se pudo cargar la lista de estudiantes.');
     } finally {
@@ -76,77 +70,95 @@ const MisEstudiantes = () => {
     }
   };
 
-  const aplicarFiltros = () => {
-    let resultado = [...grupos_data];
-    const busqueda_lower = filtro_busqueda.toLowerCase();
-
-    if (busqueda_lower) {
-      resultado = resultado.map(grupo => {
-        const estudiantes_filtrados = grupo.estudiantes.filter(est => 
-          est.nombre.toLowerCase().includes(busqueda_lower) ||
-          est.apellido.toLowerCase().includes(busqueda_lower) ||
-          est.correo.toLowerCase().includes(busqueda_lower) ||
-          est.proyecto.toLowerCase().includes(busqueda_lower)
-        );
-        return { ...grupo, estudiantes: estudiantes_filtrados };
-      }).filter(grupo => grupo.estudiantes.length > 0 || grupo.nombre.toLowerCase().includes(busqueda_lower));
-    }
-
-    set_grupos_filtrados(resultado);
+  const manejarFiltroGrupo = (grupo_id: number, valor: string) => {
+    set_filtros_grupo(prev => ({
+      ...prev,
+      [grupo_id]: valor,
+    }));
   };
 
-  const grupos_taller_i = grupos_filtrados.filter(g => g.tipo === 'taller_grado_i' && g.activo);
-  const grupos_taller_ii = grupos_filtrados.filter(g => g.tipo === 'taller_grado_ii' && g.activo);
+  const grupos_taller_i = grupos_data.filter(g => g.tipo === 'taller_grado_i' && g.activo);
+  const grupos_taller_ii = grupos_data.filter(g => g.tipo === 'taller_grado_ii' && g.activo);
 
-  const renderTablaGrupo = (grupo: GrupoAsesor) => (
-    <Card key={grupo.id} className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>{grupo.nombre}</span>
-          <Badge variant="outline">{grupo.periodo?.nombre}</Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {grupo.estudiantes.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Estudiante</TableHead>
-                <TableHead>Correo</TableHead>
-                <TableHead>Proyecto</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {grupo.estudiantes.map((estudiante) => (
-                <TableRow key={estudiante.id}>
-                  <TableCell className="font-medium">
-                    {estudiante.nombre} {estudiante.apellido}
-                  </TableCell>
-                  <TableCell>{estudiante.correo}</TableCell>
-                  <TableCell>{estudiante.proyecto || 'Sin proyecto'}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/panel/proyectos`)}
-                    >
-                      <Eye className="mr-1 h-4 w-4" />
-                      Ver Proyectos
-                    </Button>
-                  </TableCell>
+  const renderTablaGrupo = (grupo: GrupoAsesor) => {
+    const filtro_actual = filtros_grupo[grupo.id] || '';
+    const filtro_lower = filtro_actual.toLowerCase();
+
+    const estudiantes_filtrados = filtro_lower
+      ? grupo.estudiantes.filter(est => 
+          est.nombre.toLowerCase().includes(filtro_lower) ||
+          est.apellido.toLowerCase().includes(filtro_lower) ||
+          est.correo.toLowerCase().includes(filtro_lower) ||
+          est.proyecto.toLowerCase().includes(filtro_lower)
+        )
+      : grupo.estudiantes;
+
+    return (
+      <Card key={grupo.id} className="mb-6">
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <span>{grupo.nombre}</span>
+                <Badge variant="outline">{grupo.periodo?.nombre}</Badge>
+              </CardTitle>
+              <span className="text-sm text-muted-foreground">{grupo.estudiantes.length} estudiante(s)</span>
+            </div>
+            <div className="relative w-full md:w-1/2">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id={`busqueda-${grupo.id}`}
+                type="text"
+                placeholder="Buscar en este grupo..."
+                value={filtro_actual}
+                onChange={(e) => manejarFiltroGrupo(grupo.id, e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {estudiantes_filtrados.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Estudiante</TableHead>
+                  <TableHead>Correo</TableHead>
+                  <TableHead>Proyecto</TableHead>
+                  <TableHead>Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <p className="text-muted-foreground text-center py-4">
-            {filtro_busqueda ? 'No se encontraron estudiantes que coincidan.' : 'No hay estudiantes inscritos en este grupo.'}
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
+              </TableHeader>
+              <TableBody>
+                {estudiantes_filtrados.map((estudiante) => (
+                  <TableRow key={estudiante.id}>
+                    <TableCell className="font-medium">
+                      {estudiante.nombre} {estudiante.apellido}
+                    </TableCell>
+                    <TableCell>{estudiante.correo}</TableCell>
+                    <TableCell>{estudiante.proyecto || 'Sin proyecto'}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/panel/proyectos`)}
+                      >
+                        <Eye className="mr-1 h-4 w-4" />
+                        Ver Proyectos
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-center py-4">
+              {filtro_actual ? 'No se encontraron estudiantes que coincidan.' : 'No hay estudiantes inscritos en este grupo.'}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   let contenido_pagina;
 
@@ -175,23 +187,6 @@ const MisEstudiantes = () => {
   } else {
     contenido_pagina = (
       <div className="space-y-8">
-        <Card>
-          <CardContent className="pt-6">
-            <Label htmlFor="busqueda-estudiante">Buscar Estudiante o Proyecto</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="busqueda-estudiante"
-                type="text"
-                placeholder="Nombre, correo, proyecto..."
-                value={filtro_busqueda}
-                onChange={(e) => set_filtro_busqueda(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {grupos_taller_i.length > 0 && (
           <section>
             <h2 className="text-2xl font-semibold flex items-center gap-2 mb-4">
@@ -210,15 +205,6 @@ const MisEstudiantes = () => {
             </h2>
             {grupos_taller_ii.map(renderTablaGrupo)}
           </section>
-        )}
-
-        {grupos_filtrados.length === 0 && filtro_busqueda && (
-           <Alert>
-            <AlertTitle>No se encontraron resultados</AlertTitle>
-            <AlertDescription>
-              Ningún estudiante, proyecto o grupo coincide con "{filtro_busqueda}".
-            </AlertDescription>
-          </Alert>
         )}
       </div>
     );

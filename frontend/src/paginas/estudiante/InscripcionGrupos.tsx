@@ -200,9 +200,17 @@ const InscripcionGrupos = () => {
     );
   } else {
     
-    const perfil_aprobado = (usuario?.perfil as any)?.proyecto?.perfil_aprobado || false;
-    const tipo_buscado = perfil_aprobado ? 'Taller de Grado II' : 'Taller de Grado I';
-    const icono_buscado = perfil_aprobado ? <Briefcase className="h-4 w-4" /> : <GraduationCap className="h-4 w-4" />;
+    const tipo_buscado = grupos_disponibles.length > 0
+      ? (grupos_disponibles[0].tipo === 'taller_grado_i' ? 'Taller de Grado I' : 'Taller de Grado II')
+      : (usuario?.perfil?.proyecto?.perfil_aprobado ? 'Taller de Grado II' : 'Taller de Grado I');
+      
+    const icono_buscado = tipo_buscado === 'Taller de Grado I'
+      ? <GraduationCap className="h-4 w-4" /> 
+      : <Briefcase className="h-4 w-4" />;
+    
+    const descripcion_alerta = tipo_buscado === 'Taller de Grado I'
+      ? 'Selecciona un grupo de Taller de Grado I para recibir asesoría en tu propuesta y perfil.'
+      : 'Felicidades por aprobar tu perfil. Selecciona un grupo de Taller de Grado II para continuar.';
 
     contenido_pagina = (
       <>
@@ -212,10 +220,7 @@ const InscripcionGrupos = () => {
             Grupos Disponibles para {tipo_buscado}
           </AlertTitle>
           <AlertDescription>
-            {perfil_aprobado 
-              ? 'Felicidades por aprobar tu perfil. Selecciona un grupo de Taller de Grado II para continuar.'
-              : 'Selecciona un grupo de Taller de Grado I para recibir asesoría en tu propuesta y perfil.'
-            }
+            {descripcion_alerta}
           </AlertDescription>
         </Alert>
 

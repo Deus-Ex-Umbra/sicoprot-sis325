@@ -24,6 +24,7 @@ import { ResponderSolicitudDefensaDto } from './dto/responder-solicitud-defensa.
 import { Usuario } from '../usuarios/entidades/usuario.entidad';
 import { GruposService } from '../grupos/grupos.servicio';
 import { ActualizarPropuestaDto } from './dto/actualizar-propuesta.dto';
+import { ObservacionesService } from '../observaciones/observaciones.servicio';
 
 @Injectable()
 export class ProyectosService {
@@ -45,6 +46,7 @@ export class ProyectosService {
     @InjectRepository(Usuario)
     private readonly repositorio_usuario: Repository<Usuario>,
     private readonly servicio_grupos: GruposService,
+    private readonly servicio_observaciones: ObservacionesService,
   ) {}
 
   async crear(crear_proyecto_dto: CrearProyectoDto, id_usuario_estudiante: number) {
@@ -100,6 +102,7 @@ export class ProyectosService {
       .leftJoinAndSelect('proyecto.estudiantes', 'estudiante') 
       .leftJoinAndSelect('estudiante.usuario', 'usuario_estudiante') 
       .leftJoinAndSelect('proyecto.asesor', 'asesor')
+      .leftJoinAndSelect('asesor.usuario', 'usuario_asesor')
       .leftJoinAndSelect('proyecto.documentos', 'documentos')
       .orderBy('proyecto.fecha_creacion', 'DESC');
 
@@ -131,7 +134,17 @@ export class ProyectosService {
   async obtenerUno(id: number, id_usuario: number, rol: string) {
     const proyecto = await this.repositorio_proyecto.findOne({
       where: { id },
-      relations: ['estudiantes', 'estudiantes.usuario', 'asesor', 'asesor.usuario', 'documentos', 'reuniones', 'observaciones'],
+      relations: [
+        'estudiantes', 
+        'estudiantes.usuario', 
+        'estudiantes.grupos', 
+        'estudiantes.grupos.periodo',
+        'asesor', 
+        'asesor.usuario', 
+        'documentos', 
+        'reuniones', 
+        'observaciones'
+      ],
     });
 
     if (!proyecto) {
@@ -178,6 +191,15 @@ export class ProyectosService {
 
     if (!proyecto.asesor || proyecto.asesor.usuario.id !== id_usuario_asesor) {
       throw new ForbiddenException('Solo el asesor asignado puede aprobar etapas del proyecto');
+    }
+    
+    const observaciones_pendientes = await this.servicio_observaciones.contarObservacionesPendientes(
+        id_proyecto,
+        proyecto.etapa_actual
+    );
+
+    if (observaciones_pendientes > 0) {
+        throw new BadRequestException(`No se puede aprobar la etapa. Existen ${observaciones_pendientes} observaciones pendientes.`);
     }
 
     const { etapa, comentarios } = aprobarEtapaDto;
