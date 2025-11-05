@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, FileUp, Plus, Loader2, Info, FileText, Users, Shield, MessageSquare, CheckCircle, Wrench, ArrowRight } from 'lucide-react';
 import VisualizadorDocumento from '../componentes/visualizador-documento';
 import { proyectosApi, documentosApi, observacionesApi, correccionesApi, asesoresApi, api } from '../servicios/api';
@@ -24,6 +24,7 @@ import { AlertCircle } from 'lucide-react';
 const DetalleProyecto = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { usuario, actualizarUsuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
 
@@ -44,6 +45,7 @@ const DetalleProyecto = () => {
   const es_estudiante = usuario?.rol === Rol.Estudiante;
   const es_asesor = usuario?.rol === Rol.Asesor;
   const es_admin = usuario?.rol === Rol.Administrador;
+  const es_vista_repositorio = location.state?.from === 'repositorio';
 
   const toggleSidebar = () => {
     set_sidebar_open(!sidebar_open);
@@ -73,7 +75,7 @@ const DetalleProyecto = () => {
         set_documento_seleccionado(null);
       }
 
-      if (proyecto_data.etapa_actual !== EtapaProyecto.TERMINADO) {
+      if (proyecto_data.etapa_actual !== EtapaProyecto.TERMINADO || !es_vista_repositorio) {
         const [obs_data, corr_data, asesores_data] = await Promise.all([
           observacionesApi.obtenerObservacionesPorProyecto(parseInt(id!)),
           correccionesApi.obtenerPorProyecto(parseInt(id!)),
@@ -185,71 +187,106 @@ const DetalleProyecto = () => {
   } else {
 
     const es_proyecto_terminado = proyecto.etapa_actual === EtapaProyecto.TERMINADO;
+    const documento_perfil = documentos.length > 0 ? documentos[0] : null;
 
     if (es_proyecto_terminado) {
-      const documento_perfil = documentos.length > 0 ? documentos[0] : null;
-
-      contenido_pagina = (
-        <>
-          <div className="flex items-center gap-2 mb-6">
-            <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">{proyecto.titulo}</h1>
-              <div className="text-muted-foreground">Etapa actual: <Badge>{proyecto.etapa_actual}</Badge></div>
+      
+      if (es_vista_repositorio && documento_perfil) {
+        contenido_pagina = (
+          <>
+            <div className="flex items-center gap-2 mb-6">
+              <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">{proyecto.titulo}</h1>
+                <div className="text-muted-foreground">Etapa actual: <Badge>{proyecto.etapa_actual}</Badge></div>
+              </div>
             </div>
-          </div>
-          
-          <Tabs defaultValue={documento_perfil ? "visor" : "propuesta-info"} className="w-full">
-            <TabsList>
-              <TabsTrigger value="propuesta-info"><Info className="h-4 w-4 mr-2" />Propuesta</TabsTrigger>
-              {documento_perfil && <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Documento de Perfil</TabsTrigger>}
-              {proyecto.ruta_memorial && <TabsTrigger value="defensa"><Shield className="h-4 w-4 mr-2" />Memorial</TabsTrigger>}
-            </TabsList>
-            
-            <TabsContent value="propuesta-info">
-              <Card>
-                <CardHeader><CardTitle>Descripción de la Propuesta</CardTitle></CardHeader>
-                <CardContent className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: proyecto.cuerpo_html || '<p><em>No se proporcionó descripción.</em></p>' }} 
-                />
-              </Card>
-            </TabsContent>
-            
-            {documento_perfil && (
-              <TabsContent value="visor">
+            <Card>
+              <CardHeader>
+                <CardTitle>Documento de Perfil</CardTitle>
+                <CardDescription>
+                  Este es el documento de perfil final aprobado para este proyecto. La descarga está deshabilitada desde el repositorio.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <VisualizadorDocumento
                   key={documento_perfil.id}
-                  url_documento={`${api.defaults.baseURL}/documentos/${documento_perfil.id}/archivo`}
+                  url_documento={documentosApi.obtenerArchivoUrl(documento_perfil.id)}
                   observaciones={[]}
                   correcciones={[]}
+                  permitir_descarga={false}
                 />
-              </TabsContent>
-            )}
-
-            {proyecto.ruta_memorial && (
-              <TabsContent value="defensa">
+              </CardContent>
+            </Card>
+          </>
+        );
+      } else {
+        contenido_pagina = (
+          <>
+            <div className="flex items-center gap-2 mb-6">
+              <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">{proyecto.titulo}</h1>
+                <div className="text-muted-foreground">Etapa actual: <Badge>{proyecto.etapa_actual}</Badge></div>
+              </div>
+            </div>
+            
+            <Tabs defaultValue={documento_perfil ? "visor" : "propuesta-info"} className="w-full">
+              <TabsList>
+                <TabsTrigger value="propuesta-info"><Info className="h-4 w-4 mr-2" />Propuesta</TabsTrigger>
+                {documento_perfil && <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Documento de Perfil</TabsTrigger>}
+                {proyecto.ruta_memorial && <TabsTrigger value="defensa"><Shield className="h-4 w-4 mr-2" />Memorial</TabsTrigger>}
+              </TabsList>
+              
+              <TabsContent value="propuesta-info">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Memorial de Defensa</CardTitle>
-                    <CardDescription>Documento final presentado para la defensa.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <VisualizadorDocumento
-                      key="memorial"
-                      url_documento={documentosApi.obtenerArchivoPorRutaUrl(proyecto.ruta_memorial)}
-                      observaciones={[]}
-                      correcciones={[]}
-                    />
-                  </CardContent>
+                  <CardHeader><CardTitle>Descripción de la Propuesta</CardTitle></CardHeader>
+                  <CardContent className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: proyecto.cuerpo_html || '<p><em>No se proporcionó descripción.</em></p>' }} 
+                  />
                 </Card>
               </TabsContent>
-            )}
-          </Tabs>
-        </>
-      );
+              
+              {documento_perfil && (
+                <TabsContent value="visor">
+                  <VisualizadorDocumento
+                    key={documento_perfil.id}
+                    url_documento={documentosApi.obtenerArchivoUrl(documento_perfil.id)}
+                    observaciones={[]}
+                    correcciones={[]}
+                    permitir_descarga={true}
+                  />
+                </TabsContent>
+              )}
 
+              {proyecto.ruta_memorial && (
+                <TabsContent value="defensa">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Memorial de Defensa</CardTitle>
+                      <CardDescription>Documento final presentado para la defensa.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <VisualizadorDocumento
+                        key="memorial"
+                        url_documento={documentosApi.obtenerArchivoPorRutaUrl(proyecto.ruta_memorial)}
+                        observaciones={[]}
+                        correcciones={[]}
+                        permitir_descarga={true}
+                      />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
+            </Tabs>
+          </>
+        );
+      }
+      
     } else {
       const estudiante_principal = proyecto.estudiantes?.[0];
       const grupo_activo_estudiante = estudiante_principal?.grupos?.find(g => g.periodo?.activo);
@@ -478,14 +515,14 @@ const DetalleProyecto = () => {
                     </Alert>
                   )}
 
-                  {es_asesor && documento_seleccionado && (
+                  {es_asesor && documento_seleccionado && etapa_actual === EtapaProyecto.PERFIL && (
                     <Button
                       variant="outline"
                       className="w-full"
                       onClick={() => navigate(`/panel/proyecto/${proyecto.id}/crear-observacion`)}
                     >
                       <MessageSquare className="mr-2 h-4 w-4" />
-                      Crear Observación
+                      Crear Observación (Perfil)
                     </Button>
                   )}
 
@@ -514,11 +551,12 @@ const DetalleProyecto = () => {
                   {documento_seleccionado ? (
                     <VisualizadorDocumento
                       key={documento_seleccionado.id}
-                      url_documento={`${api.defaults.baseURL}/documentos/${documento_seleccionado.id}/archivo`}
+                      url_documento={documentosApi.obtenerArchivoUrl(documento_seleccionado.id)}
                       observaciones={observaciones_del_documento}
                       correcciones={correcciones_del_documento}
                       observacion_seleccionada={observacion_seleccionada}
                       correccion_seleccionada={correccion_seleccionada}
+                      permitir_descarga={!es_vista_repositorio}
                     />
                   ) : (
                     <Card className="h-[80vh]">

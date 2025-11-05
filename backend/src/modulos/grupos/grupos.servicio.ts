@@ -9,6 +9,7 @@ import { CrearGrupoDto } from './dto/crear-grupo.dto';
 import { ActualizarGrupoDto } from './dto/actualizar-grupo.dto';
 import { TipoGrupo } from './enums/tipo-grupo.enum';
 import { EtapaProyecto } from '../proyectos/enums/etapa-proyecto.enum';
+import { Proyecto } from '../proyectos/entidades/proyecto.endidad';
 
 @Injectable()
 export class GruposService {
@@ -21,6 +22,8 @@ export class GruposService {
     private readonly repositorio_periodo: Repository<Periodo>,
     @InjectRepository(Estudiante)
     private readonly repositorio_estudiante: Repository<Estudiante>,
+    @InjectRepository(Proyecto)
+    private readonly repositorio_proyecto: Repository<Proyecto>,
   ) {}
 
   async crear(crear_grupo_dto: CrearGrupoDto) {
@@ -66,6 +69,10 @@ export class GruposService {
 
     if (!estudiante) {
       throw new ForbiddenException('Solo los estudiantes pueden ver grupos disponibles.');
+    }
+
+    if (estudiante.proyecto && estudiante.proyecto.etapa_actual === EtapaProyecto.TERMINADO) {
+      return [];
     }
 
     const perfil_aprobado = estudiante.proyecto?.perfil_aprobado || false;
@@ -214,8 +221,12 @@ export class GruposService {
       estudiante.grupos.push(grupo);
       
       if (grupo.tipo === TipoGrupo.TALLER_GRADO_II && estudiante.proyecto) {
-        estudiante.proyecto.asesor = grupo.asesor;
-        estudiante.proyecto.etapa_actual = EtapaProyecto.PROYECTO;
+         const proyecto_a_actualizar = await this.repositorio_proyecto.findOneBy({ id: estudiante.proyecto.id });
+         if (proyecto_a_actualizar) {
+            proyecto_a_actualizar.asesor = grupo.asesor;
+            proyecto_a_actualizar.etapa_actual = EtapaProyecto.PROYECTO;
+            await this.repositorio_proyecto.save(proyecto_a_actualizar);
+         }
       }
       
       await this.repositorio_estudiante.save(estudiante);
@@ -282,6 +293,10 @@ export class GruposService {
       throw new NotFoundException('Estudiante no encontrado.');
     }
 
+    if (estudiante.proyecto && estudiante.proyecto.etapa_actual === EtapaProyecto.TERMINADO) {
+      throw new BadRequestException('Ya has completado tu proyecto. No necesitas inscribirte a un grupo.');
+    }
+
     const grupo_activo_existente = estudiante.grupos.find(g => g.periodo && g.periodo.activo);
     if (grupo_activo_existente) {
       throw new BadRequestException('Ya estás inscrito en un grupo activo. Debes desinscribirte primero.');
@@ -298,8 +313,12 @@ export class GruposService {
     estudiante.grupos.push(grupo);
     
     if (grupo.tipo === TipoGrupo.TALLER_GRADO_II && estudiante.proyecto) {
-        estudiante.proyecto.asesor = grupo.asesor;
-        estudiante.proyecto.etapa_actual = EtapaProyecto.PROYECTO;
+        const proyecto_a_actualizar = await this.repositorio_proyecto.findOneBy({ id: estudiante.proyecto.id });
+        if (proyecto_a_actualizar) {
+          proyecto_a_actualizar.asesor = grupo.asesor;
+          proyecto_a_actualizar.etapa_actual = EtapaProyecto.PROYECTO;
+          await this.repositorio_proyecto.save(proyecto_a_actualizar);
+        }
     }
 
     await this.repositorio_estudiante.save(estudiante);

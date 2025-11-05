@@ -316,7 +316,7 @@ export const documentosApi = {
     return `${api.defaults.baseURL}/documentos/${id}/archivo`;
   },
   obtenerArchivoPorRutaUrl: (ruta: string) => {
-    return `${api.defaults.baseURL}/documentos/archivo-por-ruta?ruta=${encodeURIComponent(ruta)}`;
+    return `${api.defaults.baseURL}/${ruta}`;
   },
 };
 
