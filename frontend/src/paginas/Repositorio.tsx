@@ -232,7 +232,7 @@ const Repositorio = () => {
                 <Card 
                   key={proyecto.id} 
                   className="hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => navigate(`/panel/proyecto/${proyecto.id}`)}
+                  onClick={() => navigate(`/panel/proyecto/${proyecto.id}`, { state: { from: 'repositorio' } })}
                 >
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">

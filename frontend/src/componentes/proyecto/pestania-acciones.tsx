@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { type Proyecto, EtapaProyecto, TipoGrupo } from '../../tipos/usuario';
 import { Button } from '../ui/button';
 import { CheckCircle, ShieldCheck, Send, AlertTriangle, FileCheck } from 'lucide-react';
@@ -21,6 +22,7 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, tipo_grupo
   const [mostrar_modal, set_mostrar_modal] = useState(false);
   const [etapa_a_aprobar, set_etapa_a_aprobar] = useState<EtapaProyecto | null>(null);
   const [comentarios, set_comentarios] = useState('');
+  const navigate = useNavigate();
 
   const abrirModal = (etapa: EtapaProyecto) => {
     set_etapa_a_aprobar(etapa);
@@ -37,7 +39,7 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, tipo_grupo
       });
       toast.success(`Etapa "${etapa_a_aprobar}" aprobada exitosamente`);
       set_mostrar_modal(false);
-      onActualizarProyecto();
+      navigate('/panel/estudiantes');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al aprobar la etapa');
     }
@@ -69,7 +71,8 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, tipo_grupo
   const es_taller_ii = tipo_grupo_actual === TipoGrupo.TALLER_GRADO_II;
 
   const puede_aprobar_propuesta = es_taller_i && proyecto.etapa_actual === EtapaProyecto.PROPUESTA;
-  const puede_aprobar_perfil = es_taller_i && proyecto.etapa_actual === EtapaProyecto.PERFIL && observaciones_pendientes === 0;
+  const tiene_documentos_perfil = (proyecto.documentos?.filter(doc => doc.ruta_archivo !== proyecto.ruta_memorial).length || 0) > 0;
+  const puede_aprobar_perfil = es_taller_i && proyecto.etapa_actual === EtapaProyecto.PERFIL && observaciones_pendientes === 0 && tiene_documentos_perfil;
   const puede_aprobar_proyecto = es_taller_ii && proyecto.etapa_actual === EtapaProyecto.PROYECTO && observaciones_pendientes === 0;
 
   return (
@@ -86,6 +89,15 @@ export const PestanaAcciones = ({ proyecto, observaciones_pendientes, tipo_grupo
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               No se pueden aprobar etapas mientras existan {observaciones_pendientes} observaciones pendientes en la etapa actual.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {observaciones_pendientes === 0 && !tiene_documentos_perfil && proyecto.etapa_actual === EtapaProyecto.PERFIL && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              No se puede aprobar el perfil. El estudiante aún no ha subido ningún documento.
             </AlertDescription>
           </Alert>
         )}

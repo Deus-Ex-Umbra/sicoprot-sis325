@@ -25,6 +25,7 @@ import { Usuario } from '../usuarios/entidades/usuario.entidad';
 import { GruposService } from '../grupos/grupos.servicio';
 import { ActualizarPropuestaDto } from './dto/actualizar-propuesta.dto';
 import { ObservacionesService } from '../observaciones/observaciones.servicio';
+import { TipoGrupo } from '../grupos/enums/tipo-grupo.enum';
 
 @Injectable()
 export class ProyectosService {
@@ -45,6 +46,8 @@ export class ProyectosService {
     private readonly repositorio_observacion: Repository<Observacion>,
     @InjectRepository(Usuario)
     private readonly repositorio_usuario: Repository<Usuario>,
+    @InjectRepository(Grupo)
+    private readonly repositorio_grupo: Repository<Grupo>,
     private readonly servicio_grupos: GruposService,
     private readonly servicio_observaciones: ObservacionesService,
   ) {}
@@ -126,9 +129,31 @@ export class ProyectosService {
       }
 
       query.andWhere('asesor.id = :asesorId', { asesorId: asesor.id });
+      
       query.andWhere('proyecto.etapa_actual != :etapaTerminado', { 
         etapaTerminado: EtapaProyecto.TERMINADO 
       });
+      
+      const grupos_activos_asesor = await this.repositorio_grupo.find({
+        where: { asesor: { id: asesor.id }, periodo: { activo: true } },
+      });
+
+      const es_asesor_tgi = grupos_activos_asesor.some(g => g.tipo === TipoGrupo.TALLER_GRADO_I);
+      const es_asesor_tgii = grupos_activos_asesor.some(g => g.tipo === TipoGrupo.TALLER_GRADO_II);
+
+      const etapas_visibles: EtapaProyecto[] = [];
+      if (es_asesor_tgi) {
+        etapas_visibles.push(EtapaProyecto.PROPUESTA, EtapaProyecto.PERFIL);
+      }
+      if (es_asesor_tgii) {
+        etapas_visibles.push(EtapaProyecto.PROYECTO, EtapaProyecto.LISTO_DEFENSA, EtapaProyecto.SOLICITUD_DEFENSA);
+      }
+
+      if (etapas_visibles.length > 0) {
+        query.andWhere('proyecto.etapa_actual IN (:...etapas_visibles)', { etapas_visibles });
+      } else {
+        query.andWhere('1=0');
+      }
     }
 
     return query.getMany();
@@ -194,7 +219,19 @@ export class ProyectosService {
       }
     } else if (rol === Rol.Asesor) {
       if (!proyecto.asesor || proyecto.asesor.usuario?.id !== id_usuario) {
-        throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
+        
+        const asesor_actual_grupos = await this.repositorio_grupo.count({
+          where: {
+            asesor: { usuario: { id: id_usuario } },
+            periodo: { activo: true },
+            tipo: TipoGrupo.TALLER_GRADO_II,
+          }
+        });
+
+        if (asesor_actual_grupos > 0 && proyecto.etapa_actual === EtapaProyecto.PROYECTO) {
+        } else {
+          throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
+        }
       }
     } else if (rol !== Rol.Administrador) {
        throw new ForbiddenException('No tienes permiso para acceder a este proyecto.');
@@ -281,11 +318,6 @@ export class ProyectosService {
         proyecto.comentario_aprobacion_proyecto = comentarios;
         proyecto.etapa_actual = EtapaProyecto.LISTO_DEFENSA;
         proyecto.listo_para_defender = true;
-        if (proyecto.estudiantes && proyecto.estudiantes.length > 0) {
-          for (const estudiante of proyecto.estudiantes) {
-            await this.servicio_grupos.desinscribirEstudianteDeGrupoActivo(estudiante.id);
-          }
-        }
         break;
 
       default:
@@ -669,7 +701,10 @@ export class ProyectosService {
       throw new ForbiddenException('Acción permitida solo para administradores.');
     }
 
-    const proyecto = await this.repositorio_proyecto.findOneBy({ id: id_proyecto });
+    const proyecto = await this.repositorio_proyecto.findOne({
+      where: { id: id_proyecto },
+      relations: ['estudiantes'],
+    });
     if (!proyecto) {
       throw new NotFoundException(`Proyecto con ID ${id_proyecto} no encontrado`);
     }
@@ -687,6 +722,13 @@ export class ProyectosService {
       proyecto.etapa_actual = EtapaProyecto.TERMINADO;
       
       await this.repositorio_proyecto.save(proyecto);
+
+      if (proyecto.estudiantes && proyecto.estudiantes.length > 0) {
+        for (const estudiante of proyecto.estudiantes) {
+          await this.servicio_grupos.desinscribirEstudianteDeGrupoActivo(estudiante.id);
+        }
+      }
+
       return { message: 'Defensa aprobada y proyecto marcado como terminado.' };
 
     } else {

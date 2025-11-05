@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
-import { Rol } from '../tipos/usuario';
+import { Rol, EtapaProyecto } from '../tipos/usuario';
 import {
   FolderKanban,
   FileText,
@@ -11,7 +11,8 @@ import {
   AlertCircle,
   BookOpen,
   ArrowRight,
-  X
+  X,
+  Award,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../componentes/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '../componentes/ui/alert';
@@ -32,8 +33,9 @@ const Panel = () => {
 
   const tiene_grupo = !!(es_estudiante && usuario?.perfil?.grupo);
   const grupo = usuario?.perfil?.grupo;
+  const proyecto_terminado = es_estudiante && usuario?.perfil?.proyecto?.etapa_actual === EtapaProyecto.TERMINADO;
 
-  const [mostrar_alerta_grupo, set_mostrar_alerta_grupo] = useState(es_estudiante && !tiene_grupo);
+  const [mostrar_alerta_grupo, set_mostrar_alerta_grupo] = useState(es_estudiante && !tiene_grupo && !proyecto_terminado);
 
   useEffect(() => {
     if (es_admin) {
@@ -139,6 +141,16 @@ const Panel = () => {
                   : 'Supervisa y da seguimiento a tus estudiantes'}
               </p>
             </div>
+
+            {proyecto_terminado && (
+              <Alert variant="default" className="border-green-500 bg-green-500/10">
+                <Award className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-700">¡Felicidades!</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  Has completado tu proyecto de titulación exitosamente. Tu proyecto ahora forma parte del repositorio.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {mostrar_alerta_grupo && (
               <Alert variant="destructive">

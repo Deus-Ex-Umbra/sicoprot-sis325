@@ -90,8 +90,10 @@ const VisualizadorDocumento = ({
     tipo: 'observacion' | 'correccion',
     x_inicio: number,
     y_inicio: number,
+    pagina_inicio: number,
     x_fin: number,
     y_fin: number,
+    pagina_fin: number,
     color: string,
     titulo: string,
     esta_seleccionada: boolean
@@ -101,10 +103,30 @@ const VisualizadorDocumento = ({
     const page_rect = page_ref.current.querySelector('.react-pdf__Page__canvas')?.getBoundingClientRect();
     if (!page_rect) return null;
 
-    const x1 = (x_inicio / 100) * page_rect.width;
-    const y1 = (y_inicio / 100) * page_rect.height;
-    const x2 = (x_fin / 100) * page_rect.width;
-    const y2 = (y_fin / 100) * page_rect.height;
+    let x1: number, y1: number, x2: number, y2: number;
+
+    if (pagina_actual === pagina_inicio) {
+      x1 = (x_inicio / 100) * page_rect.width;
+      y1 = (y_inicio / 100) * page_rect.height;
+    } else {
+      x1 = 0;
+      y1 = 0;
+    }
+
+    if (pagina_actual === pagina_fin) {
+      x2 = (x_fin / 100) * page_rect.width;
+      y2 = (y_fin / 100) * page_rect.height;
+    } else {
+      x2 = page_rect.width;
+      y2 = page_rect.height;
+    }
+
+    if (pagina_inicio === pagina_fin) {
+      x1 = (x_inicio / 100) * page_rect.width;
+      y1 = (y_inicio / 100) * page_rect.height;
+      x2 = (x_fin / 100) * page_rect.width;
+      y2 = (y_fin / 100) * page_rect.height;
+    }
 
     const ancho = Math.abs(x2 - x1);
     const alto = Math.abs(y2 - y1);
@@ -135,7 +157,7 @@ const VisualizadorDocumento = ({
               onMouseLeave={() => setAnotacionHover(null)}
             >
               {[
-                { top: 0, left: 0, borderTop: `${borderWidth}px solid ${color}`, borderLeft: `${borderWidth}px solid ${color}` }, 
+                { top: 0, left: 0, borderTop: `${borderWidth}px solid ${color}`, borderLeft: `${borderWidth}px solid ${color}` },
                 { top: 0, right: 0, borderTop: `${borderWidth}px solid ${color}`, borderRight: `${borderWidth}px solid ${color}` },
                 { bottom: 0, left: 0, borderBottom: `${borderWidth}px solid ${color}`, borderLeft: `${borderWidth}px solid ${color}` },
                 { bottom: 0, right: 0, borderBottom: `${borderWidth}px solid ${color}`, borderRight: `${borderWidth}px solid ${color}` },
@@ -173,7 +195,7 @@ const VisualizadorDocumento = ({
     const elementos: React.ReactNode[] = [];
 
     observaciones
-      .filter((obs) => obs.pagina_inicio === pagina_actual)
+      .filter((obs) => pagina_actual >= obs.pagina_inicio && pagina_actual <= obs.pagina_fin)
       .forEach((obs) => {
         elementos.push(
           renderizarAnotacion(
@@ -181,8 +203,10 @@ const VisualizadorDocumento = ({
             'observacion',
             obs.x_inicio,
             obs.y_inicio,
+            obs.pagina_inicio,
             obs.x_fin,
             obs.y_fin,
+            obs.pagina_fin,
             obs.color || '#FFD700',
             obs.titulo,
             observacion_seleccionada === obs.id
@@ -191,7 +215,7 @@ const VisualizadorDocumento = ({
       });
 
     correcciones
-      .filter((corr) => (corr as any).pagina_inicio === pagina_actual)
+      .filter((corr) => pagina_actual >= (corr as any).pagina_inicio && pagina_actual <= (corr as any).pagina_fin)
       .forEach((corr) => {
         elementos.push(
           renderizarAnotacion(
@@ -199,8 +223,10 @@ const VisualizadorDocumento = ({
             'correccion',
             (corr as any).x_inicio,
             (corr as any).y_inicio,
+            (corr as any).pagina_inicio,
             (corr as any).x_fin,
             (corr as any).y_fin,
+            (corr as any).pagina_fin,
             (corr as any).color || '#28a745',
             (corr as any).titulo || 'Corrección',
             correccion_seleccionada === corr.id

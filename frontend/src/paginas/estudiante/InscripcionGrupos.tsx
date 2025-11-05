@@ -9,7 +9,7 @@ import {
   GraduationCap,
   CheckCircle,
 } from 'lucide-react';
-import { gruposApi } from '../../servicios/api';
+import { gruposApi, proyectosApi } from '../../servicios/api';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
 import { type Grupo, Rol, EtapaProyecto } from '../../tipos/usuario';
 import { toast } from 'sonner';
@@ -36,34 +36,35 @@ const InscripcionGrupos = () => {
   const [cargando, set_cargando] = useState(true);
   const [procesando, set_procesando] = useState(false);
   const [error, set_error] = useState('');
+  const [etapa_proyecto, set_etapa_proyecto] = useState<EtapaProyecto | null>(null);
+
   const { usuario, actualizarUsuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
 
   const es_admin = usuario?.rol === Rol.Administrador;
   const mi_id_estudiante = usuario?.perfil?.id_estudiante;
-  const proyecto_terminado = usuario?.perfil?.proyecto?.etapa_actual === EtapaProyecto.TERMINADO;
 
   const toggleSidebar = () => {
     set_sidebar_open(!sidebar_open);
   };
 
   useEffect(() => {
-    if (proyecto_terminado) {
-      set_cargando(false);
-      return;
-    }
     cargarDatos();
-  }, [proyecto_terminado]);
+  }, []);
 
   const cargarDatos = async () => {
     try {
       set_cargando(true);
-      const [grupo_actual, grupos_disponibles_data] = await Promise.all([
+      const [grupo_actual, grupos_disponibles_data, proyectos_data] = await Promise.all([
         gruposApi.obtenerMiGrupo(),
         gruposApi.obtenerDisponibles(),
+        proyectosApi.obtenerTodos(),
       ]);
       set_mi_grupo(grupo_actual);
       set_grupos_disponibles(grupos_disponibles_data);
+      if (proyectos_data && proyectos_data.length > 0) {
+        set_etapa_proyecto(proyectos_data[0].etapa_actual);
+      }
     } catch (err) {
       console.error('Error al cargar datos:', err);
       set_error('Error al cargar los grupos disponibles');
@@ -91,6 +92,7 @@ const InscripcionGrupos = () => {
   };
 
   let contenido_pagina;
+  const proyecto_terminado_real = etapa_proyecto === EtapaProyecto.TERMINADO;
 
   if (cargando) {
     contenido_pagina = (
@@ -105,7 +107,7 @@ const InscripcionGrupos = () => {
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
-  } else if (proyecto_terminado) {
+  } else if (proyecto_terminado_real) {
     contenido_pagina = (
       <Alert variant="default">
         <CheckCircle className="h-4 w-4" />
@@ -216,7 +218,8 @@ const InscripcionGrupos = () => {
     );
   } else {
     
-    const tipo_buscado = (usuario?.perfil?.proyecto?.perfil_aprobado ? 'Taller de Grado II' : 'Taller de Grado I');
+    const perfil_aprobado = etapa_proyecto === EtapaProyecto.PROYECTO || etapa_proyecto === EtapaProyecto.LISTO_DEFENSA || etapa_proyecto === EtapaProyecto.SOLICITUD_DEFENSA;
+    const tipo_buscado = (perfil_aprobado ? 'Taller de Grado II' : 'Taller de Grado I');
       
     const icono_buscado = tipo_buscado === 'Taller de Grado I'
       ? <GraduationCap className="h-4 w-4" /> 
