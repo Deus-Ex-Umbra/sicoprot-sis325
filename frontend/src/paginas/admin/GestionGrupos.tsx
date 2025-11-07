@@ -15,7 +15,7 @@ import {
   asesoresApi,
   adminApi,
 } from '../../servicios/api';
-import { type Grupo, type Periodo, type Usuario, type Estudiante, Rol, type Proyecto } from '../../tipos/usuario';
+import { type Grupo, type Periodo, type Usuario, type Estudiante, Rol, type Proyecto, EtapaProyecto } from '../../tipos/usuario';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utilidades';
 import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
@@ -61,7 +61,7 @@ const GestionGrupos = () => {
   const [grupos_filtrados, set_grupos_filtrados] = useState<Grupo[]>([]);
   const [periodos, set_periodos] = useState<Periodo[]>([]);
   const [asesores, set_asesores] = useState<Usuario[]>([]);
-  const [estudiantes_sin_grupo, set_estudiantes_sin_grupo] = useState<Usuario[]>([]);
+  const [estudiantes_sin_grupo, set_estudiantes_sin_grupo] = useState<Estudiante[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
   
@@ -304,9 +304,14 @@ const GestionGrupos = () => {
   }));
   
   const opciones_estudiantes_disponibles: OpcionMultiSelect[] = estudiantes_sin_grupo
-    .filter((est: Usuario) => {
+    .filter((est: Estudiante) => {
       if (!grupo_seleccionado) return false;
-      const perfil_aprobado = est.perfil?.proyecto?.perfil_aprobado || false;
+      const perfil_aprobado = est.proyecto?.etapa_actual === EtapaProyecto.PERFIL || 
+                               est.proyecto?.etapa_actual === EtapaProyecto.PROYECTO ||
+                               est.proyecto?.etapa_actual === EtapaProyecto.LISTO_DEFENSA ||
+                               est.proyecto?.etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA ||
+                               est.proyecto?.etapa_actual === EtapaProyecto.TERMINADO;
+
       if (grupo_seleccionado.tipo === 'taller_grado_i') {
         return !perfil_aprobado;
       }
@@ -315,9 +320,9 @@ const GestionGrupos = () => {
       }
       return false;
     })
-    .map((est: Usuario) => ({
-      value: String(est.perfil?.id_estudiante),
-      label: `${est.perfil?.nombre} ${est.perfil?.apellido} (${est.correo})`
+    .map((est: Estudiante) => ({
+      value: String(est.id),
+      label: `${est.nombre} ${est.apellido} (${est.usuario?.correo})`
     }));
 
 
