@@ -55,6 +55,16 @@ import BarraLateral from '../../componentes/barra-lateral';
 import { SelectConBusqueda } from '../../componentes/select-con-busqueda';
 import { MultiSelect, type OpcionMultiSelect } from '../../componentes/ui/multi-select';
 import { ScrollArea } from '../../componentes/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../componentes/ui/alert-dialog';
 
 const GestionGrupos = () => {
   const [grupos, set_grupos] = useState<Grupo[]>([]);
@@ -67,6 +77,8 @@ const GestionGrupos = () => {
   
   const [mostrar_modal_grupo, set_mostrar_modal_grupo] = useState(false);
   const [mostrar_modal_estudiantes, set_mostrar_modal_estudiantes] = useState(false);
+  const [mostrar_modal_confirmar_remover, set_mostrar_modal_confirmar_remover] = useState(false);
+  const [estudiante_a_remover, set_estudiante_a_remover] = useState<{id: number, nombre: string} | null>(null);
   
   const [grupo_editando, set_grupo_editando] = useState<Grupo | null>(null);
   const [grupo_seleccionado, set_grupo_seleccionado] = useState<Grupo | null>(null);
@@ -277,19 +289,30 @@ const GestionGrupos = () => {
     set_estudiantes_a_asignar([]);
   };
 
-  const manejarRemoverEstudiante = async (estudiante_id: number) => {
-    if (!grupo_seleccionado) return;
-    
-    if (!window.confirm('¿Está seguro de remover este estudiante del grupo?')) return;
+  const manejarRemoverEstudiante = (estudiante: any) => {
+    set_estudiante_a_remover({
+      id: estudiante.id,
+      nombre: `${estudiante.nombre} ${estudiante.apellido}`
+    });
+    set_mostrar_modal_confirmar_remover(true);
+  };
+
+  const confirmarRemoverEstudiante = async () => {
+    if (!grupo_seleccionado || !estudiante_a_remover) return;
 
     try {
-      await gruposApi.removerEstudiante(grupo_seleccionado.id, estudiante_id);
+      await gruposApi.removerEstudiante(grupo_seleccionado.id, estudiante_a_remover.id);
       toast.success('Estudiante removido exitosamente');
+      
       await cargarDatos();
       const grupo_actualizado = await gruposApi.obtenerUno(grupo_seleccionado.id);
       set_grupo_seleccionado(grupo_actualizado);
+    
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Error al remover estudiante');
+    } finally {
+      set_mostrar_modal_confirmar_remover(false);
+      set_estudiante_a_remover(null);
     }
   };
 
@@ -699,7 +722,7 @@ const GestionGrupos = () => {
                                 variant="outline"
                                 size="icon"
                                 className="h-7 w-7"
-                                onClick={() => manejarRemoverEstudiante(estudiante.id)}
+                                onClick={() => manejarRemoverEstudiante(estudiante)}
                               >
                                 <UserMinus className="h-4 w-4" />
                               </Button>
@@ -745,6 +768,25 @@ const GestionGrupos = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          <AlertDialog open={mostrar_modal_confirmar_remover} onOpenChange={set_mostrar_modal_confirmar_remover}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción removerá a <strong>{estudiante_a_remover?.nombre}</strong> del grupo 
+                  "{grupo_seleccionado?.nombre}". Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => set_estudiante_a_remover(null)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmarRemoverEstudiante}>
+                  Confirmar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
         </div>
       </main>
     </div>
