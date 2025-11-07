@@ -350,9 +350,6 @@ const ObservacionesAsesor = () => {
                               <Button variant="outline" size="sm" onClick={() => abrirModalEditar(obs)}>
                                 <Edit className="h-4 w-4 mr-2" /> Editar
                               </Button>
-                              <Button variant="destructive" size="icon" onClick={() => manejarEliminar(obs.id)}>
-                                <Trash className="h-4 w-4" />
-                              </Button>
                             </div>
                           </AccordionContent>
                         </AccordionItem>

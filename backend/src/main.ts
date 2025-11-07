@@ -9,7 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'], 
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'https://sicoprot-sis325-g5.vercel.app'],
     credentials: true,
   });
 
@@ -35,9 +35,9 @@ async function bootstrap() {
       'JWT-auth',
     )
     .build();
-    
+
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document);
+  SwaggerModule.setup('api/documentacion', app, document);
 
   app.useGlobalPipes(
     new ValidationPipe({
