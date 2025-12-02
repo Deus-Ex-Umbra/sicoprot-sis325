@@ -17,7 +17,7 @@ export class Asesor {
   apellido: string;
 
   @Column({ type: 'text', nullable: true })
-  ruta_foto: string;
+  ruta_foto: string|null;
 
   @OneToOne(() => Usuario, { cascade: true })
   @JoinColumn({ name: 'id_usuario' })

@@ -31,7 +31,7 @@ export class Estudiante {
   grupos: Grupo[];
 
   @ManyToOne(() => Proyecto, (proyecto) => proyecto.estudiantes)
-  proyecto: Proyecto;
+  proyecto: Proyecto | null;
   
 
   @OneToMany(() => Correccion, (correccion) => correccion.estudiante)

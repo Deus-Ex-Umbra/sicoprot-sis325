@@ -221,3 +221,24 @@ export class ProyectosController {
     return this.servicio_proyectos.responderSolicitudDefensa(id, responder_dto, req.user.id_usuario);
   }
 }
+
+@Controller('api/admin/proyectos')
+@UseGuards(JwtGuard, RolesGuard)
+export class ProyectoAdminController {
+  constructor(private proyectoService: ProyectosService) {}
+
+  @Patch(':id/tribunales')
+  @Roles(Rol.Administrador)
+  async asignarTribunales(
+    @Param('id') id: string,
+    @Body() body: { tribunalIds: number[] },
+  ) {
+    const { tribunalIds } = body;
+
+    if (!Array.isArray(tribunalIds) || tribunalIds.length < 3 || tribunalIds.length > 5) {
+      throw new BadRequestException('Debe asignar entre 3 y 5 tribunales.');
+    }
+
+    return this.proyectoService.actualizarTribunales(+id, tribunalIds);
+  }
+}

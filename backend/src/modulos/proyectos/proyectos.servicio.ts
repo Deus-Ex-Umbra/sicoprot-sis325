@@ -26,7 +26,7 @@ import { GruposService } from '../grupos/grupos.servicio';
 import { ActualizarPropuestaDto } from './dto/actualizar-propuesta.dto';
 import { ObservacionesService } from '../observaciones/observaciones.servicio';
 import { TipoGrupo } from '../grupos/enums/tipo-grupo.enum';
-
+import { Like, FindOptionsWhere } from 'typeorm';
 @Injectable()
 export class ProyectosService {
   constructor(
@@ -562,7 +562,47 @@ export class ProyectosService {
       etapa_actual: etapaActual
     };
   }
+  // ... busqueda publica
+  async buscarPublico(query: string): Promise<any[]> {
+    const search = `%${query.toLowerCase()}%`;
 
+    return this.repositorio_proyecto
+      .createQueryBuilder('proyecto')
+      .leftJoinAndSelect('proyecto.autor', 'autor')
+      .where('proyecto.estado = :estado', { estado: 'APROBADO' })
+      .andWhere(
+        '(LOWER(proyecto.titulo) LIKE :search OR LOWER(proyecto.resumen) LIKE :search OR LOWER(proyecto.palabras_clave) LIKE :search)',
+        { search },
+      )
+      .orderBy('proyecto.fecha_aprobacion', 'DESC')
+      .getMany();
+  }
+  async obtenerUltimosAprobados(): Promise<any[]> {
+    return this.repositorio_proyecto
+      .createQueryBuilder('proyecto')
+      .leftJoinAndSelect('proyecto.autor', 'autor')
+      .where('proyecto.estado = :estado', { estado: 'APROBADO' })
+      .orderBy('proyecto.fecha_aprobacion', 'DESC')
+      .take(6)
+      .getMany();
+  }
+  
+  
+  async actualizarTribunales(proyectoId: number, tribunalIds: number[]) {
+    // Buscar con validación
+    const proyecto = await this.repositorio_proyecto.findOneBy({ id: proyectoId });
+    if (!proyecto) {
+      throw new NotFoundException(`Proyecto con ID ${proyectoId} no encontrado`);
+    }
+
+    const tribunales = await this.repositorio_usuario.findByIds(tribunalIds);
+    if (tribunales.length !== tribunalIds.length) {
+      throw new NotFoundException('Uno o más usuarios tribunal no existen');
+    }
+
+    proyecto.tribunales = tribunales;
+    return this.repositorio_proyecto.save(proyecto);
+  }
   async buscarProyectos(
     buscar_dto: BuscarProyectosDto,
     id_usuario: number,
@@ -717,7 +757,19 @@ export class ProyectosService {
       if (!dto.tribunales || dto.tribunales.length < 3 || dto.tribunales.length > 5) {
         throw new BadRequestException('Se deben asignar entre 3 y 5 tribunales para aprobar la defensa.');
       }
-      proyecto.tribunales = dto.tribunales;
+      
+      // Buscar los usuarios reales por correo (o id)
+      const correosTribunales = dto.tribunales.map(t => t.correo);
+      const usuariosTribunal = await this.repositorio_usuario.find({
+        where: { correo: In(correosTribunales) },
+      });
+
+      // Validar que se encontraron todos
+      if (usuariosTribunal.length !== dto.tribunales.length) {
+        throw new BadRequestException('Uno o más correos de tribunal no corresponden a usuarios válidos.');
+      }
+
+      proyecto.tribunales = usuariosTribunal;
       proyecto.comentarios_defensa = dto.comentarios || 'Solicitud de defensa aprobada.';
       proyecto.etapa_actual = EtapaProyecto.TERMINADO;
       
@@ -938,7 +990,12 @@ export class ProyectosService {
       defensa: {
         solicitada: proyecto.etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA || proyecto.etapa_actual === EtapaProyecto.TERMINADO,
         aprobada: proyecto.etapa_actual === EtapaProyecto.TERMINADO,
-        tribunales: proyecto.tribunales,
+        tribunales: proyecto.tribunales
+          ? proyecto.tribunales.map(t => ({
+              nombre: t.correo,
+              correo: t.correo,
+            }))
+          : [],
         comentarios: proyecto.comentarios_defensa,
       },
       linea_tiempo: linea_tiempo,

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Query, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { UsuariosService } from './usuarios.servicio';
@@ -9,6 +9,10 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiBody
 import { Usuario } from './entidades/usuario.entidad';
 import { JwtGuard } from '../autenticacion/guards/jwt.guard';
 import { BadRequestException } from '@nestjs/common';
+
+import { RolesGuard } from '../autenticacion/guards/roles.guard';
+import { Roles } from '../autenticacion/decorators/roles.decorator';
+import { Rol } from './enums/rol.enum';
 
 @ApiTags('usuarios')
 @Controller('usuarios')
@@ -118,5 +122,20 @@ export class UsuariosController {
   @ApiResponse({ status: 404, description: 'El usuario con el ID especificado no fue encontrado.' })
   eliminar(@Param('id', ParseIntPipe) id: number) {
     return this.servicio_usuarios.eliminar(id);
+  }
+}
+@Controller('api/admin/usuarios')
+@UseGuards(JwtGuard, RolesGuard)
+export class UsuarioAdminController {
+  constructor(private usuarioService: UsuariosService) {}
+
+  @Get()
+  @Roles(Rol.Administrador)
+  async listarPorRol(@Query('rol') rol: string) {
+    if (rol !== Rol.Tribunal) {
+      // Opcional: permitir otros roles, pero nos enfocamos en TRIBUNAL
+      throw new BadRequestException('Solo se permite listar usuarios con rol TRIBUNAL');
+    }
+    return this.usuarioService.listarPorRol(rol);
   }
 }

@@ -1,11 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column,ManyToMany, ManyToOne, OneToMany,JoinTable, CreateDateColumn } from 'typeorm';
 import { Documento } from '../../documentos/entidades/documento.entidad';
 import { Estudiante } from '../../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../../asesores/entidades/asesor.entidad';
 import { EtapaProyecto } from '../enums/etapa-proyecto.enum';
 import { Reunion } from '../../reuniones/entidades/reunion.entidad';
 import { Observacion } from '../../observaciones/entidades/observacion.entidad';
-
+import { Usuario } from '../../usuarios/entidades/usuario.entidad';
 @Entity('proyectos')
 export class Proyecto {
   @PrimaryGeneratedColumn()
@@ -14,9 +14,9 @@ export class Proyecto {
   @Column({ type: 'varchar', length: 300 })
   titulo: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: false, default: '' })
   cuerpo_html: string;
-
+  
   @CreateDateColumn({ name: 'fecha_creacion' })
   fecha_creacion: Date;
 
@@ -34,6 +34,14 @@ export class Proyecto {
 
   @OneToMany(() => Observacion, (observacion) => observacion.proyecto)
   observaciones: Observacion[];
+  
+  @ManyToMany(() => Usuario,{ onDelete: 'CASCADE' })
+  @JoinTable({
+    name: 'proyectos_tribunales',
+    joinColumn: { name: 'proyecto_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'usuario_id', referencedColumnName: 'id' },
+  })
+  tribunales: Usuario[];
 
   @Column({ type: 'enum', enum: EtapaProyecto, default: EtapaProyecto.PROPUESTA })
   etapa_actual: EtapaProyecto;
@@ -78,8 +86,6 @@ export class Proyecto {
   ruta_memorial: string;
 
   @Column({ type: 'text', nullable: true })
-  comentarios_defensa: string;
+    comentarios_defensa: string;
 
-  @Column({ type: 'jsonb', nullable: true })
-  tribunales: { nombre: string; correo: string }[];
 }

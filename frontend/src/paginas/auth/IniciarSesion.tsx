@@ -100,44 +100,61 @@ const IniciarSesion = () => {
           </div>
 
           <div className="space-y-4 mt-4">
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-sm">Gestión de Documentos</h3>
-                <p className="text-sm text-muted-foreground">
-                  Sube, versiona y revisa documentos del proyecto
-                </p>
-              </div>
-            </div>
+  <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+      <FileText className="h-5 w-5 text-primary" />
+    </div>
+    <div className="flex-1">
+      <h3 className="font-semibold text-sm">Gestión de Documentos</h3>
+      <p className="text-sm text-muted-foreground">
+        Sube, versiona y revisa documentos del proyecto
+      </p>
+    </div>
+  </div>
 
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-sm">Colaboración</h3>
-                <p className="text-sm text-muted-foreground">
-                  Comunicación directa entre estudiantes y asesores
-                </p>
-              </div>
-            </div>
+  <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+      <Users className="h-5 w-5 text-primary" />
+    </div>
+    <div className="flex-1">
+      <h3 className="font-semibold text-sm">Colaboración</h3>
+      <p className="text-sm text-muted-foreground">
+        Comunicación directa entre estudiantes y asesores
+      </p>
+    </div>
+  </div>
 
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <BookOpen className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-sm">Seguimiento</h3>
-                <p className="text-sm text-muted-foreground">
-                  Observaciones y correcciones en tiempo real
-                </p>
-              </div>
-            </div>
-          </div>
+  <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+      <BookOpen className="h-5 w-5 text-primary" />
+    </div>
+    <div className="flex-1">
+      <h3 className="font-semibold text-sm">Seguimiento</h3>
+      <p className="text-sm text-muted-foreground">
+        Observaciones y correcciones en tiempo real
+      </p>
+    </div>
+  </div>
+
+  {/* --- BOTÓN DE ACCESO PÚBLICO --- */}
+  <div className="pt-4">
+    <div className="w-full border-t border-border mb-4"></div>
+    <div className="text-center">
+      <p className="text-sm text-muted-foreground mb-3">
+        ¿Quieres explorar proyectos antes de registrarte?
+      </p>
+      <Link
+        to="/buscar-proyectos"
+        className="inline-block bg-background border border-primary text-primary font-medium py-2 px-5 rounded-lg hover:bg-primary/5 transition-colors"
+      >
+        🔍 Buscar Proyectos de Grado (Acceso Público)
+      </Link>
+    </div>
+  </div>
+</div>
         </div>
-
+        
+        
         <div className="w-full max-w-md mx-auto">
           <div className="md:hidden mb-6 text-center">
             <h1 className="text-2xl font-bold tracking-tight mb-2">SICOPROT</h1>
@@ -213,6 +230,7 @@ const IniciarSesion = () => {
                 </Link>
               </div>
             </CardFooter>
+            
           </Card>
         </div>
       </div>
