@@ -17,7 +17,7 @@ import { Observacion } from '../observaciones/entidades/observacion.entidad';
 import { Periodo } from '../periodos/entidades/periodo.entidad';
 import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../asesores/entidades/asesor.entidad';
-
+import { Usuario } from '../usuarios/entidades/usuario.entidad';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -28,6 +28,7 @@ import { Asesor } from '../asesores/entidades/asesor.entidad';
       Periodo,
       Estudiante,
       Asesor,
+      Usuario,
     ]),
     EstudiantesModule,
     AsesoresModule,

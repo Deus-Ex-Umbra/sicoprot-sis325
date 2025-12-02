@@ -129,9 +129,11 @@ export class CorreccionesService {
         }
 
     } else if (esTaller2) {
-        esEstudiante = observacion.proyecto.estudiantes?.some(
-          (est) => est.id === estudiante.id,
-        );
+        // esEstudiante = observacion.proyecto.estudiantes?.some(
+        //   (est) => est.id === estudiante.id,
+        // );
+
+        esEstudiante = observacion.proyecto?.estudiantes?.some((est) => est.id === estudiante.id,) || false;
     }
 
 
