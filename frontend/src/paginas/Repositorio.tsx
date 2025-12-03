@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, X, FileText, User, Calendar, Award } from 'lucide-react';
+import { Search, Filter, X, FileText, User, Calendar, Award, BookOpen, GraduationCap } from 'lucide-react';
 import { proyectosApi, asesoresApi, periodosApi } from '../servicios/api';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
 import BarraLateral from '../componentes/barra-lateral';
 import BarraLateralAdmin from '../componentes/barra-lateral-admin';
 import { SelectConBusqueda } from '../componentes/select-con-busqueda';
-import { Rol, type Usuario } from '../tipos/usuario';
+import { Rol, type Usuario, EtapaProyecto } from '../tipos/usuario';
 import { cn } from '../lib/utilidades';
 import { Card, CardContent, CardHeader, CardTitle } from '../componentes/ui/card';
 import { Button } from '../componentes/ui/button';
 import { Input } from '../componentes/ui/input';
 import { Label } from '../componentes/ui/label';
 import { Badge } from '../componentes/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../componentes/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -32,14 +33,19 @@ interface ResultadoBusqueda {
   fecha_creacion: Date;
   etapa_actual: string;
   proyecto_aprobado: boolean;
+  perfil_aprobado?: boolean;
 }
+
+type TipoRepositorio = 'perfiles' | 'proyectos';
 
 const Repositorio = () => {
   const { usuario } = useAutenticacion();
   const [sidebar_open, set_sidebar_open] = useState(true);
   const navigate = useNavigate();
   
+  const [tipoSeleccionado, setTipoSeleccionado] = useState<TipoRepositorio>('proyectos');
   const [proyectos, set_proyectos] = useState<ResultadoBusqueda[]>([]);
+  const [perfiles, set_perfiles] = useState<ResultadoBusqueda[]>([]);
   const [cargando, set_cargando] = useState(false);
   const [error, set_error] = useState('');
   const [filtros, set_filtros] = useState({
@@ -56,8 +62,11 @@ const Repositorio = () => {
 
   useEffect(() => {
     cargar_datos_iniciales();
-    buscar_proyectos();
   }, []);
+
+  useEffect(() => {
+    buscar_contenido();
+  }, [tipoSeleccionado]);
 
   const cargar_datos_iniciales = async () => {
     try {
@@ -67,16 +76,26 @@ const Repositorio = () => {
       ]);
       set_asesores(asesores_data);
       set_periodos(periodos_data);
+      buscar_contenido();
     } catch (err) {
       console.error('Error cargando datos:', err);
     }
   };
+
+  const buscar_contenido = async () => {
+    if (tipoSeleccionado === 'proyectos') {
+      await buscar_proyectos();
+    } else {
+      await buscar_perfiles();
+    }
+  };
+
   const buscar_proyectos = async () => {
     try {
       set_cargando(true);
       set_error('');
       const params: any = {
-        soloAprobados: true,
+        soloTerminados: true, // Solo proyectos con defensa aprobada
       };
 
       if (filtros.termino.trim()) params.termino = filtros.termino.trim();
@@ -91,13 +110,35 @@ const Repositorio = () => {
       set_cargando(false);
     }
   };
+
+  const buscar_perfiles = async () => {
+    try {
+      set_cargando(true);
+      set_error('');
+      const params: any = {
+        soloPerfilesAprobados: true,
+      };
+
+      if (filtros.termino.trim()) params.termino = filtros.termino.trim();
+      if (filtros.anio) params.anio = filtros.anio;
+      if (filtros.asesor_id) params.asesorId = filtros.asesor_id;
+
+      const resultados = await proyectosApi.buscarProyectos(params);
+      set_perfiles(resultados);
+    } catch (err: any) {
+      set_error(err.response?.data?.message || 'Error al buscar perfiles');
+    } finally {
+      set_cargando(false);
+    }
+  };
+
   const limpiar_filtros = () => {
     set_filtros({
       termino: '',
       anio: '',
       asesor_id: '',
     });
-    buscar_proyectos();
+    buscar_contenido();
   };
   const hay_filtros_activos = filtros.termino || filtros.anio || filtros.asesor_id;
   const opciones_asesores = asesores.map(a => ({
@@ -109,6 +150,74 @@ const Repositorio = () => {
     { length: new Date().getFullYear() - 2019 },
     (_, i) => (2020 + i).toString()
   ).reverse();
+
+  const datosActuales = tipoSeleccionado === 'proyectos' ? proyectos : perfiles;
+
+  const renderProyectoCard = (proyecto: ResultadoBusqueda, esPerfilView: boolean = false) => (
+    <Card 
+      key={proyecto.id} 
+      className="hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={() => navigate(`/panel/proyecto/${proyecto.id}`, { state: { from: 'repositorio' } })}
+    >
+      <CardContent className="pt-6">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              {esPerfilView ? (
+                <BookOpen className="h-5 w-5 text-blue-500" />
+              ) : (
+                <GraduationCap className="h-5 w-5 text-green-600" />
+              )}
+              <h3 className="text-lg font-semibold">{proyecto.titulo}</h3>
+              {!esPerfilView && proyecto.proyecto_aprobado && (
+                <Badge variant="default" className="bg-green-500">
+                  <Award className="h-3 w-3 mr-1" />
+                  Defensa Aprobada
+                </Badge>
+              )}
+              {esPerfilView && proyecto.perfil_aprobado && (
+                <Badge variant="default" className="bg-blue-500">
+                  <BookOpen className="h-3 w-3 mr-1" />
+                  Perfil Aprobado
+                </Badge>
+              )}
+            </div>
+
+            {proyecto.resumen && (
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                {proyecto.resumen}
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                <span>Autor: {proyecto.autor}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                <span>Asesor: {proyecto.asesor}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                <span>{new Date(proyecto.fecha_creacion).getFullYear()}</span>
+              </div>
+            </div>
+
+            {proyecto.palabras_clave && proyecto.palabras_clave.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {proyecto.palabras_clave.map((palabra, index) => (
+                  <Badge key={index} variant="secondary">
+                    {palabra}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -127,9 +236,9 @@ const Repositorio = () => {
         <div className="container mx-auto p-6 max-w-7xl">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Repositorio de Proyectos</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Repositorio Académico</h1>
               <p className="text-muted-foreground mt-1">
-                Explora y busca proyectos de grado terminados
+                Explora perfiles aprobados y proyectos de grado terminados
               </p>
             </div>
             <Button
@@ -140,6 +249,20 @@ const Repositorio = () => {
               {mostrar_filtros ? 'Ocultar Filtros' : 'Mostrar Filtros'}
             </Button>
           </div>
+
+          {/* Tabs para cambiar entre Perfiles y Proyectos */}
+          <Tabs value={tipoSeleccionado} onValueChange={(v) => setTipoSeleccionado(v as TipoRepositorio)} className="mb-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="proyectos" className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4" />
+                Proyectos Terminados
+              </TabsTrigger>
+              <TabsTrigger value="perfiles" className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                Perfiles Aprobados
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {mostrar_filtros && (
             <Card className="mb-6">
@@ -196,7 +319,7 @@ const Repositorio = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-4">
-                  <Button onClick={buscar_proyectos} disabled={cargando}>
+                  <Button onClick={buscar_contenido} disabled={cargando}>
                     <Search className="mr-2 h-4 w-4" />
                     Buscar
                   </Button>
@@ -222,77 +345,29 @@ const Repositorio = () => {
             <div className="flex justify-center items-center min-h-[400px]">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             </div>
-          ) : proyectos.length > 0 ? (
+          ) : datosActuales.length > 0 ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Se encontraron {proyectos.length} proyecto{proyectos.length !== 1 ? 's' : ''}
+                Se encontraron {datosActuales.length} {tipoSeleccionado === 'proyectos' ? 'proyecto' : 'perfil'}{datosActuales.length !== 1 ? 's' : ''}
               </p>
               
-              {proyectos.map((proyecto) => (
-                <Card 
-                  key={proyecto.id} 
-                  className="hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => navigate(`/panel/proyecto/${proyecto.id}`, { state: { from: 'repositorio' } })}
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <FileText className="h-5 w-5 text-primary" />
-                          <h3 className="text-lg font-semibold">{proyecto.titulo}</h3>
-                          {proyecto.proyecto_aprobado && (
-                            <Badge variant="default" className="bg-green-500">
-                              <Award className="h-3 w-3 mr-1" />
-                              Aprobado
-                            </Badge>
-                          )}
-                        </div>
-
-                        {proyecto.resumen && (
-                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                            {proyecto.resumen}
-                          </p>
-                        )}
-
-                        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <User className="h-4 w-4" />
-                            <span>Autor: {proyecto.autor}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <User className="h-4 w-4" />
-                            <span>Asesor: {proyecto.asesor}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(proyecto.fecha_creacion).getFullYear()}</span>
-                          </div>
-                        </div>
-
-                        {proyecto.palabras_clave && proyecto.palabras_clave.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {proyecto.palabras_clave.map((palabra, index) => (
-                              <Badge key={index} variant="secondary">
-                                {palabra}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {datosActuales.map((proyecto) => renderProyectoCard(proyecto, tipoSeleccionado === 'perfiles'))}
             </div>
           ) : (
             <Card>
               <CardContent className="py-12 text-center">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-lg font-medium mb-2">No se encontraron proyectos</p>
+                {tipoSeleccionado === 'proyectos' ? (
+                  <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                ) : (
+                  <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                )}
+                <p className="text-lg font-medium mb-2">
+                  No se encontraron {tipoSeleccionado === 'proyectos' ? 'proyectos terminados' : 'perfiles aprobados'}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   {hay_filtros_activos
                     ? 'Intenta ajustar los filtros de búsqueda'
-                    : 'No hay proyectos disponibles en el repositorio'}
+                    : `No hay ${tipoSeleccionado === 'proyectos' ? 'proyectos' : 'perfiles'} disponibles en el repositorio`}
                 </p>
               </CardContent>
             </Card>

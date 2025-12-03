@@ -10,6 +10,7 @@ import { Grupo } from '../grupos/entidades/grupo.entidad';
 import { Periodo } from '../periodos/entidades/periodo.entidad';
 import { SolicitudRegistro } from '../solicitudes-registro/entidades/solicitud-registro.entidad';
 import { EstadoSolicitud } from '../solicitudes-registro/entidades/solicitud-registro.entidad';
+import { EstadoObservacion } from '../observaciones/enums/estado-observacion.enum';
 
 @Injectable()
 export class AdministracionService {
@@ -123,6 +124,110 @@ export class AdministracionService {
 
     usuario.estado = nuevo_estado;
     return this.repositorio_usuario.save(usuario);
+  }
+
+  async obtenerReporteAvance(grupo_id?: number, asesor_id?: number) {
+    const query = this.repositorio_estudiante.createQueryBuilder('estudiante')
+      .leftJoinAndSelect('estudiante.proyecto', 'proyecto')
+      .leftJoinAndSelect('proyecto.documentos', 'documentos')
+      .leftJoinAndSelect('documentos.observaciones', 'observaciones')
+      .leftJoinAndSelect('estudiante.grupos', 'grupos')
+      .leftJoinAndSelect('proyecto.asesor', 'asesor');
+
+    if (grupo_id) {
+      query.andWhere('grupos.id = :grupo_id', { grupo_id });
+    }
+
+    if (asesor_id) {
+      query.andWhere('asesor.id = :asesor_id', { asesor_id });
+    }
+
+    const estudiantes = await query.getMany();
+
+    return estudiantes.map((estudiante) => {
+      const proyecto = estudiante.proyecto;
+      if (!proyecto) {
+        return {
+          estudiante: `${estudiante.nombre} ${estudiante.apellido}`,
+          proyecto: 'Sin proyecto',
+          etapa: 'N/A',
+          total_documentos: 0,
+          total_observaciones: 0,
+          observaciones_resueltas: 0,
+          observaciones_pendientes: 0,
+          tiempo_promedio_revision_dias: 0,
+          dias_sin_actividad: 0,
+          estado_avance: 'Sin iniciar',
+        };
+      }
+
+      let total_observaciones = 0;
+      let observaciones_resueltas = 0;
+      let observaciones_pendientes = 0;
+      let suma_tiempos_revision = 0;
+      let documentos_con_revision = 0;
+      let ultima_actividad = proyecto.fecha_creacion ? new Date(proyecto.fecha_creacion).getTime() : 0;
+
+      if (proyecto.documentos) {
+        proyecto.documentos.forEach((doc) => {
+          const fecha_doc = new Date(doc.fecha_subida).getTime();
+          if (fecha_doc > ultima_actividad) {
+            ultima_actividad = fecha_doc;
+          }
+
+          if (doc.observaciones && doc.observaciones.length > 0) {
+            const fechas_observaciones = doc.observaciones.map((obs) =>
+              new Date(obs.fecha_creacion).getTime(),
+            );
+            const primera_observacion = Math.min(...fechas_observaciones);
+            const fecha_subida = new Date(doc.fecha_subida).getTime();
+
+            const tiempo_revision = primera_observacion - fecha_subida;
+            if (tiempo_revision > 0) {
+              suma_tiempos_revision += tiempo_revision;
+              documentos_con_revision++;
+            }
+
+            total_observaciones += doc.observaciones.length;
+            observaciones_resueltas += doc.observaciones.filter(
+              (o) => o.estado === EstadoObservacion.CORREGIDA,
+            ).length;
+            observaciones_pendientes += doc.observaciones.filter(
+              (o) => o.estado === EstadoObservacion.PENDIENTE,
+            ).length;
+          }
+        });
+      }
+
+      const tiempo_promedio =
+        documentos_con_revision > 0
+          ? suma_tiempos_revision / documentos_con_revision / (1000 * 60 * 60 * 24)
+          : 0;
+
+      const dias_sin_actividad = Math.floor(
+        (Date.now() - ultima_actividad) / (1000 * 60 * 60 * 24),
+      );
+
+      let estado_avance = 'Activo';
+      if (dias_sin_actividad > 90) {
+        estado_avance = 'Posible Abandono';
+      } else if (dias_sin_actividad > 30) {
+        estado_avance = 'Inactivo Reciente';
+      }
+
+      return {
+        estudiante: `${estudiante.nombre} ${estudiante.apellido}`,
+        proyecto: proyecto.titulo,
+        etapa: proyecto.etapa_actual,
+        total_documentos: proyecto.documentos ? proyecto.documentos.length : 0,
+        total_observaciones,
+        observaciones_resueltas,
+        observaciones_pendientes,
+        tiempo_promedio_revision_dias: parseFloat(tiempo_promedio.toFixed(2)),
+        dias_sin_actividad,
+        estado_avance,
+      };
+    });
   }
 
   async obtenerEstadisticas() {

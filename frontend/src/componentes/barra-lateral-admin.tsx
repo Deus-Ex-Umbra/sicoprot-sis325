@@ -10,6 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  BarChart3,
+  Gavel,
 } from 'lucide-react';
 import { cn } from '../lib/utilidades';
 import { ScrollArea } from './ui/scroll-area';
@@ -150,6 +152,11 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
                     label={colapsado ? '' : 'Solicitudes Defensa'}
                   />
                   <NavItem
+                    to="/panel/admin/gestion-defensas"
+                    icon={<Gavel />}
+                    label={colapsado ? '' : 'Gestión Defensas'}
+                  />
+                  <NavItem
                     to="/panel/admin/periodos"
                     icon={<Calendar />}
                     label={colapsado ? '' : 'Períodos'}
@@ -158,6 +165,11 @@ const BarraLateralAdmin = ({ isOpen }: BarraLateralAdminProps) => {
                     to="/panel/admin/grupos"
                     icon={<LayersIcon />}
                     label={colapsado ? '' : 'Grupos'}
+                  />
+                  <NavItem
+                    to="/panel/admin/reportes"
+                    icon={<BarChart3 />}
+                    label={colapsado ? '' : 'Reportes'}
                   />
                   <NavItem
                     to="/panel/configuracion"

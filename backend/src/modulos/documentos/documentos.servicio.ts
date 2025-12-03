@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Documento } from './entidades/documento.entidad';
+import { Documento, TipoDocumento } from './entidades/documento.entidad';
 import { Repository } from 'typeorm';
 import { Proyecto } from '../proyectos/entidades/proyecto.endidad';
 
@@ -13,15 +13,17 @@ export class DocumentosService {
     private readonly repositorio_proyecto: Repository<Proyecto>,
   ) {}
 
-  async guardarRegistro(proyectoId: number, archivo: Express.Multer.File) {
+  async guardarRegistro(proyectoId: number, archivo: Express.Multer.File, tipo_documento: TipoDocumento = TipoDocumento.PERFIL) {
     const proyecto = await this.repositorio_proyecto.findOneBy({ id: proyectoId });
     if (!proyecto) {
       throw new NotFoundException(`Proyecto con ID '${proyectoId}' no encontrado.`);
     }
 
+    // Contar versiones solo del mismo tipo de documento
     const ultimoDocumento = await this.repositorio_documento
       .createQueryBuilder('documento')
       .where('documento.proyectoId = :proyectoId', { proyectoId })
+      .andWhere('documento.tipo_documento = :tipo_documento', { tipo_documento })
       .orderBy('documento.version', 'DESC')
       .getOne();
 
@@ -31,6 +33,7 @@ export class DocumentosService {
       nombre_archivo: archivo.originalname,
       ruta_archivo: archivo.path,
       version: nuevaVersion,
+      tipo_documento: tipo_documento,
       proyecto: proyecto,
     });
 

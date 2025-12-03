@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, FileUp, Plus, Loader2, Info, FileText, Users, Shield, MessageSquare, CheckCircle, Wrench, ArrowRight } from 'lucide-react';
+import { ArrowLeft, FileUp, Plus, Loader2, Info, FileText, Users, Shield, MessageSquare, CheckCircle, Wrench, ArrowRight, Calendar, BookOpen } from 'lucide-react';
+import { PestanaCronograma } from '../componentes/proyecto/pestania-cronograma';
 import VisualizadorDocumento from '../componentes/visualizador-documento';
 import { proyectosApi, documentosApi, observacionesApi, correccionesApi, asesoresApi, api } from '../servicios/api';
 import { useAutenticacion } from '../contextos/autenticacion-contexto';
-import { type Proyecto, type Documento, type Observacion, type Correccion, Rol, EtapaProyecto, type Usuario, TipoGrupo } from '../tipos/usuario';
+import { type Proyecto, type Documento, type Observacion, type Correccion, Rol, EtapaProyecto, type Usuario, TipoGrupo, TipoDocumento } from '../tipos/usuario';
 import BarraLateral from '../componentes/barra-lateral';
 import BarraLateralAdmin from '../componentes/barra-lateral-admin';
 import { cn } from '../lib/utilidades';
@@ -31,6 +32,7 @@ const DetalleProyecto = () => {
   const [proyecto, set_proyecto] = useState<Proyecto | null>(null);
   const [documentos, set_documentos] = useState<Documento[]>([]);
   const [documento_seleccionado, set_documento_seleccionado] = useState<Documento | null>(null);
+  const [documento_proyecto_seleccionado, set_documento_proyecto_seleccionado] = useState<Documento | null>(null);
   const [observaciones, set_observaciones] = useState<Observacion[]>([]);
   const [correcciones, set_correcciones] = useState<Correccion[]>([]);
   const [asesores, set_asesores] = useState<Usuario[]>([]);
@@ -38,9 +40,13 @@ const DetalleProyecto = () => {
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
   const [archivo, set_archivo] = useState<File | null>(null);
+  const [archivo_proyecto, set_archivo_proyecto] = useState<File | null>(null);
   const [subiendo_archivo, set_subiendo_archivo] = useState(false);
+  const [subiendo_archivo_proyecto, set_subiendo_archivo_proyecto] = useState(false);
   const [observacion_seleccionada, set_observacion_seleccionada] = useState<number | null>(null);
   const [correccion_seleccionada, set_correccion_seleccionada] = useState<number | null>(null);
+  const [observacion_proyecto_seleccionada, set_observacion_proyecto_seleccionada] = useState<number | null>(null);
+  const [correccion_proyecto_seleccionada, set_correccion_proyecto_seleccionada] = useState<number | null>(null);
 
   const es_estudiante = usuario?.rol === Rol.Estudiante;
   const es_asesor = usuario?.rol === Rol.Asesor;
@@ -63,16 +69,32 @@ const DetalleProyecto = () => {
       const proyecto_data = await proyectosApi.obtenerUno(parseInt(id!));
       set_proyecto(proyecto_data);
 
-      const documentos_data = proyecto_data.documentos
+      // Filtrar documentos excluyendo el memorial
+      const todos_documentos = proyecto_data.documentos
         ?.filter((doc: Documento) => doc.ruta_archivo !== proyecto_data.ruta_memorial)
         .sort((a: Documento, b: Documento) => b.version - a.version) || [];
+      
+      // Separar documentos de perfil y proyecto
+      const docs_perfil = todos_documentos.filter((doc: Documento) => 
+        !doc.tipo_documento || doc.tipo_documento === TipoDocumento.PERFIL
+      );
+      const docs_proyecto = todos_documentos.filter((doc: Documento) => 
+        doc.tipo_documento === TipoDocumento.PROYECTO
+      );
         
-      set_documentos(documentos_data);
+      set_documentos(todos_documentos);
 
-      if (documentos_data.length > 0) {
-        set_documento_seleccionado(documentos_data[0]);
+      // Seleccionar el documento más reciente de cada tipo
+      if (docs_perfil.length > 0) {
+        set_documento_seleccionado(docs_perfil[0]);
       } else {
         set_documento_seleccionado(null);
+      }
+      
+      if (docs_proyecto.length > 0) {
+        set_documento_proyecto_seleccionado(docs_proyecto[0]);
+      } else {
+        set_documento_proyecto_seleccionado(null);
       }
 
       if (proyecto_data.etapa_actual !== EtapaProyecto.TERMINADO || !es_vista_repositorio) {
@@ -132,7 +154,7 @@ const DetalleProyecto = () => {
       const form_data = new FormData();
       form_data.append('archivo', archivo);
 
-      await documentosApi.subirDocumento(proyecto.id, form_data);
+      await documentosApi.subirDocumento(proyecto.id, form_data, 'perfil');
 
       await cargarDatos();
       set_archivo(null);
@@ -140,6 +162,28 @@ const DetalleProyecto = () => {
       set_error(err.response?.data?.message || 'Error al subir el documento');
     } finally {
       set_subiendo_archivo(false);
+    }
+  };
+
+  const manejarSubidaArchivoProyecto = async () => {
+    if (!archivo_proyecto || !proyecto) return;
+
+    set_subiendo_archivo_proyecto(true);
+    set_error('');
+
+    try {
+      const form_data = new FormData();
+      form_data.append('archivo', archivo_proyecto);
+
+      await documentosApi.subirDocumento(proyecto.id, form_data, 'proyecto');
+
+      await cargarDatos();
+      set_archivo_proyecto(null);
+      toast.success('Documento de proyecto subido correctamente');
+    } catch (err: any) {
+      set_error(err.response?.data?.message || 'Error al subir el documento de proyecto');
+    } finally {
+      set_subiendo_archivo_proyecto(false);
     }
   };
 
@@ -156,7 +200,7 @@ const DetalleProyecto = () => {
       case EtapaProyecto.PERFIL:
         return 'visor';
       case EtapaProyecto.PROYECTO:
-        return 'reuniones';
+        return 'visor-proyecto';
       case EtapaProyecto.LISTO_DEFENSA:
       case EtapaProyecto.SOLICITUD_DEFENSA:
         return 'defensa';
@@ -330,26 +374,58 @@ const DetalleProyecto = () => {
         const es_taller_2_o_superior = etapa_actual === EtapaProyecto.PROYECTO || 
                                         etapa_actual === EtapaProyecto.LISTO_DEFENSA || 
                                         etapa_actual === EtapaProyecto.SOLICITUD_DEFENSA || 
+                                        etapa_actual === EtapaProyecto.PRE_DEFENSA ||
+                                        etapa_actual === EtapaProyecto.EN_DEFENSA ||
                                         etapa_actual === EtapaProyecto.TERMINADO;
 
         const mostrar_pestana_visor = etapa_actual !== EtapaProyecto.PROPUESTA;
+        const mostrar_pestana_visor_proyecto = es_taller_2_o_superior;
         const mostrar_pestana_reuniones = es_taller_2_o_superior;
         const mostrar_pestana_defensa = es_taller_2_o_superior;
+        
+        // El cronograma solo se muestra durante etapas de trabajo activo (PROYECTO, LISTO_DEFENSA, SOLICITUD_DEFENSA)
+        // NO se muestra en etapas de defensa (PRE_DEFENSA, EN_DEFENSA, TERMINADO, REPROBADO) ni a asesores
+        const esta_en_etapa_defensa = etapa_actual === EtapaProyecto.PRE_DEFENSA || 
+                                       etapa_actual === EtapaProyecto.EN_DEFENSA || 
+                                       etapa_actual === EtapaProyecto.TERMINADO ||
+                                       etapa_actual === EtapaProyecto.REPROBADO;
+        const mostrar_pestana_cronograma = es_taller_2_o_superior && !es_asesor && !esta_en_etapa_defensa;
 
         const puede_subir_documento = es_estudiante && etapa_actual === EtapaProyecto.PERFIL;
+        const puede_subir_documento_proyecto = es_estudiante && etapa_actual === EtapaProyecto.PROYECTO;
         
-        const documentos_para_mostrar = (es_taller_2_o_superior || etapa_actual === EtapaProyecto.PERFIL)
-          ? documentos
+        // Separar documentos por tipo
+        const documentos_perfil = documentos.filter(doc => 
+          !doc.tipo_documento || doc.tipo_documento === TipoDocumento.PERFIL
+        );
+        const documentos_proyecto = documentos.filter(doc => 
+          doc.tipo_documento === TipoDocumento.PROYECTO
+        );
+        
+        const documentos_perfil_para_mostrar = (es_taller_2_o_superior || etapa_actual === EtapaProyecto.PERFIL)
+          ? documentos_perfil
+          : [];
+          
+        const documentos_proyecto_para_mostrar = es_taller_2_o_superior
+          ? documentos_proyecto
           : [];
 
         const observaciones_del_documento = documento_seleccionado
           ? observaciones.filter(obs => obs.documento && obs.documento.id === documento_seleccionado.id)
           : [];
           
+        const observaciones_del_documento_proyecto = documento_proyecto_seleccionado
+          ? observaciones.filter(obs => obs.documento && obs.documento.id === documento_proyecto_seleccionado.id)
+          : [];
+          
         const observaciones_del_proyecto = observaciones.filter(obs => !obs.documento);
 
         const correcciones_del_documento = documento_seleccionado
           ? correcciones.filter(corr => (corr as any).documento?.id === documento_seleccionado.id)
+          : [];
+          
+        const correcciones_del_documento_proyecto = documento_proyecto_seleccionado
+          ? correcciones.filter(corr => (corr as any).documento?.id === documento_proyecto_seleccionado.id)
           : [];
 
         const observaciones_pendientes = observaciones.filter(obs =>
@@ -384,8 +460,10 @@ const DetalleProyecto = () => {
               </div>
               <TabsList>
                 <TabsTrigger value="propuesta-info"><Info className="h-4 w-4 mr-2" />Propuesta</TabsTrigger>
-                {mostrar_pestana_visor && <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Visor (Perfil)</TabsTrigger>}
-                {mostrar_pestana_reuniones && <TabsTrigger value="reuniones"><Users className="h-4 w-4 mr-2" />Reuniones y Obs. (Taller II)</TabsTrigger>}
+                {mostrar_pestana_visor && <TabsTrigger value="visor"><FileText className="h-4 w-4 mr-2" />Doc. Perfil</TabsTrigger>}
+                {mostrar_pestana_visor_proyecto && <TabsTrigger value="visor-proyecto"><BookOpen className="h-4 w-4 mr-2" />Doc. Proyecto</TabsTrigger>}
+                {mostrar_pestana_reuniones && <TabsTrigger value="reuniones"><Users className="h-4 w-4 mr-2" />Reuniones</TabsTrigger>}
+                {mostrar_pestana_cronograma && <TabsTrigger value="cronograma"><Calendar className="h-4 w-4 mr-2" />Cronograma</TabsTrigger>}
                 {mostrar_pestana_defensa && <TabsTrigger value="defensa"><Shield className="h-4 w-4 mr-2" />Defensa</TabsTrigger>}
               </TabsList>
             </div>
@@ -463,15 +541,15 @@ const DetalleProyecto = () => {
                       
                       {es_estudiante && es_taller_2_o_superior && (
                         <Alert>
-                            <AlertTitle>Etapa de Proyecto (Taller II)</AlertTitle>
+                            <AlertTitle>Perfil Aprobado</AlertTitle>
                             <AlertDescription>
-                              Ya no se suben nuevas versiones. Este es el perfil aprobado para consulta.
+                              Este es el documento de perfil aprobado. Para subir nuevas versiones del proyecto, usa la pestaña "Doc. Proyecto".
                             </AlertDescription>
                           </Alert>
                       )}
 
                       <div className="space-y-2">
-                        {documentos_para_mostrar.map((doc) => (
+                        {documentos_perfil_para_mostrar.map((doc) => (
                           <div
                             key={doc.id}
                             className={cn(
@@ -496,9 +574,9 @@ const DetalleProyecto = () => {
                         ))}
                       </div>
 
-                      {documentos.length === 0 && (
+                      {documentos_perfil_para_mostrar.length === 0 && (
                         <p className="text-muted-foreground text-center pt-4">
-                          No hay documentos cargados
+                          No hay documentos de perfil cargados
                         </p>
                       )}
                     </CardContent>
@@ -562,8 +640,141 @@ const DetalleProyecto = () => {
                     <Card className="h-[80vh]">
                       <CardContent className="flex justify-center items-center h-full">
                         <p className="text-muted-foreground">
-                          {documentos.length === 0
-                            ? 'No hay documentos cargados en este proyecto.'
+                          {documentos_perfil_para_mostrar.length === 0
+                            ? 'No hay documentos de perfil cargados en este proyecto.'
+                            : 'Seleccione un documento para visualizar.'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Pestaña de Documento de Proyecto - Taller II */}
+            <TabsContent value="visor-proyecto">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-1 space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Documentos (Proyecto)</CardTitle>
+                      <CardDescription>
+                        Documentos del proyecto de Taller de Grado II
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {puede_subir_documento_proyecto && (
+                        <div className="space-y-2">
+                          <Label htmlFor="file-upload-proyecto" className="cursor-pointer">
+                            Seleccionar Archivo PDF (Proyecto)
+                          </Label>
+                          <Input
+                            id="file-upload-proyecto"
+                            type="file"
+                            accept=".pdf"
+                            onChange={(e: any) => set_archivo_proyecto(e.target.files[0])}
+                            disabled={subiendo_archivo_proyecto}
+                          />
+                          {archivo_proyecto && <p className="text-sm text-muted-foreground">{archivo_proyecto.name}</p>}
+                          <Button
+                            variant="default"
+                            className="w-full"
+                            onClick={manejarSubidaArchivoProyecto}
+                            disabled={!archivo_proyecto || subiendo_archivo_proyecto}
+                          >
+                            {subiendo_archivo_proyecto ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <FileUp className="mr-2 h-4 w-4" />
+                            )}
+                            {subiendo_archivo_proyecto ? 'Subiendo...' : 'Subir Documento'}
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        {documentos_proyecto_para_mostrar.map((doc) => (
+                          <div
+                            key={doc.id}
+                            className={cn(
+                              'p-3 rounded-md border cursor-pointer transition-colors',
+                              documento_proyecto_seleccionado?.id === doc.id
+                                ? 'bg-primary/10 border-primary'
+                                : 'hover:bg-accent'
+                            )}
+                            onClick={() => {
+                              set_documento_proyecto_seleccionado(doc);
+                              set_observacion_proyecto_seleccionada(null);
+                              set_correccion_proyecto_seleccionada(null);
+                            }}
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">Versión {doc.version}</span>
+                            </div>
+                            <small className="text-muted-foreground">
+                              {new Date(doc.fecha_subida).toLocaleDateString()}
+                            </small>
+                          </div>
+                        ))}
+                      </div>
+
+                      {documentos_proyecto_para_mostrar.length === 0 && (
+                        <p className="text-muted-foreground text-center pt-4">
+                          No hay documentos de proyecto cargados
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {es_asesor && documento_proyecto_seleccionado && etapa_actual === EtapaProyecto.PROYECTO && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigate(`/panel/proyecto/${proyecto.id}/crear-observacion?tipo=proyecto&documentoId=${documento_proyecto_seleccionado.id}`)}
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Crear Observación (Proyecto)
+                    </Button>
+                  )}
+
+                  {es_estudiante && observaciones_del_documento_proyecto.filter(o => o.estado === 'pendiente' || o.estado === 'rechazado').length > 0 && etapa_actual === EtapaProyecto.PROYECTO && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigate(`/panel/proyecto/${proyecto.id}/crear-correccion?documentoId=${documento_proyecto_seleccionado?.id}`)}
+                    >
+                      <Wrench className="mr-2 h-4 w-4" />
+                      Registrar Corrección
+                    </Button>
+                  )}
+
+                  {es_asesor && (
+                    <PestanaAcciones
+                      proyecto={proyecto}
+                      observaciones_pendientes={observaciones_pendientes_etapa_actual}
+                      tipo_grupo_actual={tipo_grupo_actual}
+                      onActualizarProyecto={onActualizarProyecto}
+                    />
+                  )}
+                </div>
+
+                <div className="lg:col-span-3">
+                  {documento_proyecto_seleccionado ? (
+                    <VisualizadorDocumento
+                      key={documento_proyecto_seleccionado.id}
+                      url_documento={documentosApi.obtenerArchivoUrl(documento_proyecto_seleccionado.id)}
+                      observaciones={observaciones_del_documento_proyecto}
+                      correcciones={correcciones_del_documento_proyecto}
+                      observacion_seleccionada={observacion_proyecto_seleccionada}
+                      correccion_seleccionada={correccion_proyecto_seleccionada}
+                      permitir_descarga={!es_vista_repositorio}
+                    />
+                  ) : (
+                    <Card className="h-[80vh]">
+                      <CardContent className="flex justify-center items-center h-full">
+                        <p className="text-muted-foreground">
+                          {documentos_proyecto_para_mostrar.length === 0
+                            ? 'No hay documentos de proyecto cargados. Sube tu primera versión.'
                             : 'Seleccione un documento para visualizar.'}
                         </p>
                       </CardContent>
@@ -580,6 +791,12 @@ const DetalleProyecto = () => {
                 onActualizarProyecto={onActualizarSimple} 
               />
             </TabsContent>
+
+            {mostrar_pestana_cronograma && (
+              <TabsContent value="cronograma">
+                <PestanaCronograma proyectoId={proyecto.id} />
+              </TabsContent>
+            )}
 
             <TabsContent value="defensa">
               <PestanaDefensa proyecto={proyecto} asesores={asesores} onActualizarProyecto={onActualizarSimple} />

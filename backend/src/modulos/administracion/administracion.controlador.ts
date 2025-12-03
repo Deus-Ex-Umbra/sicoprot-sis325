@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, ParseIntPipe, UseGuards, Query } from '@nestjs/common';
 import { AdministracionService } from './administracion.servicio';
 import { CambiarEstadoUsuarioDto } from './dto/cambiar-estado-usuario.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
@@ -37,6 +37,16 @@ export class AdministracionController {
   @ApiResponse({ status: 200, description: 'Estadísticas del sistema.' })
   obtenerEstadisticas() {
     return this.servicio_administracion.obtenerEstadisticas();
+  }
+
+  @Get('reporte-avance')
+  @ApiOperation({ summary: 'Obtener reporte de avance y tiempos de revisión' })
+  @ApiResponse({ status: 200, description: 'Reporte de avance de estudiantes.' })
+  obtenerReporteAvance(
+    @Query('grupo_id') grupo_id?: number,
+    @Query('asesor_id') asesor_id?: number,
+  ) {
+    return this.servicio_administracion.obtenerReporteAvance(grupo_id, asesor_id);
   }
 
   @Patch('usuarios/:id/cambiar-estado')

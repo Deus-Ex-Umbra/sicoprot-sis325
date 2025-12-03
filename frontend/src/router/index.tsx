@@ -11,6 +11,8 @@ import Observaciones from '../paginas/estudiante/Observaciones';
 import ObservacionesAsesor from '../paginas/asesor/ObservacionesAsesor';
 import MisEstudiantes from '../paginas/asesor/MisEstudiantes';
 import RevisarDocumentos from '../paginas/asesor/RevisarDocumentos';
+import MisTribunales from '../paginas/asesor/MisTribunales';
+import ConfigurarGrupos from '../paginas/asesor/ConfigurarGrupos';
 import InscripcionGrupos from '../paginas/estudiante/InscripcionGrupos';
 import RutaProtegida from '../componentes/ruta-protegida';
 import CrearObservacion from '../paginas/CrearObservacion';
@@ -20,17 +22,24 @@ import GestionUsuarios from '../paginas/admin/GestionUsuarios';
 import SolicitudesRegistro from '../paginas/admin/SolicitudesRegistro';
 import GestionPeriodos from '../paginas/admin/GestionPeriodos';
 import GestionGrupos from '../paginas/admin/GestionGrupos';
+import GestionDefensas from '../paginas/admin/GestionDefensas';
 import Repositorio from '../paginas/Repositorio';
+import RepositorioPublico from '../paginas/RepositorioPublico';
+import DetalleProyectoPublico from '../paginas/DetalleProyectoPublico';
 import MiProgreso from '../paginas/estudiante/MiProgreso';
 import MiCronograma from '../paginas/estudiante/MiCronograma';
 import { Rol } from '../tipos/usuario';
 import SolicitudesDefensa from '../paginas/admin/SolicitudesDefensa';
+import ReportesAdmin from '../paginas/admin/ReportesAdmin';
 
 const router = createBrowserRouter([
-  { path: '*', element: <Navigate to="/iniciar-sesion" replace /> },
-  { path: '/', element: <Navigate to="/panel" replace /> },
+  { path: '*', element: <Navigate to="/repositorio" replace /> },
+  { path: '/', element: <Navigate to="/repositorio" replace /> },
   { path: '/iniciar-sesion', element: <IniciarSesion /> },
   { path: '/registrarse', element: <Registro /> },
+  // Rutas públicas del repositorio
+  { path: '/repositorio', element: <RepositorioPublico /> },
+  { path: '/repositorio/:id', element: <DetalleProyectoPublico /> },
   {
     path: '/panel',
     element: (
@@ -152,10 +161,26 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: '/panel/configurar-grupos',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Asesor]}>
+        <ConfigurarGrupos />
+      </RutaProtegida>
+    ),
+  },
+  {
     path: '/panel/revisar',
     element: (
       <RutaProtegida roles_permitidos={[Rol.Asesor]}>
         <RevisarDocumentos />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/mis-tribunales',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Asesor]}>
+        <MisTribunales />
       </RutaProtegida>
     ),
   },
@@ -204,6 +229,22 @@ const router = createBrowserRouter([
     element: (
       <RutaProtegida roles_permitidos={[Rol.Administrador]}>
         <GestionGrupos />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/admin/reportes',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Administrador]}>
+        <ReportesAdmin />
+      </RutaProtegida>
+    ),
+  },
+  {
+    path: '/panel/admin/gestion-defensas',
+    element: (
+      <RutaProtegida roles_permitidos={[Rol.Administrador]}>
+        <GestionDefensas />
       </RutaProtegida>
     ),
   },

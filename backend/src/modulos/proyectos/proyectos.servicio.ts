@@ -26,6 +26,8 @@ import { GruposService } from '../grupos/grupos.servicio';
 import { ActualizarPropuestaDto } from './dto/actualizar-propuesta.dto';
 import { ObservacionesService } from '../observaciones/observaciones.servicio';
 import { TipoGrupo } from '../grupos/enums/tipo-grupo.enum';
+import { Defensa, TipoDefensa, EstadoDefensa, ResultadoDefensa } from '../defensas/entidades/defensa.entidad';
+import { Tribunal } from '../defensas/entidades/tribunal.entidad';
 
 @Injectable()
 export class ProyectosService {
@@ -48,6 +50,10 @@ export class ProyectosService {
     private readonly repositorio_usuario: Repository<Usuario>,
     @InjectRepository(Grupo)
     private readonly repositorio_grupo: Repository<Grupo>,
+    @InjectRepository(Defensa)
+    private readonly repositorio_defensa: Repository<Defensa>,
+    @InjectRepository(Tribunal)
+    private readonly repositorio_tribunal: Repository<Tribunal>,
     private readonly servicio_grupos: GruposService,
     private readonly servicio_observaciones: ObservacionesService,
   ) {}
@@ -290,9 +296,12 @@ export class ProyectosService {
           throw new BadRequestException('El perfil ya ha sido aprobado');
         }
         
-        const tiene_documentos = proyecto.documentos && proyecto.documentos.length > 0;
-        if (!tiene_documentos) {
-          throw new BadRequestException('No se puede aprobar un perfil sin un documento subido.');
+        // Validar que tenga documentos subidos del tipo PERFIL
+        const documentos_perfil = proyecto.documentos?.filter(d => 
+          d.tipo_documento === 'perfil'
+        ) || [];
+        if (documentos_perfil.length === 0) {
+          throw new BadRequestException('No se puede aprobar el perfil sin un documento subido del tipo "perfil" (Taller de Grado I). El estudiante debe subir al menos un documento.');
         }
 
         proyecto.perfil_aprobado = true;
@@ -313,6 +322,15 @@ export class ProyectosService {
         if (proyecto.proyecto_aprobado) {
           throw new BadRequestException('El proyecto ya ha sido aprobado');
         }
+        
+        // Validar que tenga documentos subidos del tipo PROYECTO
+        const documentos_proyecto = proyecto.documentos?.filter(d => 
+          d.tipo_documento === 'proyecto'
+        ) || [];
+        if (documentos_proyecto.length === 0) {
+          throw new BadRequestException('No se puede aprobar el proyecto sin un documento subido del tipo "proyecto" (Taller de Grado II). El estudiante debe subir al menos un documento.');
+        }
+        
         proyecto.proyecto_aprobado = true;
         proyecto.fecha_aprobacion_proyecto = ahora;
         proyecto.comentario_aprobacion_proyecto = comentarios;
@@ -578,8 +596,22 @@ export class ProyectosService {
       .leftJoin('estudiante.grupos', 'grupo')
       .leftJoin('grupo.periodo', 'periodo');
 
-    if (buscar_dto.soloAprobados === true) {
+    // Filtro para proyectos terminados (con defensa aprobada)
+    if (buscar_dto.soloTerminados === true || buscar_dto.soloTerminados === 'true' as any) {
       query.andWhere('proyecto.etapa_actual = :etapaTerminado', { 
+        etapaTerminado: EtapaProyecto.TERMINADO
+      });
+    } 
+    // Filtro legacy para soloAprobados (ahora significa terminados)
+    else if (buscar_dto.soloAprobados === true || buscar_dto.soloAprobados === 'true' as any) {
+      query.andWhere('proyecto.etapa_actual = :etapaTerminado', { 
+        etapaTerminado: EtapaProyecto.TERMINADO
+      });
+    }
+    // Filtro para perfiles aprobados (proyectos que no están terminados pero tienen perfil aprobado)
+    else if (buscar_dto.soloPerfilesAprobados === true || buscar_dto.soloPerfilesAprobados === 'true' as any) {
+      query.andWhere('proyecto.perfil_aprobado = true');
+      query.andWhere('proyecto.etapa_actual != :etapaTerminado', { 
         etapaTerminado: EtapaProyecto.TERMINADO
       });
     }
@@ -609,10 +641,7 @@ export class ProyectosService {
       query.andWhere(new Brackets(qb => {
         qb.where('LOWER(proyecto.titulo) LIKE :termino', { termino })
           .orWhere('LOWER(proyecto.resumen) LIKE :termino', { termino })
-          .orWhere(`EXISTS (
-            SELECT 1 FROM unnest(COALESCE(proyecto.palabras_clave, ARRAY[]::text[])) AS palabra 
-            WHERE LOWER(palabra) LIKE :termino
-          )`, { termino });
+          .orWhere('LOWER(proyecto.palabras_clave) LIKE :termino', { termino });
       }));
     }
 
@@ -634,7 +663,8 @@ export class ProyectosService {
       : 'Asesor desconocido',
       fecha_creacion: proyecto.fecha_creacion,
       etapa_actual: proyecto.etapa_actual,
-      proyecto_aprobado: proyecto.proyecto_aprobado
+      proyecto_aprobado: proyecto.proyecto_aprobado,
+      perfil_aprobado: proyecto.perfil_aprobado
     }));
   }
 
@@ -643,7 +673,8 @@ export class ProyectosService {
 
     switch (estado) {
       case 'aprobadas':
-        etapas = [EtapaProyecto.TERMINADO];
+        // Memorial aceptado: incluye pre_defensa, en_defensa y terminado
+        etapas = [EtapaProyecto.PRE_DEFENSA, EtapaProyecto.EN_DEFENSA, EtapaProyecto.TERMINADO];
         break;
       case 'rechazadas':
         etapas = [EtapaProyecto.LISTO_DEFENSA];
@@ -653,19 +684,20 @@ export class ProyectosService {
         etapas = [EtapaProyecto.SOLICITUD_DEFENSA];
     }
     
-    const where_condicion: any = {
-      etapa_actual: In(etapas)
-    };
+    const query = this.repositorio_proyecto.createQueryBuilder('proyecto')
+      .leftJoinAndSelect('proyecto.estudiantes', 'estudiante')
+      .leftJoinAndSelect('proyecto.asesor', 'asesor')
+      .leftJoinAndSelect('asesor.usuario', 'usuario_asesor')
+      .where('proyecto.etapa_actual IN (:...etapas)', { etapas })
+      .orderBy('proyecto.fecha_creacion', 'ASC');
     
+    // Para rechazadas, solo mostrar los que tienen comentarios de rechazo
     if (estado === 'rechazadas') {
-      where_condicion.comentarios_defensa = In(['IS NOT NULL', '!= \'\'']);
+      query.andWhere('proyecto.comentarios_defensa IS NOT NULL')
+           .andWhere("proyecto.comentarios_defensa != ''");
     }
 
-    return this.repositorio_proyecto.find({
-      where: where_condicion,
-      relations: ['estudiantes', 'asesor', 'asesor.usuario'],
-      order: { fecha_creacion: 'ASC' },
-    });
+    return query.getMany();
   }
 
   async solicitarDefensa(id_proyecto: number, dto: SolicitarDefensaDto, id_usuario_estudiante: number) {
@@ -703,7 +735,7 @@ export class ProyectosService {
 
     const proyecto = await this.repositorio_proyecto.findOne({
       where: { id: id_proyecto },
-      relations: ['estudiantes'],
+      relations: ['estudiantes', 'asesor'],
     });
     if (!proyecto) {
       throw new NotFoundException(`Proyecto con ID ${id_proyecto} no encontrado`);
@@ -714,22 +746,69 @@ export class ProyectosService {
     }
 
     if (dto.aprobada) {
-      if (!dto.tribunales || dto.tribunales.length < 3 || dto.tribunales.length > 5) {
-        throw new BadRequestException('Se deben asignar entre 3 y 5 tribunales para aprobar la defensa.');
+      // Validar que se proporcionen los datos necesarios para crear la pre-defensa
+      if (!dto.ids_tribunales || dto.ids_tribunales.length < 3) {
+        throw new BadRequestException('Debe seleccionar al menos 3 miembros del tribunal para aprobar la solicitud.');
       }
-      proyecto.tribunales = dto.tribunales;
-      proyecto.comentarios_defensa = dto.comentarios || 'Solicitud de defensa aprobada.';
-      proyecto.etapa_actual = EtapaProyecto.TERMINADO;
-      
-      await this.repositorio_proyecto.save(proyecto);
 
-      if (proyecto.estudiantes && proyecto.estudiantes.length > 0) {
-        for (const estudiante of proyecto.estudiantes) {
-          await this.servicio_grupos.desinscribirEstudianteDeGrupoActivo(estudiante.id);
+      if (!dto.fecha_programada) {
+        throw new BadRequestException('Debe especificar una fecha para la pre-defensa.');
+      }
+
+      // Validar que los asesores existan
+      const asesores = await this.repositorio_asesor.findBy({
+        id: In(dto.ids_tribunales),
+      });
+
+      if (asesores.length !== dto.ids_tribunales.length) {
+        throw new BadRequestException('Uno o más asesores no encontrados');
+      }
+
+      // Validar que el asesor del proyecto NO sea parte del tribunal
+      if (proyecto.asesor) {
+        const asesorDelProyectoEnTribunal = asesores.some(a => a.id === proyecto.asesor.id);
+        if (asesorDelProyectoEnTribunal) {
+          throw new BadRequestException('El asesor del proyecto no puede ser parte del tribunal');
         }
       }
 
-      return { message: 'Defensa aprobada y proyecto marcado como terminado.' };
+      // Crear la pre-defensa
+      const defensa = this.repositorio_defensa.create({
+        proyecto,
+        fecha_programada: new Date(dto.fecha_programada),
+        lugar: dto.lugar || '',
+        enlace: dto.enlace || '',
+        tipo: TipoDefensa.PRE_DEFENSA,
+        estado: EstadoDefensa.PROGRAMADA,
+        resultado: ResultadoDefensa.PENDIENTE,
+        intento_numero: 1,
+        nota_minima_aprobacion: 51,
+      });
+
+      const defensa_guardada = await this.repositorio_defensa.save(defensa);
+
+      // Crear los miembros del tribunal
+      const tribunales = asesores.map((asesor) =>
+        this.repositorio_tribunal.create({
+          defensa: defensa_guardada,
+          asesor,
+          nota_valida: true,
+          ha_calificado: false,
+        }),
+      );
+
+      await this.repositorio_tribunal.save(tribunales);
+
+      // Actualizar el proyecto
+      proyecto.comentarios_defensa = dto.comentarios || 'Solicitud de defensa aprobada. Pre-defensa programada.';
+      proyecto.etapa_actual = EtapaProyecto.PRE_DEFENSA;
+      
+      await this.repositorio_proyecto.save(proyecto);
+
+      return { 
+        message: 'Memorial aceptado y pre-defensa programada exitosamente.',
+        defensa: defensa_guardada
+      };
 
     } else {
       proyecto.etapa_actual = EtapaProyecto.LISTO_DEFENSA;
@@ -943,5 +1022,95 @@ export class ProyectosService {
       },
       linea_tiempo: linea_tiempo,
     };
+  }
+
+  // ============== MÉTODOS PÚBLICOS (Sin autenticación) ==============
+
+  async buscarProyectosPublico(dto: BuscarProyectosDto): Promise<ResultadoBusqueda[]> {
+    const query = this.repositorio_proyecto.createQueryBuilder('proyecto')
+      .leftJoinAndSelect('proyecto.estudiantes', 'estudiante')
+      .leftJoinAndSelect('proyecto.asesor', 'asesor');
+
+    // Solo proyectos terminados o perfiles aprobados (público)
+    if (dto.soloPerfilesAprobados === true || dto.soloPerfilesAprobados === 'true' as any) {
+      query.andWhere('proyecto.perfil_aprobado = :aprobado', { aprobado: true });
+    } else {
+      query.andWhere('proyecto.etapa_actual = :etapa', { etapa: EtapaProyecto.TERMINADO });
+    }
+
+    if (dto.termino) {
+      const termino = `%${dto.termino.toLowerCase()}%`;
+      query.andWhere(
+        new Brackets(qb => {
+          qb.where('LOWER(proyecto.titulo) LIKE :termino', { termino })
+            .orWhere('LOWER(proyecto.resumen) LIKE :termino', { termino })
+            .orWhere('LOWER(proyecto.palabras_clave) LIKE :termino', { termino });
+        })
+      );
+    }
+
+    if (dto.anio) {
+      query.andWhere('EXTRACT(YEAR FROM proyecto.fecha_creacion) = :anio', { anio: parseInt(dto.anio, 10) });
+    }
+
+    if (dto.asesorId) {
+      query.andWhere('asesor.id = :asesorId', { asesorId: parseInt(dto.asesorId, 10) });
+    }
+
+    query.orderBy('proyecto.fecha_creacion', 'DESC');
+
+    const proyectos = await query.getMany();
+
+    return proyectos.map(proyecto => ({
+      id: proyecto.id,
+      titulo: proyecto.titulo,
+      resumen: proyecto.resumen,
+      palabras_clave: proyecto.palabras_clave || [],
+      autor: proyecto.estudiantes?.map(e => `${e.nombre || ''} ${e.apellido || ''}`).join(', ') || 'N/A',
+      asesor: proyecto.asesor ? `${proyecto.asesor.nombre} ${proyecto.asesor.apellido}` : 'N/A',
+      fecha_creacion: proyecto.fecha_creacion,
+      etapa_actual: proyecto.etapa_actual,
+      proyecto_aprobado: proyecto.proyecto_aprobado,
+      perfil_aprobado: proyecto.perfil_aprobado
+    }));
+  }
+
+  async obtenerProyectoPublico(id: number) {
+    const proyecto = await this.repositorio_proyecto.findOne({
+      where: { id },
+      relations: [
+        'estudiantes', 
+        'asesor', 
+        'documentos'
+      ],
+    });
+
+    if (!proyecto) {
+      throw new NotFoundException(`Proyecto con ID '${id}' no encontrado.`);
+    }
+
+    // Solo permitir acceso público a proyectos terminados o con perfil aprobado
+    if (proyecto.etapa_actual !== EtapaProyecto.TERMINADO && !proyecto.perfil_aprobado) {
+      throw new NotFoundException('Este proyecto no está disponible en el repositorio público.');
+    }
+
+    // Filtrar documentos sensibles para vista pública
+    if (proyecto.documentos) {
+      proyecto.documentos = proyecto.documentos.filter(
+        doc => doc.ruta_archivo !== proyecto.ruta_memorial
+      );
+    }
+
+    return proyecto;
+  }
+
+  async obtenerAsesoresPublico() {
+    const asesores = await this.repositorio_asesor.find({});
+
+    return asesores.map(asesor => ({
+      id: asesor.id,
+      nombre: asesor.nombre || '',
+      apellido: asesor.apellido || '',
+    }));
   }
 }

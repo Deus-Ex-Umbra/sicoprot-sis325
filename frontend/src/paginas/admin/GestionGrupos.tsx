@@ -90,11 +90,6 @@ const GestionGrupos = () => {
     activo: true,
     tipo: 'taller_grado_i' as 'taller_grado_i' | 'taller_grado_ii',
     carrera: '',
-    fecha_limite_propuesta: '',
-    fecha_limite_perfil: '',
-    fecha_limite_proyecto: '',
-    dias_revision_asesor: 7,
-    dias_correccion_estudiante: 14,
   });
 
   const [estudiantes_a_asignar, set_estudiantes_a_asignar] = useState<string[]>([]);
@@ -173,11 +168,6 @@ const GestionGrupos = () => {
     });
   };
 
-  const formatDate = (dateString?: string | Date) => {
-    if (!dateString) return '';
-    return new Date(dateString).toISOString().split('T')[0];
-  }
-
   const abrirModalCrear = () => {
     set_grupo_editando(null);
     const periodo_activo = periodos.find(p => p.activo);
@@ -189,11 +179,6 @@ const GestionGrupos = () => {
       activo: true,
       tipo: 'taller_grado_i',
       carrera: '',
-      fecha_limite_propuesta: '',
-      fecha_limite_perfil: '',
-      fecha_limite_proyecto: '',
-      dias_revision_asesor: 7,
-      dias_correccion_estudiante: 14,
     });
     set_mostrar_modal_grupo(true);
   };
@@ -208,11 +193,6 @@ const GestionGrupos = () => {
       activo: grupo.activo,
       tipo: grupo.tipo || 'taller_grado_i',
       carrera: (grupo as any).carrera || '',
-      fecha_limite_propuesta: formatDate((grupo as any).fecha_limite_propuesta),
-      fecha_limite_perfil: formatDate((grupo as any).fecha_limite_perfil),
-      fecha_limite_proyecto: formatDate((grupo as any).fecha_limite_proyecto),
-      dias_revision_asesor: (grupo as any).dias_revision_asesor || 7,
-      dias_correccion_estudiante: (grupo as any).dias_correccion_estudiante || 14,
     });
     set_mostrar_modal_grupo(true);
   };
@@ -230,8 +210,6 @@ const GestionGrupos = () => {
         ...form_grupo,
         id_asesor: Number(form_grupo.id_asesor),
         id_periodo: Number(form_grupo.id_periodo),
-        dias_revision_asesor: Number(form_grupo.dias_revision_asesor),
-        dias_correccion_estudiante: Number(form_grupo.dias_correccion_estudiante),
       };
 
       if (grupo_editando) {
@@ -635,57 +613,11 @@ const GestionGrupos = () => {
                     </Select>
                   </div>
                   
-                  <h6 className="font-semibold pt-2">Fechas Límite (Taller I y II)</h6>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fecha_limite_propuesta">Límite Propuesta</Label>
-                      <Input
-                        id="fecha_limite_propuesta"
-                        type="date"
-                        value={form_grupo.fecha_limite_propuesta}
-                        onChange={(e) => set_form_grupo({ ...form_grupo, fecha_limite_propuesta: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="fecha_limite_perfil">Límite Perfil</Label>
-                      <Input
-                        id="fecha_limite_perfil"
-                        type="date"
-                        value={form_grupo.fecha_limite_perfil}
-                        onChange={(e) => set_form_grupo({ ...form_grupo, fecha_limite_perfil: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="fecha_limite_proyecto">Límite Proyecto Final</Label>
-                      <Input
-                        id="fecha_limite_proyecto"
-                        type="date"
-                        value={form_grupo.fecha_limite_proyecto}
-                        onChange={(e) => set_form_grupo({ ...form_grupo, fecha_limite_proyecto: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <h6 className="font-semibold pt-2">Tiempos de Revisión</h6>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dias_revision_asesor">Días Revisión (Asesor)</Label>
-                      <Input
-                        id="dias_revision_asesor"
-                        type="number"
-                        value={form_grupo.dias_revision_asesor}
-                        onChange={(e) => set_form_grupo({ ...form_grupo, dias_revision_asesor: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dias_correccion_estudiante">Días Corrección (Estudiante)</Label>
-                      <Input
-                        id="dias_correccion_estudiante"
-                        type="number"
-                        value={form_grupo.dias_correccion_estudiante}
-                        onChange={(e) => set_form_grupo({ ...form_grupo, dias_correccion_estudiante: Number(e.target.value) })}
-                      />
-                    </div>
+                  <div className="bg-muted/50 rounded-lg p-4 mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Nota:</strong> Las fechas límite y tiempos de revisión serán configurados 
+                      por el docente asignado desde su panel de "Configurar Grupos".
+                    </p>
                   </div>
 
                 </div>

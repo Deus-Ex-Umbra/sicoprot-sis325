@@ -17,6 +17,8 @@ import { Observacion } from '../observaciones/entidades/observacion.entidad';
 import { Periodo } from '../periodos/entidades/periodo.entidad';
 import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../asesores/entidades/asesor.entidad';
+import { Defensa } from '../defensas/entidades/defensa.entidad';
+import { Tribunal } from '../defensas/entidades/tribunal.entidad';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { Asesor } from '../asesores/entidades/asesor.entidad';
       Periodo,
       Estudiante,
       Asesor,
+      Defensa,
+      Tribunal,
     ]),
     EstudiantesModule,
     AsesoresModule,

@@ -15,6 +15,8 @@ import { SolicitudesRegistroModule } from './modulos/solicitudes-registro/solici
 import { AdministracionModule } from './modulos/administracion/administracion.modulo';
 import { SemillaModule } from './modulos/semilla/semilla.modulo';
 import { ReunionesModule } from './modulos/reuniones/reuniones.modulo';
+import { DefensasModule } from './modulos/defensas/defensas.modulo';
+import { ReportesModule } from './modulos/reportes/reportes.modulo';
 
 console.log({
   user: process.env.DB_USERNAME,
@@ -48,11 +50,13 @@ console.log({
     CorreccionesModule,
     EstudiantesModule,
     AsesoresModule,
+    DefensasModule,
     PeriodosModule,
     GruposModule,
     SolicitudesRegistroModule,
     AdministracionModule,
     ReunionesModule,
+    ReportesModule,
   ],
   controllers: [],
   providers: [],

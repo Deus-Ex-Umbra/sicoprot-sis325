@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { proyectosApi } from '../../servicios/api';
-import { type TimelineCompletoDto, type Tribunal } from '../../tipos/usuario';
+import { Loader2, AlertCircle, MessageSquare, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { proyectosApi, defensasApi } from '../../servicios/api';
+import { type TimelineCompletoDto, type Tribunal, ResultadoDefensa } from '../../tipos/usuario';
 import BarraLateral from '../../componentes/barra-lateral';
 import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { cn } from '../../lib/utilidades';
@@ -14,8 +14,18 @@ import LineaTiempo from '../../componentes/linea-tiempo';
 import { Badge } from '../../componentes/ui/badge';
 import { Separator } from '../../componentes/ui/separator';
 
+interface ObservacionPreDefensa {
+  id: number;
+  fecha_programada: string;
+  resultado: string;
+  nota_promedio: number;
+  intento_numero: number;
+  observaciones: { asesor: string; observacion: string }[];
+}
+
 const MiProgreso = () => {
   const [timeline, set_timeline] = useState<TimelineCompletoDto | null>(null);
+  const [observaciones_predefensa, set_observaciones_predefensa] = useState<ObservacionPreDefensa[]>([]);
   const [cargando, set_cargando] = useState(true);
   const [error, set_error] = useState('');
   const { usuario } = useAutenticacion();
@@ -32,6 +42,17 @@ const MiProgreso = () => {
       try {
         const data = await proyectosApi.obtenerTimelineCompleto();
         set_timeline(data);
+        
+        // Cargar observaciones de pre-defensa si el proyecto tiene ID
+        if (data?.proyecto?.id) {
+          try {
+            const obs = await defensasApi.obtenerObservacionesPreDefensa(data.proyecto.id);
+            set_observaciones_predefensa(obs);
+          } catch (err) {
+            // No hay observaciones o error, continuar sin ellas
+            console.log('No se pudieron cargar observaciones de pre-defensa');
+          }
+        }
       } catch (err: any) {
         set_error(err.response?.data?.message || 'Error al cargar el progreso');
       } finally {
@@ -127,7 +148,7 @@ const MiProgreso = () => {
           <SeccionDetallada titulo="Observaciones del Proyecto" data={timeline.proyecto_desarrollo.observaciones} />
         </TabsContent>
         
-        <TabsContent value="defensa" className="mt-6">
+        <TabsContent value="defensa" className="mt-6 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Estado de la Defensa</CardTitle>
@@ -163,6 +184,72 @@ const MiProgreso = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Observaciones de Pre-Defensas */}
+          {observaciones_predefensa.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Observaciones de Pre-Defensas
+                </CardTitle>
+                <CardDescription>
+                  Comentarios y sugerencias del tribunal para mejorar tu proyecto antes de la defensa final
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {observaciones_predefensa.map((predefensa) => (
+                  <div key={predefensa.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold">Pre-Defensa #{predefensa.intento_numero}</h4>
+                        {predefensa.resultado === ResultadoDefensa.APROBADO ? (
+                          <Badge variant="default" className="bg-green-600">
+                            <CheckCircle className="h-3 w-3 mr-1" /> Aprobada
+                          </Badge>
+                        ) : predefensa.resultado === ResultadoDefensa.REPROBADO ? (
+                          <Badge variant="destructive">
+                            <XCircle className="h-3 w-3 mr-1" /> Reprobada
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">
+                            <Clock className="h-3 w-3 mr-1" /> Pendiente
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(predefensa.fecha_programada).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-sm">
+                      <span>Nota promedio: <strong>{predefensa.nota_promedio?.toFixed(1) || '0'}</strong> / 100</span>
+                    </div>
+
+                    {predefensa.observaciones.length > 0 ? (
+                      <div className="space-y-3 mt-4">
+                        <h5 className="font-medium text-sm">Observaciones del tribunal:</h5>
+                        {predefensa.observaciones.map((obs, idx) => (
+                          <div key={idx} className="bg-muted rounded-lg p-3">
+                            <p className="text-xs text-muted-foreground mb-1">{obs.asesor}</p>
+                            <p className="text-sm whitespace-pre-wrap">{obs.observacion}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        No hay observaciones registradas para esta pre-defensa.
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     );

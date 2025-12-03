@@ -1,18 +1,5 @@
-import { IsBoolean, IsString, IsArray, IsOptional, ValidateNested, IsEmail, IsNotEmpty } from 'class-validator';
+import { IsBoolean, IsString, IsArray, IsOptional, IsDateString, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-
-class TribunalDto {
-  @ApiProperty({ description: 'Nombre del docente' })
-  @IsString()
-  @IsNotEmpty()
-  nombre: string;
-
-  @ApiProperty({ description: 'Correo electrónico del docente' })
-  @IsEmail()
-  @IsNotEmpty()
-  correo: string;
-}
 
 export class ResponderSolicitudDefensaDto {
   @ApiProperty({ description: 'Aprobar o rechazar la solicitud' })
@@ -24,14 +11,32 @@ export class ResponderSolicitudDefensaDto {
   @IsOptional()
   comentarios?: string;
 
+  // Campos requeridos cuando se aprueba la solicitud (para crear la pre-defensa)
   @ApiProperty({ 
-    description: 'Tribunales asignados (3-5 docentes)',
-    type: [TribunalDto],
+    description: 'Fecha y hora programada para la pre-defensa',
+    required: false
+  })
+  @IsDateString()
+  @IsOptional()
+  fecha_programada?: string;
+
+  @ApiProperty({ description: 'Lugar de la pre-defensa', required: false })
+  @IsString()
+  @IsOptional()
+  lugar?: string;
+
+  @ApiProperty({ description: 'Enlace virtual para la pre-defensa', required: false })
+  @IsString()
+  @IsOptional()
+  enlace?: string;
+
+  @ApiProperty({ 
+    description: 'IDs de los asesores que conformarán el tribunal (mínimo 3)',
+    type: [Number],
     required: false
   })
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => TribunalDto)
+  @IsNumber({}, { each: true })
   @IsOptional()
-  tribunales?: TribunalDto[];
+  ids_tribunales?: number[];
 }
