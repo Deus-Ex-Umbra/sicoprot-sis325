@@ -1,8 +1,0 @@
-export enum EtapaProyecto {
-    PROPUESTA = 'PROPUESTA',
-    PERFIL = 'PERFIL',
-    PROYECTO = 'PROYECTO',
-    LISTO_DEFENSA = 'LISTO_DEFENSA',
-    APROBADO = 'APROBADO',
-    RECHAZADO = 'RECHAZADO',
-}
