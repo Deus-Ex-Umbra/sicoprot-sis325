@@ -2,6 +2,11 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, CreateDat
 import { Proyecto } from '../../proyectos/entidades/proyecto.endidad';
 import { Observacion } from '../../observaciones/entidades/observacion.entidad';
 
+export enum TipoDocumento {
+  PERFIL = 'perfil',
+  PROYECTO = 'proyecto',
+}
+
 @Entity('documentos')
 export class Documento {
   @PrimaryGeneratedColumn()
@@ -15,6 +20,13 @@ export class Documento {
 
   @Column({ type: 'int', default: 1 })
   version: number;
+
+  @Column({
+    type: 'enum',
+    enum: TipoDocumento,
+    default: TipoDocumento.PERFIL,
+  })
+  tipo_documento: TipoDocumento;
 
   @CreateDateColumn({ name: 'fecha_subida' })
   fecha_subida: Date;

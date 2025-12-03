@@ -48,7 +48,7 @@ async function bootstrap() {
   );
 
   await app.listen(process.env.PORT ?? 3000);
-  console.log(`Aplicación corriendo en: http://localhost:${process.env.PORT ?? 3000}`);
-  console.log(`Documentación API disponible en: http://localhost:${process.env.PORT ?? 3000}/api-docs`);
+  console.log(`Aplicación corriendo en: http://localhost:${process.env.PORT ?? 3000}/api`);
+  console.log(`Documentación API disponible en: http://localhost:${process.env.PORT ?? 3000}/api/documentacion`);
 }
 bootstrap();

@@ -132,6 +132,69 @@ export class GruposService {
     });
   }
 
+  async obtenerGruposDelAsesor(id_usuario: number) {
+    const asesor = await this.repositorio_asesor.findOne({
+      where: { usuario: { id: id_usuario } },
+    });
+
+    if (!asesor) {
+      throw new NotFoundException('Asesor no encontrado.');
+    }
+
+    return this.repositorio_grupo.find({
+      where: { asesor: { id: asesor.id } },
+      relations: ['asesor', 'asesor.usuario', 'periodo', 'estudiantes', 'estudiantes.usuario'],
+      order: { fecha_creacion: 'DESC' },
+    });
+  }
+
+  async configurarGrupo(id: number, id_usuario: number, configuracion: {
+    fecha_limite_propuesta?: string | null;
+    fecha_limite_perfil?: string | null;
+    fecha_limite_proyecto?: string | null;
+    dias_revision_asesor?: number;
+    dias_correccion_estudiante?: number;
+  }) {
+    const grupo = await this.repositorio_grupo.findOne({
+      where: { id },
+      relations: ['asesor', 'asesor.usuario'],
+    });
+
+    if (!grupo) {
+      throw new NotFoundException(`Grupo con ID '${id}' no encontrado.`);
+    }
+
+    // Verificar que el usuario es el asesor del grupo
+    if (grupo.asesor.usuario.id !== id_usuario) {
+      throw new ForbiddenException('Solo el asesor asignado puede configurar este grupo.');
+    }
+
+    // Actualizar configuración
+    if (configuracion.fecha_limite_propuesta !== undefined) {
+      grupo.fecha_limite_propuesta = configuracion.fecha_limite_propuesta 
+        ? new Date(configuracion.fecha_limite_propuesta) 
+        : undefined;
+    }
+    if (configuracion.fecha_limite_perfil !== undefined) {
+      grupo.fecha_limite_perfil = configuracion.fecha_limite_perfil 
+        ? new Date(configuracion.fecha_limite_perfil) 
+        : undefined;
+    }
+    if (configuracion.fecha_limite_proyecto !== undefined) {
+      grupo.fecha_limite_proyecto = configuracion.fecha_limite_proyecto 
+        ? new Date(configuracion.fecha_limite_proyecto) 
+        : undefined;
+    }
+    if (configuracion.dias_revision_asesor !== undefined) {
+      grupo.dias_revision_asesor = configuracion.dias_revision_asesor;
+    }
+    if (configuracion.dias_correccion_estudiante !== undefined) {
+      grupo.dias_correccion_estudiante = configuracion.dias_correccion_estudiante;
+    }
+
+    return this.repositorio_grupo.save(grupo);
+  }
+
   async obtenerUno(id: number) {
     const grupo = await this.repositorio_grupo.findOne({
       where: { id },

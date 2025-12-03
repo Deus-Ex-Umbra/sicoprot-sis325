@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-//const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000';
-const API_URL = 'https://sicoprot-backend.ddns.net';
+const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000';
+//const API_URL = 'https://sicoprot-backend.ddns.net';
 
 export const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -211,6 +211,14 @@ export const gruposApi = {
     const respuesta = await api.get('/grupos/mi-grupo');
     return respuesta.data;
   },
+  obtenerMisGruposAsesor: async () => {
+    const respuesta = await api.get('/grupos/mis-grupos');
+    return respuesta.data;
+  },
+  configurarGrupo: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/grupos/${id}/configurar`, datos);
+    return respuesta.data;
+  },
   obtenerPorPeriodo: async (periodoId: number) => {
     const respuesta = await api.get(`/grupos/periodo/${periodoId}`);
     return respuesta.data;
@@ -305,7 +313,8 @@ export const proyectosApi = {
 };
 
 export const documentosApi = {
-  subirDocumento: async (proyectoId: number, formData: FormData) => {
+  subirDocumento: async (proyectoId: number, formData: FormData, tipoDocumento: 'perfil' | 'proyecto' = 'perfil') => {
+    formData.append('tipo_documento', tipoDocumento);
     const respuesta = await api.post(`/documentos/subir/${proyectoId}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -454,6 +463,156 @@ export const reunionesApi = {
   },
   eliminar: async (id: number) => {
     const respuesta = await api.delete(`/reuniones/${id}`);
+    return respuesta.data;
+  },
+};
+
+export const reportesApi = {
+  obtenerAvanceGrupos: async () => {
+    const respuesta = await api.get('/reportes/avances');
+    return respuesta.data;
+  },
+  obtenerTiemposRevision: async () => {
+    const respuesta = await api.get('/reportes/tiempos-revision');
+    return respuesta.data;
+  },
+};
+
+export const defensasApi = {
+  programarDefensa: async (datos: any) => {
+    const respuesta = await api.post('/defensas/programar', datos);
+    return respuesta.data;
+  },
+  confirmarAsistencia: async (id: number) => {
+    const respuesta = await api.patch(`/defensas/${id}/confirmar-asistencia`);
+    return respuesta.data;
+  },
+  calificarDefensa: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/defensas/${id}/calificar`, datos);
+    return respuesta.data;
+  },
+  agregarComentariosCorreccion: async (id: number, comentarios: string) => {
+    const respuesta = await api.patch(`/defensas/${id}/comentarios-correccion`, { comentarios });
+    return respuesta.data;
+  },
+  evaluarDefensa: async (id: number, datos: any) => {
+    const respuesta = await api.post(`/defensas/${id}/evaluar`, datos);
+    return respuesta.data;
+  },
+  emitirOpinion: async (id: number, datos: any) => {
+    const respuesta = await api.post(`/defensas/${id}/opinion`, datos);
+    return respuesta.data;
+  },
+  obtenerMiTribunal: async () => {
+    const respuesta = await api.get('/defensas/mis-asignaciones');
+    return respuesta.data;
+  },
+  obtenerSolicitudesPendientes: async () => {
+    const respuesta = await api.get('/defensas/solicitudes-pendientes');
+    return respuesta.data;
+  },
+  obtenerDefensasProgramadas: async (tipo?: string) => {
+    const params = tipo ? { tipo } : {};
+    const respuesta = await api.get('/defensas/programadas', { params });
+    return respuesta.data;
+  },
+  obtenerTodasPreDefensas: async () => {
+    const respuesta = await api.get('/defensas/todas-pre-defensas');
+    return respuesta.data;
+  },
+  obtenerTodasDefensas: async () => {
+    const respuesta = await api.get('/defensas/todas-defensas');
+    return respuesta.data;
+  },
+  obtenerDefensasFinalizadas: async (tipo?: string) => {
+    const params = tipo ? { tipo } : {};
+    const respuesta = await api.get('/defensas/finalizadas', { params });
+    return respuesta.data;
+  },
+  obtenerDefensasPorProyecto: async (id_proyecto: number) => {
+    const respuesta = await api.get(`/defensas/proyecto/${id_proyecto}`);
+    return respuesta.data;
+  },
+  obtenerDetalle: async (id: number) => {
+    const respuesta = await api.get(`/defensas/${id}`);
+    return respuesta.data;
+  },
+  validarTribunal: async (id_proyecto: number, ids_asesores: number[]) => {
+    const respuesta = await api.post('/defensas/validar-tribunal', { id_proyecto, ids_asesores });
+    return respuesta.data;
+  },
+  iniciarDefensa: async (id: number) => {
+    const respuesta = await api.patch(`/defensas/${id}/iniciar`);
+    return respuesta.data;
+  },
+  finalizarDefensa: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/defensas/${id}/finalizar`, datos);
+    return respuesta.data;
+  },
+  rehabilitarDefensa: async (id_proyecto: number) => {
+    const respuesta = await api.post(`/defensas/rehabilitar/${id_proyecto}`);
+    return respuesta.data;
+  },
+  reprogramarDefensa: async (id_proyecto: number, datos: any) => {
+    const respuesta = await api.post(`/defensas/reprogramar/${id_proyecto}`, datos);
+    return respuesta.data;
+  },
+  obtenerProyectosParaReprogramar: async () => {
+    const respuesta = await api.get('/defensas/para-reprogramar');
+    return respuesta.data;
+  },
+  obtenerObservacionesPreDefensa: async (id_proyecto: number) => {
+    const respuesta = await api.get(`/defensas/observaciones-estudiante/${id_proyecto}`);
+    return respuesta.data;
+  },
+  asignarFechaDefensa: async (id_defensa: number, datos: any) => {
+    const respuesta = await api.patch(`/defensas/${id_defensa}/asignar-fecha`, datos);
+    return respuesta.data;
+  },
+};
+
+export const cronogramaApi = {
+  obtenerPorProyecto: async (proyectoId: number) => {
+    const respuesta = await api.get(`/cronograma/proyecto/${proyectoId}`);
+    return respuesta.data;
+  },
+  proponer: async (proyectoId: number, datos: any) => {
+    const respuesta = await api.post(`/cronograma/proyecto/${proyectoId}/proponer`, datos);
+    return respuesta.data;
+  },
+  aceptarPropuesta: async (id: number) => {
+    const respuesta = await api.patch(`/cronograma/${id}/aceptar`);
+    return respuesta.data;
+  },
+  cambiarPropuesta: async (id: number, datos: any) => {
+    const respuesta = await api.patch(`/cronograma/${id}/cambiar`, datos);
+    return respuesta.data;
+  },
+  reconfirmarPropuesta: async (id: number) => {
+    const respuesta = await api.patch(`/cronograma/${id}/reconfirmar`);
+    return respuesta.data;
+  },
+};
+
+// ============== API PÚBLICA (Sin autenticación) ==============
+export const apiPublica = axios.create({
+  baseURL: `${API_URL}/api`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export const repositorioPublicoApi = {
+  buscarProyectos: async (params: any) => {
+    const respuesta = await apiPublica.get('/proyectos/repositorio/publico', { params });
+    return respuesta.data;
+  },
+  obtenerProyecto: async (id: number) => {
+    const respuesta = await apiPublica.get(`/proyectos/repositorio/publico/${id}`);
+    return respuesta.data;
+  },
+  obtenerAsesores: async () => {
+    const respuesta = await apiPublica.get('/proyectos/repositorio/publico/asesores');
     return respuesta.data;
   },
 };

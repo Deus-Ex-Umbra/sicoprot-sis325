@@ -65,6 +65,22 @@ export class BuscarProyectosDto {
     @IsOptional()
     @IsString()
     asesorId?: string;
+
+    @ApiProperty({
+        description: 'Filtrar solo proyectos terminados (con defensa aprobada)',
+        required: false,
+        example: true
+    })
+    @IsOptional()
+    soloTerminados?: boolean;
+
+    @ApiProperty({
+        description: 'Filtrar solo perfiles aprobados',
+        required: false,
+        example: true
+    })
+    @IsOptional()
+    soloPerfilesAprobados?: boolean;
 }
 
 export class ResultadoBusqueda {
@@ -77,4 +93,5 @@ export class ResultadoBusqueda {
     fecha_creacion: Date;
     etapa_actual: EtapaProyecto;
     proyecto_aprobado: boolean;
+    perfil_aprobado?: boolean;
 }

@@ -15,6 +15,8 @@ import {
   LineChart,
   CalendarClock,
   Archive,
+  Gavel,
+  Cog,
 } from 'lucide-react';
 import { cn } from '../lib/utilidades';
 import { ScrollArea } from './ui/scroll-area';
@@ -205,6 +207,11 @@ const BarraLateral = ({ isOpen }: BarraLateralProps) => {
                         label={colapsado ? '' : 'Mis Estudiantes'}
                       />
                       <NavItem
+                        to="/panel/configurar-grupos"
+                        icon={<Cog />}
+                        label={colapsado ? '' : 'Configurar Grupos'}
+                      />
+                      <NavItem
                         to="/panel/gestion-observaciones"
                         icon={<ClipboardList />}
                         label={colapsado ? '' : 'Observaciones'}
@@ -213,6 +220,11 @@ const BarraLateral = ({ isOpen }: BarraLateralProps) => {
                         to="/panel/revisar"
                         icon={<BookOpen />}
                         label={colapsado ? '' : 'Revisar Documentos'}
+                      />
+                      <NavItem
+                        to="/panel/mis-tribunales"
+                        icon={<Gavel />}
+                        label={colapsado ? '' : 'Mis Tribunales'}
                       />
                     </nav>
                   </div>

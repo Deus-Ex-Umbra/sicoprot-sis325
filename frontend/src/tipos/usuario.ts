@@ -23,10 +23,39 @@ export const EtapaProyecto = {
   PROYECTO: 'proyecto',
   LISTO_DEFENSA: 'listo_defensa',
   SOLICITUD_DEFENSA: 'solicitud_defensa',
+  PRE_DEFENSA: 'pre_defensa',
+  EN_DEFENSA: 'en_defensa',
+  REPROBADO: 'reprobado',
   TERMINADO: 'terminado',
 } as const;
 
 export type EtapaProyecto = typeof EtapaProyecto[keyof typeof EtapaProyecto];
+
+export const TipoDefensa = {
+  PRE_DEFENSA: 'pre_defensa',
+  DEFENSA: 'defensa',
+} as const;
+
+export type TipoDefensa = typeof TipoDefensa[keyof typeof TipoDefensa];
+
+export const EstadoDefensa = {
+  PROGRAMADA: 'programada',
+  EN_CURSO: 'en_curso',
+  FINALIZADA: 'finalizada',
+  APROBADA: 'aprobada',
+  REPROBADA: 'reprobada',
+  CANCELADA: 'cancelada',
+} as const;
+
+export type EstadoDefensa = typeof EstadoDefensa[keyof typeof EstadoDefensa];
+
+export const ResultadoDefensa = {
+  PENDIENTE: 'pendiente',
+  APROBADO: 'aprobado',
+  REPROBADO: 'reprobado',
+} as const;
+
+export type ResultadoDefensa = typeof ResultadoDefensa[keyof typeof ResultadoDefensa];
 
 export const EstadoObservacion = {
   PENDIENTE: 'pendiente',
@@ -51,6 +80,13 @@ export const TipoGrupo = {
 } as const;
 
 export type TipoGrupo = typeof TipoGrupo[keyof typeof TipoGrupo];
+
+export const TipoDocumento = {
+  PERFIL: 'perfil',
+  PROYECTO: 'proyecto',
+} as const;
+
+export type TipoDocumento = typeof TipoDocumento[keyof typeof TipoDocumento];
 
 export interface Estudiante {
   id: number;
@@ -118,6 +154,11 @@ export interface Grupo {
   periodo: Periodo;
   estudiantes?: Estudiante[];
   fecha_creacion: string;
+  fecha_limite_propuesta?: string;
+  fecha_limite_perfil?: string;
+  fecha_limite_proyecto?: string;
+  dias_revision_asesor?: number;
+  dias_correccion_estudiante?: number;
 }
 
 export interface SolicitudRegistro {
@@ -144,9 +185,51 @@ export interface Reunion {
   asesor: Asesor;
 }
 
+export interface TribunalMiembro {
+  id: number;
+  asesor: Asesor;
+  nombre?: string; // Nombre directo del tribunal
+  correo?: string; // Correo directo del tribunal
+  asistencia_confirmada: boolean;
+  fecha_confirmacion?: string;
+  calificacion?: number;
+  observaciones?: string;
+  observaciones_publicas?: string; // Observaciones visibles al estudiante (solo predefensa)
+  comentarios_correccion?: string;
+  nota?: number;
+  nota_valida: boolean;
+  motivo_invalidacion?: string;
+  ha_calificado: boolean;
+  opinion?: string;
+  comentario_evaluacion?: string;
+}
+
+export interface Defensa {
+  id: number;
+  proyecto: Proyecto;
+  fecha_programada: string | null;
+  lugar?: string;
+  enlace?: string;
+  tipo: TipoDefensa;
+  estado: EstadoDefensa;
+  resultado?: ResultadoDefensa;
+  nota_promedio?: number;
+  nota_minima_aprobacion: number;
+  intento_numero: number;
+  observaciones_generales?: string;
+  comentarios_admin?: string;
+  tribunales: TribunalMiembro[];
+  fecha_creacion: string;
+  mi_participacion?: TribunalMiembro; // Para el tribunal logueado
+}
+
 export interface Tribunal {
   nombre: string;
   correo: string;
+  asistencia_confirmada?: boolean;
+  opinion?: string;
+  nota?: number;
+  comentario_evaluacion?: string;
 }
 
 export interface Proyecto {
@@ -178,6 +261,7 @@ export interface Documento {
   ruta_archivo: string;
   version: number;
   fecha_subida: string;
+  tipo_documento?: TipoDocumento;
   proyecto?: Proyecto;
 }
 

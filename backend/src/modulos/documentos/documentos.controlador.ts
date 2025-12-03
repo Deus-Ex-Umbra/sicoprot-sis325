@@ -1,6 +1,7 @@
-import { Controller, Post, Param, UploadedFile, UseInterceptors, ParseIntPipe, Get, Res, Query } from '@nestjs/common';
+import { Controller, Post, Param, UploadedFile, UseInterceptors, ParseIntPipe, Get, Res, Query, Body } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentosService } from './documentos.servicio';
+import { TipoDocumento } from './entidades/documento.entidad';
 import { diskStorage } from 'multer';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -36,6 +37,11 @@ export class DocumentosController {
           type: 'string',
           format: 'binary',
         },
+        tipo_documento: {
+          type: 'string',
+          enum: ['perfil', 'proyecto'],
+          default: 'perfil',
+        },
       },
     },
   })
@@ -44,8 +50,10 @@ export class DocumentosController {
   subirDocumento(
     @Param('proyectoId', ParseIntPipe) proyectoId: number,
     @UploadedFile() archivo: Express.Multer.File,
+    @Body('tipo_documento') tipo_documento?: string,
   ) {
-    return this.servicio_documentos.guardarRegistro(proyectoId, archivo);
+    const tipo = tipo_documento === 'proyecto' ? TipoDocumento.PROYECTO : TipoDocumento.PERFIL;
+    return this.servicio_documentos.guardarRegistro(proyectoId, archivo, tipo);
   }
 
   @Get(':id/archivo')

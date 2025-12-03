@@ -8,6 +8,8 @@ import {
   Loader2,
   GraduationCap,
   CheckCircle,
+  Clock,
+  AlertTriangle,
 } from 'lucide-react';
 import { gruposApi, proyectosApi } from '../../servicios/api';
 import { useAutenticacion } from '../../contextos/autenticacion-contexto';
@@ -16,7 +18,7 @@ import { toast } from 'sonner';
 import BarraLateral from '../../componentes/barra-lateral';
 import BarraLateralAdmin from '../../componentes/barra-lateral-admin';
 import { cn } from '../../lib/utilidades';
-import { Card, CardContent, CardHeader, CardTitle } from '../../componentes/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../componentes/ui/card';
 import { Button } from '../../componentes/ui/button';
 import { Badge } from '../../componentes/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../../componentes/ui/alert';
@@ -170,7 +172,113 @@ const InscripcionGrupos = () => {
             </div>
           </div>
 
+          {/* Sección de Configuración del Grupo - Fechas y Tiempos */}
           <Separator className="my-4" />
+          
+          <Card className="mb-6 border-dashed">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                Configuración de Tiempos del Grupo
+              </CardTitle>
+              <CardDescription>
+                Fechas límite y tiempos establecidos por tu asesor
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Fechas Límite */}
+                {mi_grupo.tipo === 'taller_grado_i' && (
+                  <>
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-2 mb-1">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <span className="font-medium text-sm">Fecha Límite Propuesta</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {mi_grupo.fecha_limite_propuesta 
+                          ? new Date(mi_grupo.fecha_limite_propuesta).toLocaleDateString('es-ES', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })
+                          : 'No establecida'}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-2 mb-1">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <span className="font-medium text-sm">Fecha Límite Perfil</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {mi_grupo.fecha_limite_perfil 
+                          ? new Date(mi_grupo.fecha_limite_perfil).toLocaleDateString('es-ES', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })
+                          : 'No establecida'}
+                      </p>
+                    </div>
+                  </>
+                )}
+                {mi_grupo.tipo === 'taller_grado_ii' && (
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <span className="font-medium text-sm">Fecha Límite Proyecto</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {mi_grupo.fecha_limite_proyecto 
+                        ? new Date(mi_grupo.fecha_limite_proyecto).toLocaleDateString('es-ES', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })
+                        : 'No establecida'}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Tiempos de Revisión */}
+                <div className="p-3 rounded-lg bg-blue-500/10">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock className="h-4 w-4 text-blue-500" />
+                    <span className="font-medium text-sm">Días Revisión Asesor</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {mi_grupo.dias_revision_asesor 
+                      ? `${mi_grupo.dias_revision_asesor} días`
+                      : 'No establecido'}
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-green-500/10">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock className="h-4 w-4 text-green-500" />
+                    <span className="font-medium text-sm">Días para Correcciones</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {mi_grupo.dias_correccion_estudiante 
+                      ? `${mi_grupo.dias_correccion_estudiante} días`
+                      : 'No establecido'}
+                  </p>
+                </div>
+              </div>
+              
+              {(!mi_grupo.fecha_limite_propuesta && !mi_grupo.fecha_limite_perfil && !mi_grupo.fecha_limite_proyecto && !mi_grupo.dias_revision_asesor && !mi_grupo.dias_correccion_estudiante) && (
+                <Alert className="mt-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Sin configuración</AlertTitle>
+                  <AlertDescription>
+                    Tu asesor aún no ha configurado las fechas límite y tiempos de revisión para este grupo.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
 
           <h5 className="font-semibold mb-3">
             Estudiantes Inscritos ({mi_grupo.estudiantes?.length || 0})

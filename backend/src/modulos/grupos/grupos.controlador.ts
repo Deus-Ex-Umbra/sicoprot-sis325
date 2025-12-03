@@ -54,6 +54,13 @@ export class GruposController {
     return this.servicio_grupos.obtenerPorPeriodo(periodoId);
   }
 
+  @Get('mis-grupos')
+  @ApiOperation({ summary: 'Obtener grupos asignados al asesor autenticado' })
+  @ApiResponse({ status: 200, description: 'Lista de grupos del asesor.' })
+  obtenerMisGrupos(@Request() req) {
+    return this.servicio_grupos.obtenerGruposDelAsesor(req.user.id_usuario);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un grupo por su ID' })
   @ApiParam({ name: 'id', description: 'ID del grupo' })
@@ -68,6 +75,25 @@ export class GruposController {
   @ApiResponse({ status: 200, description: 'Grupo actualizado.' })
   actualizar(@Param('id', ParseIntPipe) id: number, @Body() actualizar_grupo_dto: ActualizarGrupoDto) {
     return this.servicio_grupos.actualizar(id, actualizar_grupo_dto);
+  }
+
+  @Patch(':id/configurar')
+  @ApiOperation({ summary: 'Configurar fechas límite y tiempos de un grupo (Asesor)' })
+  @ApiParam({ name: 'id', description: 'ID del grupo' })
+  @ApiResponse({ status: 200, description: 'Grupo configurado exitosamente.' })
+  @ApiResponse({ status: 403, description: 'Solo el asesor asignado puede configurar este grupo.' })
+  configurarGrupo(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() configuracion: {
+      fecha_limite_propuesta?: string | null;
+      fecha_limite_perfil?: string | null;
+      fecha_limite_proyecto?: string | null;
+      dias_revision_asesor?: number;
+      dias_correccion_estudiante?: number;
+    },
+    @Request() req
+  ) {
+    return this.servicio_grupos.configurarGrupo(id, req.user.id_usuario, configuracion);
   }
 
   @Post(':id/asignar-estudiante')

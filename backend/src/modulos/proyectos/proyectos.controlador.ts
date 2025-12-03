@@ -17,15 +17,50 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 
 @ApiTags('proyectos')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(JwtGuard)
 @Controller('proyectos')
 export class ProyectosController {
   constructor(private readonly servicio_proyectos: ProyectosService) {}
 
+  // ============== ENDPOINTS PÚBLICOS (Sin autenticación) ==============
+  
+  @Get('repositorio/publico')
+  @ApiOperation({ summary: 'Buscar proyectos terminados en el repositorio público (Sin autenticación)' })
+  @ApiQuery({ name: 'termino', required: false, type: String })
+  @ApiQuery({ name: 'anio', required: false, type: String })
+  @ApiQuery({ name: 'asesorId', required: false, type: String })
+  @ApiQuery({ name: 'soloTerminados', required: false, type: Boolean })
+  @ApiQuery({ name: 'soloPerfilesAprobados', required: false, type: Boolean })
+  @ApiResponse({ status: 200, description: 'Resultados de la búsqueda pública' })
+  async buscarProyectosPublico(@Query() buscar_dto: BuscarProyectosDto) {
+    // Forzar que solo devuelva proyectos terminados o perfiles aprobados
+    if (!buscar_dto.soloPerfilesAprobados) {
+      buscar_dto.soloTerminados = true;
+    }
+    return this.servicio_proyectos.buscarProyectosPublico(buscar_dto);
+  }
+
+  @Get('repositorio/publico/asesores')
+  @ApiOperation({ summary: 'Obtener lista de asesores para filtro público (Sin autenticación)' })
+  @ApiResponse({ status: 200, description: 'Lista de asesores' })
+  async obtenerAsesoresPublico() {
+    return this.servicio_proyectos.obtenerAsesoresPublico();
+  }
+
+  @Get('repositorio/publico/:id')
+  @ApiOperation({ summary: 'Obtener detalle de un proyecto terminado (Sin autenticación)' })
+  @ApiParam({ name: 'id', description: 'ID del proyecto' })
+  @ApiResponse({ status: 200, description: 'Proyecto encontrado.' })
+  @ApiResponse({ status: 404, description: 'Proyecto no encontrado o no está terminado.' })
+  async obtenerProyectoPublico(@Param('id', ParseIntPipe) id: number) {
+    return this.servicio_proyectos.obtenerProyectoPublico(id);
+  }
+
+  // ============== ENDPOINTS PROTEGIDOS (Requieren autenticación) ==============
+
   @Post()
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(Rol.Estudiante)
-  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Crear un nuevo proyecto (Taller I)' })
   @ApiResponse({ status: 201, description: 'Proyecto creado exitosamente.' })
   @ApiResponse({ status: 404, description: 'Estudiante o Asesor no encontrado.' })
@@ -34,6 +69,8 @@ export class ProyectosController {
   }
 
   @Get()
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard)
   @ApiOperation({ summary: 'Obtener todos los proyectos del usuario' })
   @ApiResponse({ status: 200, description: 'Lista de proyectos del usuario.' })
   obtenerTodos(@Request() req) {
@@ -41,6 +78,8 @@ export class ProyectosController {
   }
 
   @Get('buscar')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard)
   @ApiOperation({ summary: 'Buscar en el repositorio de proyectos de grado' })
   @ApiQuery({ name: 'termino', required: false, type: String })
   @ApiQuery({ name: 'periodoId', required: false, type: String })
@@ -59,8 +98,9 @@ export class ProyectosController {
   }
 
   @Get('solicitudes/defensa')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(Rol.Administrador)
-  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Obtener todas las solicitudes de defensa (Admin)' })
   @ApiQuery({ name: 'estado', required: false, enum: ['pendientes', 'aprobadas', 'rechazadas'] })
   @ApiResponse({ status: 200, description: 'Lista de solicitudes de defensa.' })
@@ -69,8 +109,9 @@ export class ProyectosController {
   }
 
   @Get('historial-progreso')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(Rol.Estudiante)
-  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Obtener historial de avances y revisiones (Estudiante)' })
   @ApiResponse({ status: 200, description: 'Historial de progreso del estudiante' })
   @ApiResponse({ status: 404, description: 'Estudiante sin proyecto asignado' })
@@ -79,8 +120,9 @@ export class ProyectosController {
   }
 
   @Get('cronograma')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(Rol.Estudiante)
-  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Obtener cronograma de fechas límite (Estudiante)' })
   @ApiResponse({ status: 200, description: 'Cronograma del proyecto del estudiante' })
   @ApiResponse({ status: 404, description: 'Estudiante sin proyecto o período asignado' })
@@ -89,8 +131,9 @@ export class ProyectosController {
   }
 
   @Get('timeline')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(Rol.Estudiante)
-  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Obtener línea de tiempo completa del proyecto (Estudiante)' })
   @ApiResponse({ status: 200, description: 'Línea de tiempo completa.' })
   async obtenerTimelineCompleto(@Request() req) {
@@ -98,6 +141,8 @@ export class ProyectosController {
   }
 
   @Get(':id')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard)
   @ApiOperation({ summary: 'Obtener un proyecto por su ID' })
   @ApiParam({ name: 'id', description: 'ID numérico del proyecto' })
   @ApiResponse({ status: 200, description: 'Proyecto encontrado.' })
@@ -108,8 +153,9 @@ export class ProyectosController {
   }
 
   @Patch(':id/aprobar-etapa')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(Rol.Asesor)
-  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Aprobar una etapa del proyecto (Asesor)' })
   @ApiParam({ name: 'id', description: 'ID del proyecto' })
   @ApiResponse({ status: 200, description: 'Etapa aprobada exitosamente' })
@@ -124,8 +170,9 @@ export class ProyectosController {
   }
 
   @Patch(':id/tema')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(Rol.Asesor)
-  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Aprobar o rechazar el tema propuesto (Asesor)' })
   @ApiParam({ name: 'id', description: 'ID del proyecto' })
   @ApiResponse({ status: 200, description: 'Tema gestionado exitosamente' })
@@ -140,8 +187,9 @@ export class ProyectosController {
   }
 
   @Patch(':id/propuesta')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(Rol.Estudiante)
-  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Actualizar una propuesta rechazada (Estudiante)' })
   @ApiParam({ name: 'id', description: 'ID del proyecto' })
   @ApiResponse({ status: 200, description: 'Propuesta actualizada.' })
@@ -154,8 +202,9 @@ export class ProyectosController {
   }
 
   @Patch(':id/solicitar-defensa')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(Rol.Estudiante)
-  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Solicitar defensa de proyecto (Estudiante)' })
   @ApiParam({ name: 'id', description: 'ID del proyecto' })
   @ApiConsumes('multipart/form-data')
@@ -208,8 +257,9 @@ export class ProyectosController {
   }
   
   @Patch(':id/responder-defensa')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtGuard, RolesGuard)
   @Roles(Rol.Administrador)
-  @UseGuards(RolesGuard)
   @ApiOperation({ summary: 'Responder solicitud de defensa (Admin)' })
   @ApiParam({ name: 'id', description: 'ID del proyecto' })
   @ApiResponse({ status: 200, description: 'Respuesta a solicitud registrada.' })
