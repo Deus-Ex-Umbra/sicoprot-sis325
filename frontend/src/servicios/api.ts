@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = (import.meta as any).env.VITE_API_URL || 'https://sis325-backend.ddns.net';
 //const API_URL = 'https://sicoprot-backend.ddns.net';
 
 export const api = axios.create({
