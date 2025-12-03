@@ -108,7 +108,7 @@ export class Observacion {
     nullable: true,
   })
   @JoinColumn({ name: 'id_proyecto' })
-  proyecto: Proyecto | null;
+  proyecto: Proyecto;
 
   @OneToMany(() => Correccion, (correccion) => correccion.observacion, {
     nullable: true,

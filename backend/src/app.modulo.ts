@@ -15,7 +15,6 @@ import { SolicitudesRegistroModule } from './modulos/solicitudes-registro/solici
 import { AdministracionModule } from './modulos/administracion/administracion.modulo';
 import { SemillaModule } from './modulos/semilla/semilla.modulo';
 import { ReunionesModule } from './modulos/reuniones/reuniones.modulo';
-import { EvaluacionTribunalModule } from './modulos/evaluacion/evaluacionTribunal.modulo';
 
 console.log({
   user: process.env.DB_USERNAME,
@@ -54,7 +53,6 @@ console.log({
     SolicitudesRegistroModule,
     AdministracionModule,
     ReunionesModule,
-    EvaluacionTribunalModule,
   ],
   controllers: [],
   providers: [],

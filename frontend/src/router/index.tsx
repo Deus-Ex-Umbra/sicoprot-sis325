@@ -25,10 +25,7 @@ import MiProgreso from '../paginas/estudiante/MiProgreso';
 import MiCronograma from '../paginas/estudiante/MiCronograma';
 import { Rol } from '../tipos/usuario';
 import SolicitudesDefensa from '../paginas/admin/SolicitudesDefensa';
-import BuscadorPublico  from '../paginas/BuscadorPublico';
-import EvaluarProyecto from '../paginas/tribunal/EvaluarProyecto';
-import AsignarTribunal from '../paginas/admin/AsignarTribunal';
-import ListaProyectosTribunal  from '../paginas/tribunal/ListarProyectostribunal';
+
 const router = createBrowserRouter([
   { path: '*', element: <Navigate to="/iniciar-sesion" replace /> },
   { path: '/', element: <Navigate to="/panel" replace /> },
@@ -39,43 +36,6 @@ const router = createBrowserRouter([
     element: (
       <RutaProtegida>
         <Panel />
-      </RutaProtegida>
-    ),
-  },
-  {
-    path: '/buscar-proyectos',
-    element: <BuscadorPublico />,
-  },
-  {
-    path: '/panel/tribunal/proyectos/:id/evaluar',
-    element: (
-      <RutaProtegida roles_permitidos={[Rol.Tribunal]}>
-        <EvaluarProyecto />
-      </RutaProtegida>
-    ),
-  },
-  
-  // Admin
-  {
-    path: '/panel/admin/proyectos/:id/asignar-tribunal',
-    element: <RutaProtegida roles_permitidos={[Rol.Administrador]}><AsignarTribunal /></RutaProtegida>
-  },
-
-  // Tribunal
-  {
-    path: '/panel/tribunal/proyectos',
-    element: <RutaProtegida roles_permitidos={[Rol.Tribunal]}><ListaProyectosTribunal /></RutaProtegida>
-  },
-  {
-    path: '/panel/tribunal/proyectos/:id/evaluar',
-    element: <RutaProtegida roles_permitidos={[Rol.Tribunal]}><EvaluarProyecto /></RutaProtegida>
-  },
-
-  {
-    path: '/panel/admin/proyectos/:id/asignar-tribunal',
-    element: (
-      <RutaProtegida roles_permitidos={[Rol.Administrador]}>
-        <AsignarTribunal />
       </RutaProtegida>
     ),
   },

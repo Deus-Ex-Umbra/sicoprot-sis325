@@ -14,7 +14,6 @@ import { Estudiante } from '../estudiantes/entidades/estudiante.entidad';
 import { Asesor } from '../asesores/entidades/asesor.entidad';
 import { Rol } from './enums/rol.enum';
 import * as bcrypt from 'bcrypt';
-import { EstadoUsuario } from './enums/estado-usuario.enum';
 
 @Injectable()
 export class UsuariosService {
@@ -237,12 +236,5 @@ export class UsuariosService {
       throw new NotFoundException(`Usuario con ID '${id}' no encontrado.`);
     }
     return { message: `Usuario con ID '${id}' eliminado.` };
-  }
-
-  async listarPorRol(rol: Rol) {
-    return this.repositorio_usuario.find({
-      where: {rol: rol as Rol, estado: EstadoUsuario.Activo },
-      select: ['id', 'correo','ci','rol'], // solo lo necesario
-    });
   }
 }
